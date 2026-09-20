@@ -47,7 +47,7 @@ export default async function StudentVisitsPage() {
                                         <p className="font-semibold text-gray-900">{formatDate(v.visit_date)}</p>
                                         <p className="mt-1 text-sm text-gray-600">
                                             {v.complaint}
-                                            {v.attending_staff && ` · Seen by ${v.attending_staff}`} · Tap to expand
+                                            {v.attending_staff && ` · Seen by ${v.attending_staff}`}
                                         </p>
                                     </div>
                                     <ChevronDown className="mt-1 h-4 w-4 shrink-0 text-gray-400 transition-transform group-open:rotate-180" />

@@ -63,12 +63,14 @@ export default function EmployeeLoginPage() {
                         Your records are private and only visible to you and authorized clinic staff.
                     </p>
 
-                    <Link
-                        href="/login"
-                        className="block text-center text-sm font-semibold text-[#0d6e56] hover:underline"
-                    >
-                        Back to Staff Login
-                    </Link>
+                    <div className=" text-center">
+                        <p className="mt-6 text-sm text-gray-600">
+                            Are you clinic staff?{" "}
+                            <Link href="/login" className="font-semibold text-[#0d6e56] hover:underline">
+                                Sign in to Staff Portal
+                            </Link>
+                        </p>
+                    </div>
                 </form>
             </div>
         </main>

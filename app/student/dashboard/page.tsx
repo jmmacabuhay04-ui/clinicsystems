@@ -31,7 +31,7 @@ export default async function StudentOverviewPage() {
             <main className="mx-auto max-w-6xl space-y-6 px-4 py-6">
                 <section className="rounded-xl bg-[#15664f] p-6 text-white shadow">
                     <p className="text-sm text-white/80">Welcome back,</p>
-                    <h1 className="mt-1 text-3xl font-bold">{student.first_name}!</h1>
+                    <h1 className="mt-1 text-4xl font-bold">{student.first_name}!</h1>
                     <p className="mt-2 text-sm text-white/80">
                         You have {visits.length} clinic visit{visits.length === 1 ? "" : "s"} on record.
                     </p>

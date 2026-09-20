@@ -122,17 +122,12 @@
     @apply border-border outline-ring/50;
   }
 
-  body {
-    @apply bg-background text-foreground;
-
-    font-size: 1.05rem;
-
+  html {
+    font-size: 125%;
   }
 
-  html {
-    @apply font-sans;
-    font-size: 20px;
-
+  body {
+    @apply bg-background text-foreground;
   }
 
   .auth-bg {

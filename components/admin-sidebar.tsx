@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import image from "next/image";
 import {
     Activity,
     Archive,
@@ -9,6 +10,7 @@ import {
     ClipboardList,
     FileCheck,
     FileText,
+    GraduationCap,
     LayoutDashboard,
     LogOut,
     Settings,
@@ -33,6 +35,12 @@ const navItems: NavItem[] = [
         label: "Dashboard",
         icon: LayoutDashboard,
         roles: ["admin", "doctor", "dentist", "nurse"],
+    },
+    {
+        href: "/dashboard/student-health-records",
+        label: "Student Health Records",
+        icon: FileText,
+        roles: ["admin", "doctor", "nurse"],
     },
     {
         href: "/dashboard/student-health-form",
@@ -140,8 +148,18 @@ export default function AdminSidebar({ username, role }: Props) {
     return (
         <aside className="flex w-full shrink-0 flex-col bg-[#15664f] text-white md:sticky md:top-0 md:h-screen md:w-68">
             <div className="border-b border-white/10 px-5 py-6">
-                <p className="text-xs uppercase tracking-wide text-white/70">BCAS Clinic</p>
-                <p className="mt-1 truncate text-lg font-semibold" title={username}>
+                <div className="flex items-center gap-3">
+                    <img
+                        src="/bcas.jpg"
+                        alt="BCAS"
+                        className="h-11 w-11 shrink-0 rounded-full bg-white object-contain p-1"
+                    />
+                    <p className="text-sm font-semibold uppercase tracking-wide text-white/90">
+                        BCAS Clinic
+                    </p>
+                </div>
+
+                <p className="mt-3 truncate text-lg font-semibold" title={username}>
                     {displayName}
                 </p>
                 <span className="mt-2 inline-block rounded bg-white/20 px-2 py-0.5 text-xs font-medium">
