@@ -1,0 +1,22 @@
+CREATE TABLE IF NOT EXISTS health_declarations (
+  declaration_id         SERIAL PRIMARY KEY,
+  student_id             INTEGER NOT NULL UNIQUE REFERENCES students(student_id) ON DELETE CASCADE,
+  school_year            VARCHAR(20),
+  grade_section          VARCHAR(100),
+  residence_address      VARCHAR(255),
+  emergency_name         VARCHAR(100),
+  emergency_relationship VARCHAR(50),
+  emergency_numbers      VARCHAR(100),
+  going_home             VARCHAR(50),
+  going_home_other       VARCHAR(150),
+  symptoms               JSONB NOT NULL DEFAULT '{}'::jsonb,
+  symptom_notes          TEXT,
+  vaccination_submitted  BOOLEAN NOT NULL DEFAULT false,
+  medical_cert_submitted BOOLEAN NOT NULL DEFAULT false,
+  medicines              TEXT,
+  certified_by           VARCHAR(100),
+  declaration_date       DATE,
+  updated_by             VARCHAR(100),
+  created_at             TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at             TIMESTAMP(3)
+);

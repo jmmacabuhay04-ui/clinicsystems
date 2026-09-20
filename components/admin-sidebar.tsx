@@ -49,6 +49,12 @@ const navItems: NavItem[] = [
         roles: ["admin", "doctor", "nurse"],
     },
     {
+        href: "/dashboard/health-declaration",
+        label: "Health Declaration",
+        icon: ClipboardList,
+        roles: ["admin", "doctor", "nurse"],
+    },
+    {
         href: "/dashboard/employee-health-records",
         label: "Employee Health Records",
         icon: Briefcase,
