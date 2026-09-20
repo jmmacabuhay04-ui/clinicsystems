@@ -1,0 +1,170 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  user_id         Int                  @id @default(autoincrement())
+  username        String               @unique @db.VarChar(50)
+  password        String               @db.VarChar(255)
+  role            String               @default("staff") @db.VarChar(20)
+  session_minutes Int                  @default(60)
+  two_factor      Boolean              @default(false)
+  created_at      DateTime             @default(now())
+  reset_tokens    PasswordResetToken[]
+
+  @@map("users")
+}
+model PasswordResetToken {
+  id         Int       @id @default(autoincrement())
+  user_id    Int
+  token_hash String    @unique @db.VarChar(64)
+  expires_at DateTime
+  used_at    DateTime?
+  created_at DateTime  @default(now())
+  user       User      @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@map("password_reset_tokens")
+}
+
+model Student {
+  student_id     Int            @id @default(autoincrement())
+  student_number String         @unique @db.VarChar(20)
+  last_name      String         @db.VarChar(50)
+  first_name     String         @db.VarChar(50)
+  middle_name    String?        @db.VarChar(50)
+  grade_level    String?        @db.VarChar(30)
+  program        String?        @db.VarChar(100)
+  password       String         @db.VarChar(255)
+  date_of_birth  DateTime?      @db.Date
+  gender         String?        @db.VarChar(10)
+  archived_at    DateTime?
+  archived_by    Int?
+  created_at     DateTime       @default(now())
+  health_records HealthRecord[]
+
+  @@map("students")
+}
+
+model HealthRecord {
+  record_id       Int       @id @default(autoincrement())
+  student_id      Int
+  visit_date      DateTime  @db.Date
+  complaint       String    @db.VarChar(255)
+  action_taken    String?   @db.VarChar(255)
+  attending_staff String?   @db.VarChar(100)
+  height_cm       Float?
+  weight_kg       Float?
+  heart_rate      Int?
+  blood_pressure  String?   @db.VarChar(10)
+  temperature     Float?
+  recorded_by     Int?
+  archived_at     DateTime?
+  archived_by     Int?
+  created_at      DateTime  @default(now())
+  student         Student   @relation(fields: [student_id], references: [student_id], onDelete: Cascade)
+
+  @@index([student_id])
+  @@map("health_records")
+}
+
+model HealthCaseReport {
+  case_id     Int       @id @default(autoincrement())
+  case_number String    @unique @db.VarChar(20)
+  student_id  Int
+  complaint   String    @db.VarChar(255)
+  report_date DateTime  @db.Date
+  staff_name  String?   @db.VarChar(100)
+  status      String    @default("pending") @db.VarChar(20)
+  notes       String?
+  recorded_by Int?
+  archived_at DateTime?
+  archived_by Int?
+  created_at  DateTime  @default(now())
+
+  @@index([student_id])
+  @@map("health_case_reports")
+}
+
+model VisitorLog {
+  visitor_id   Int       @id @default(autoincrement())
+  visitor_name String    @db.VarChar(100)
+  purpose      String    @db.VarChar(150)
+  relation     String?   @db.VarChar(50)
+  visit_date   DateTime  @db.Date
+  time_in      String    @db.VarChar(5)
+  time_out     String?   @db.VarChar(5)
+  recorded_by  Int?
+  archived_at  DateTime?
+  archived_by  Int?
+  created_at   DateTime  @default(now())
+
+  @@index([visit_date])
+  @@map("visitor_logs")
+}
+
+model DentalRecord {
+  dental_id      Int       @id @default(autoincrement())
+  student_id     Int
+  visit_date     DateTime  @db.Date
+  procedure_name String    @db.VarChar(150)
+  tooth          String?   @db.VarChar(50)
+  dentist_name   String?   @db.VarChar(100)
+  status         String    @default("completed") @db.VarChar(20)
+  notes          String?
+  recorded_by    Int?
+  archived_at    DateTime?
+  archived_by    Int?
+  created_at     DateTime  @default(now())
+
+  @@index([student_id])
+  @@map("dental_records")
+}
+
+model ReferralSlip {
+  slip_id      Int       @id @default(autoincrement())
+  slip_type    String    @default("teacher") @db.VarChar(20)
+  student_id   Int
+  section      String?   @db.VarChar(50)
+  teacher_name String?   @db.VarChar(100)
+  subject      String?   @db.VarChar(100)
+  reason       String    @db.VarChar(500)
+  status       String    @default("pending") @db.VarChar(20)
+  slip_date    DateTime  @db.Date
+  time_issued  String    @db.VarChar(5)
+  recorded_by  Int?
+  archived_at  DateTime?
+  archived_by  Int?
+  created_at   DateTime  @default(now())
+
+  @@index([student_id])
+  @@map("referral_slips")
+
+}
+model ClinicStaff {
+  staff_id    Int       @id @default(autoincrement())
+  full_name   String    @db.VarChar(100)
+  position    String    @db.VarChar(100)
+  email       String?   @db.VarChar(100)
+  contact     String?   @db.VarChar(30)
+  license_no  String?   @db.VarChar(50)
+  status      String    @default("active") @db.VarChar(20)
+  recorded_by Int?
+  created_at  DateTime  @default(now())
+
+  @@map("clinic_staff")
+}
+model LoginLog {
+  log_id     Int      @id @default(autoincrement())
+  username   String   @db.VarChar(50)
+  status     String   @db.VarChar(20)
+  device     String?  @db.VarChar(100)
+  created_at DateTime @default(now())
+
+  @@index([username])
+  @@map("login_logs")
+}

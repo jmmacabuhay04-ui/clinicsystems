@@ -1,0 +1,129 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { Pencil, Plus, Trash2 } from "lucide-react";
+import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/session";
+import { canManageStaff } from "@/lib/permissions";
+import ConfirmButton from "@/components/confirm-button";
+import { deleteStaff } from "./actions";
+
+type StaffRow = {
+    staff_id: number;
+    full_name: string;
+    position: string;
+    email: string | null;
+    contact: string | null;
+    license_no: string | null;
+    status: string;
+};
+
+const BASE = "/dashboard/clinic-staff";
+
+const statusStyles: Record<string, { label: string; className: string }> = {
+    active: { label: "Active", className: "bg-green-100 text-green-700" },
+    inactive: { label: "Inactive", className: "bg-gray-200 text-gray-600" },
+};
+
+export default async function ClinicStaffPage() {
+    const session = await getSession();
+    if (!session) redirect("/login");
+    if (!canManageStaff(session.role)) redirect("/dashboard");
+
+    const staff = await prisma.$queryRaw<StaffRow[]>`
+    SELECT staff_id, full_name, position, email, contact, license_no, status
+    FROM clinic_staff
+    ORDER BY full_name
+  `;
+
+    return (
+        <main className="space-y-6 p-6 md:p-8">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-semibold text-gray-900">Clinic Staff</h1>
+                    <p className="mt-1 text-gray-600">Manage clinic personnel and their roles.</p>
+                </div>
+
+                <Link
+                    href={`${BASE}/new`}
+                    className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#15664f] px-4 text-sm font-semibold text-white hover:bg-[#10523f]"
+                >
+                    <Plus className="h-4 w-4" />
+                    Add Staff
+                </Link>
+            </div>
+
+            <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                {staff.length === 0 ? (
+                    <p className="p-8 text-center text-sm text-gray-500">No clinic staff recorded yet.</p>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm">
+                            <thead className="bg-gray-50 text-gray-700">
+                                <tr>
+                                    <th className="px-4 py-3 font-medium">Name</th>
+                                    <th className="px-4 py-3 font-medium">Role</th>
+                                    <th className="px-4 py-3 font-medium">Email</th>
+                                    <th className="px-4 py-3 font-medium">Contact</th>
+                                    <th className="whitespace-nowrap px-4 py-3 font-medium">License / PRC No.</th>
+                                    <th className="px-4 py-3 font-medium">Status</th>
+                                    <th className="px-4 py-3" />
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {staff.map((s) => {
+                                    const badge = statusStyles[s.status] ?? {
+                                        label: s.status,
+                                        className: "bg-gray-100 text-gray-700",
+                                    };
+                                    return (
+                                        <tr key={s.staff_id} className="border-t border-gray-100">
+                                            <td className="px-4 py-4 font-semibold text-gray-900">{s.full_name}</td>
+                                            <td className="px-4 py-4 text-gray-700">{s.position}</td>
+                                            <td className="px-4 py-4 text-gray-700">{s.email ?? "—"}</td>
+                                            <td className="whitespace-nowrap px-4 py-4 text-gray-700">
+                                                {s.contact ?? "—"}
+                                            </td>
+                                            <td className="whitespace-nowrap px-4 py-4 text-gray-600">
+                                                {s.license_no ?? "—"}
+                                            </td>
+                                            <td className="px-4 py-4">
+                                                <span
+                                                    className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${badge.className}`}
+                                                >
+                                                    {badge.label}
+                                                </span>
+                                            </td>
+                                            <td className="whitespace-nowrap px-4 py-4">
+                                                <div className="flex items-center gap-3">
+                                                    <Link
+                                                        href={`${BASE}/edit?staff=${s.staff_id}`}
+                                                        aria-label="Edit"
+                                                        className="text-gray-400 hover:text-[#15664f]"
+                                                    >
+                                                        <Pencil className="h-4 w-4" />
+                                                    </Link>
+                                                    <form action={deleteStaff}>
+                                                        <input type="hidden" name="staffId" value={s.staff_id} />
+                                                        <ConfirmButton
+                                                            title="Delete staff record"
+                                                            confirmLabel="Delete permanently"
+                                                            danger
+                                                            message={`Permanently delete ${s.full_name} from clinic staff? This cannot be undone.`}
+                                                            className="text-gray-400 hover:text-red-600"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </ConfirmButton>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </section>
+        </main>
+    );
+}
