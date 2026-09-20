@@ -125,7 +125,7 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
                 <input
                     name="q"
                     defaultValue={q}
-                    placeholder="Search by student name..."
+                    placeholder="Search by name, student no., case no., or complaint..."
                     suppressHydrationWarning
                     className="h-11 w-full rounded-lg border border-gray-300 bg-white pl-10 pr-3 text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20"
                 />
@@ -140,6 +140,7 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
                             <thead className="bg-gray-50 text-gray-700">
                                 <tr>
                                     <th className="whitespace-nowrap px-4 py-3 font-medium">Case No.</th>
+                                    <th className="whitespace-nowrap px-4 py-3 font-medium">Student No.</th>
                                     <th className="px-4 py-3 font-medium">Student</th>
                                     <th className="px-4 py-3 font-medium">Complaint</th>
                                     <th className="whitespace-nowrap px-4 py-3 font-medium">Date</th>
@@ -158,6 +159,9 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
                                         <tr key={c.case_id} className="border-t border-gray-100">
                                             <td className="whitespace-nowrap px-4 py-3 font-semibold text-gray-900">
                                                 {c.case_number}
+                                            </td>
+                                            <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                                                {c.student_number}
                                             </td>
                                             <td className="px-4 py-3 text-gray-900">
                                                 {c.last_name}, {c.first_name}
