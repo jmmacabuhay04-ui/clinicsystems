@@ -64,6 +64,7 @@ export default function UserForm() {
                     <option value="doctor">Doctor</option>
                     <option value="dentist">Dentist</option>
                     <option value="nurse">Nurse</option>
+                    <option value="ittech">IT Tech</option>
                 </select>
             </div>
 

@@ -10,7 +10,7 @@ export type CreateUserState = {
     success?: string;
 };
 
-const ROLES = ["admin", "doctor", "dentist", "nurse"];
+const ROLES = ["admin", "nurse", "doctor", "dentist", "ittech"];
 
 export async function createUser(
     _prev: CreateUserState,

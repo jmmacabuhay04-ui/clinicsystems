@@ -24,9 +24,8 @@ export function canManageStudents(role: string) {
 
 /** Admins manage staff accounts. */
 export function canManageAccounts(role: string) {
-    return role === "admin";
+    return role === "ittech" || role === "admin";
 }
-
 /** Everyone else can read records but not change them. */
 export function isViewOnly(role: string) {
     return !canManageRecords(role);
@@ -38,4 +37,7 @@ export function canManageStaff(role: string) {
 
 export function canManageDentalForm(role: string) {
     return role === "dentist";
+}
+export function canViewClinicData(role: string) {
+    return role !== "ittech";
 }

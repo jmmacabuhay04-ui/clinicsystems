@@ -28,12 +28,11 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
-    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     {
-        href: "/dashboard/student-health-records",
-        label: "Student Health Records",
-        icon: FileText,
-        roles: ["admin", "doctor", "nurse", "dentist"],
+        href: "/dashboard",
+        label: "Dashboard",
+        icon: LayoutDashboard,
+        roles: ["admin", "doctor", "dentist", "nurse"],
     },
     {
         href: "/dashboard/student-health-form",
@@ -105,8 +104,9 @@ const navItems: NavItem[] = [
         href: "/dashboard/users",
         label: "User Management",
         icon: ShieldCheck,
-        roles: ["admin"],
+        roles: ["ittech", "admin"],
     },
+
     { href: "/dashboard/settings", label: "Settings", icon: Settings },
 
 
@@ -117,6 +117,7 @@ const roleLabels: Record<string, string> = {
     doctor: "Doctor",
     dentist: "Dentist",
     nurse: "Nurse",
+    ittech: "IT Technician",
 };
 
 type Props = {

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/lib/jwt";
 
+const IT_TECH_ALLOWED = ["/dashboard/users", "/dashboard/settings"];
+
 export async function proxy(req: NextRequest) {
     const { pathname } = req.nextUrl;
 
@@ -8,6 +10,13 @@ export async function proxy(req: NextRequest) {
         const staff = await verifyToken(req.cookies.get("session")?.value);
         if (!staff || staff.role === "student" || staff.role === "employee") {
             return NextResponse.redirect(new URL("/login", req.url));
+        }
+
+        if (staff.role === "ittech") {
+            const allowed = IT_TECH_ALLOWED.some((path) => pathname.startsWith(path));
+            if (!allowed) {
+                return NextResponse.redirect(new URL("/dashboard/users", req.url));
+            }
         }
     }
 
