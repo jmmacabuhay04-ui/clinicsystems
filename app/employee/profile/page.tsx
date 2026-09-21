@@ -23,7 +23,10 @@ export default async function EmployeeProfilePage() {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            <EmployeeNav />
+            <EmployeeNav
+                fullName={`${employee.first_name} ${employee.last_name}`}
+                initials={initialsOf(employee.first_name, employee.last_name)}
+            />
 
             <main className="mx-auto max-w-3xl space-y-6 p-6">
                 <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">

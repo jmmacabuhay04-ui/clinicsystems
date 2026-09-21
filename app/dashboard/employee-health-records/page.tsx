@@ -97,7 +97,7 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
           OR last_name ILIKE ${like}
           OR first_name ILIKE ${like}
         )
-      ORDER BY created_at DESC, employee_id DESC
+            ORDER BY employee_number ASC
       LIMIT 50
     `;
 
@@ -128,24 +128,28 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
 
                 <div className="flex flex-wrap gap-3">
                     {canEditEmployees && (
-                        <Link
-                            href={`${BASE}/employees/new`}
-                            className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#f5b800] px-4 text-sm font-semibold text-gray-900 hover:bg-[#e0a800]"
+                        <ConfirmLink
+                            href="/dashboard/employee-health-records/employees/new"
+                            title="Add a new employee?"
+                            message="You will be taken to the form to register a new employee."
+                            confirmLabel="Continue"
+                            className="inline-flex items-center gap-2 rounded-lg bg-amber-400 px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-amber-500"
                         >
                             <UserPlus className="h-4 w-4" />
                             Add Employee
-                        </Link>
+                        </ConfirmLink>
                     )}
                     {selected && canEditRecords && (
-                        <Link
-                            href={`${BASE}/records/new?employee=${encodeURIComponent(
-                                selected.employee_number
-                            )}`}
+                        <ConfirmLink
+                            href={`${BASE}/records/new?employee=${encodeURIComponent(selected.employee_number)}`}
+                            title="Add a new visit record?"
+                            message={`Add a health record for ${selected.first_name} ${selected.last_name} (${selected.employee_number})?`}
+                            confirmLabel="Continue"
                             className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#15664f] px-4 text-sm font-semibold text-white hover:bg-[#10523f]"
                         >
                             <Plus className="h-4 w-4" />
                             Add Record
-                        </Link>
+                        </ConfirmLink>
                     )}
                 </div>
             </div>

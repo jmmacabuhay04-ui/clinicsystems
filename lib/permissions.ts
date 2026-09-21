@@ -41,3 +41,4 @@ export function canManageDentalForm(role: string) {
 export function canViewClinicData(role: string) {
     return role !== "ittech";
 }
+export const canCreateAccounts = (role: string) => role === "admin" || role === "ittech";

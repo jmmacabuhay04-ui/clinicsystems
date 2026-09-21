@@ -1,8 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import image from "next/image";
 import {
     Activity,
     Archive,
@@ -10,17 +10,19 @@ import {
     ClipboardList,
     FileCheck,
     FileText,
-    GraduationCap,
     LayoutDashboard,
     LogOut,
+    Menu,
     Settings,
     ShieldCheck,
     Stethoscope,
     UserCog,
     Users,
+    X,
     type LucideIcon,
 } from "lucide-react";
 import { logout } from "@/app/login/actions";
+import ConfirmSubmit from "@/components/confirm-submit";
 
 type NavItem = {
     href: string;
@@ -30,100 +32,22 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
-    {
-        href: "/dashboard",
-        label: "Dashboard",
-        icon: LayoutDashboard,
-        roles: ["admin", "doctor", "dentist", "nurse"],
-    },
-    {
-        href: "/dashboard/student-health-records",
-        label: "Student Health Records",
-        icon: FileText,
-        roles: ["admin", "doctor", "nurse"],
-    },
-    {
-        href: "/dashboard/student-health-form",
-        label: "Student Health Form",
-        icon: FileText,
-        roles: ["admin", "doctor", "nurse"],
-    },
-    {
-        href: "/dashboard/health-declaration",
-        label: "Health Declaration",
-        icon: ClipboardList,
-        roles: ["admin", "doctor", "nurse"],
-    },
-    {
-        href: "/dashboard/employee-health-records",
-        label: "Employee Health Records",
-        icon: Briefcase,
-        roles: ["admin", "doctor", "nurse"],
-    },
-    {
-        href: "/dashboard/employee-health-form",
-        label: "Employee Health Form",
-        icon: Briefcase,
-        roles: ["admin", "doctor", "nurse"],
-    },
-    {
-        href: "/dashboard/dental-records",
-        label: "Dental Records",
-        icon: Stethoscope,
-        roles: ["admin", "dentist", "nurse"],
-    },
-    {
-        href: "/dashboard/dental-health-form",
-        label: "Dental Health Form",
-        icon: ClipboardList,
-        roles: ["admin", "dentist", "nurse"],
-    },
-    {
-        href: "/dashboard/health-case-reports",
-        label: "Health Case Reports",
-        icon: ClipboardList,
-        roles: ["admin", "doctor", "nurse"],
-    },
-    {
-        href: "/dashboard/visitor-recording",
-        label: "Visitor Recording",
-        icon: Users,
-        roles: ["admin", "nurse"],
-    },
-    {
-        href: "/dashboard/referral-slips",
-        label: "Referral Slips",
-        icon: FileCheck,
-        roles: ["admin", "doctor", "nurse"],
-    },
-    {
-        href: "/dashboard/illness-alerts",
-        label: "Illness Alerts",
-        icon: Activity,
-        roles: ["admin", "doctor", "nurse"],
-    },
-    {
-        href: "/dashboard/archive-records",
-        label: "Archive Records",
-        icon: Archive,
-        roles: ["admin", "nurse"],
-    },
-    {
-        href: "/dashboard/clinic-staff",
-        label: "Clinic Staff",
-        icon: UserCog,
-        roles: ["admin", "nurse"],
-    },
-    {
-        href: "/dashboard/users",
-        label: "User Management",
-        icon: ShieldCheck,
-        roles: ["ittech", "admin"],
-    },
-
+    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "doctor", "dentist", "nurse"] },
+    { href: "/dashboard/student-health-records", label: "Student Health Records", icon: FileText, roles: ["admin", "doctor", "nurse"] },
+    { href: "/dashboard/student-health-form", label: "Student Health Form", icon: FileText, roles: ["admin", "doctor", "nurse"] },
+    { href: "/dashboard/health-declaration", label: "Health Declaration", icon: ClipboardList, roles: ["admin", "doctor", "nurse"] },
+    { href: "/dashboard/employee-health-records", label: "Employee Health Records", icon: Briefcase, roles: ["admin", "doctor", "nurse"] },
+    { href: "/dashboard/employee-health-form", label: "Employee Health Form", icon: Briefcase, roles: ["admin", "doctor", "nurse"] },
+    { href: "/dashboard/dental-records", label: "Dental Records", icon: Stethoscope, roles: ["admin", "dentist", "nurse"] },
+    { href: "/dashboard/dental-health-form", label: "Dental Health Form", icon: ClipboardList, roles: ["admin", "dentist", "nurse"] },
+    { href: "/dashboard/health-case-reports", label: "Health Case Reports", icon: ClipboardList, roles: ["admin", "doctor", "nurse"] },
+    { href: "/dashboard/visitor-recording", label: "Visitor Recording", icon: Users, roles: ["admin", "nurse"] },
+    { href: "/dashboard/referral-slips", label: "Referral Slips", icon: FileCheck, roles: ["admin", "doctor", "nurse"] },
+    { href: "/dashboard/illness-alerts", label: "Illness Alerts", icon: Activity, roles: ["admin", "doctor", "nurse"] },
+    { href: "/dashboard/archive-records", label: "Archive Records", icon: Archive, roles: ["admin", "nurse"] },
+    { href: "/dashboard/clinic-staff", label: "Clinic Staff", icon: UserCog, roles: ["admin", "nurse"] },
+    { href: "/dashboard/users", label: "User Management", icon: ShieldCheck, roles: ["admin", "ittech"] },
     { href: "/dashboard/settings", label: "Settings", icon: Settings },
-
-
 ];
 
 const roleLabels: Record<string, string> = {
@@ -141,6 +65,25 @@ type Props = {
 
 export default function AdminSidebar({ username, role }: Props) {
     const pathname = usePathname();
+    const [collapsed, setCollapsed] = useState(false); // desktop: icons only
+    const [mobileOpen, setMobileOpen] = useState(false); // phone: show/hide menu
+
+    // Tandaan ang huling pinili (collapsed o hindi)
+    useEffect(() => {
+        try {
+            setCollapsed(localStorage.getItem("sidebar-collapsed") === "1");
+        } catch { }
+    }, []);
+
+    function toggleCollapsed() {
+        setCollapsed((prev) => {
+            const next = !prev;
+            try {
+                localStorage.setItem("sidebar-collapsed", next ? "1" : "0");
+            } catch { }
+            return next;
+        });
+    }
 
     const localPart = username.split("@")[0];
     const baseName = localPart.charAt(0).toUpperCase() + localPart.slice(1);
@@ -152,57 +95,99 @@ export default function AdminSidebar({ username, role }: Props) {
     const visibleItems = navItems.filter((item) => !item.roles || item.roles.includes(role));
 
     return (
-        <aside className="flex w-full shrink-0 flex-col bg-[#15664f] text-white md:sticky md:top-0 md:h-screen md:w-68">
-            <div className="border-b border-white/10 px-5 py-6">
-                <div className="flex items-center gap-3">
+        <aside
+            className={`flex w-full shrink-0 flex-col bg-[#15664f] text-white transition-[width] duration-200 md:sticky md:top-0 md:h-screen ${collapsed ? "md:w-20" : "md:w-72"
+                }`}
+        >
+            {/* Header: logo + menu button */}
+            <div
+                className={`flex items-center justify-between gap-3 border-b border-white/10 px-4 py-4 ${collapsed ? "md:justify-center md:px-2" : ""
+                    }`}
+            >
+                <div className={`flex min-w-0 items-center gap-3 ${collapsed ? "md:hidden" : ""}`}>
                     <img
                         src="/bcas.jpg"
                         alt="BCAS"
-                        className="h-11 w-11 shrink-0 rounded-full bg-white object-contain p-1"
+                        className="h-12 w-12 shrink-0 rounded-full bg-white object-contain p-1"
                     />
-                    <p className="text-sm font-semibold uppercase tracking-wide text-white/90">
+                    <p className="truncate text-base font-semibold uppercase tracking-wide text-white/90">
                         BCAS Clinic
                     </p>
                 </div>
 
-                <p className="mt-3 truncate text-lg font-semibold" title={username}>
-                    {displayName}
-                </p>
-                <span className="mt-2 inline-block rounded bg-white/20 px-2 py-0.5 text-xs font-medium">
-                    {roleLabels[role] ?? role}
-                </span>
+                {/* Phone: open/close menu */}
+                <button
+                    type="button"
+                    onClick={() => setMobileOpen((o) => !o)}
+                    aria-label={mobileOpen ? "Close menu" : "Open menu"}
+                    className="rounded-lg p-2 hover:bg-white/10 md:hidden"
+                >
+                    {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+                </button>
+
+                {/* Desktop: collapse/expand */}
+                <button
+                    type="button"
+                    onClick={toggleCollapsed}
+                    aria-label={collapsed ? "Expand menu" : "Collapse menu"}
+                    title={collapsed ? "Expand menu" : "Collapse menu"}
+                    className="hidden rounded-lg p-2 hover:bg-white/10 md:inline-flex"
+                >
+                    <Menu className="h-6 w-6" />
+                </button>
             </div>
 
-            <nav className="flex-1 overflow-y-auto py-3">
-                {visibleItems.map((item) => {
-                    const Icon = item.icon;
-                    const active = isActive(item.href);
-                    return (
-                        <Link
-                            key={item.href}
-                            href={item.href}
-                            className={`flex items-center gap-3 border-r-4 px-5 py-2.5 text-sm transition-colors ${active
-                                ? "border-white bg-white/15 font-medium text-white"
-                                : "border-transparent text-white/85 hover:bg-white/10"
+            {/* Body: hidden on phone until menu is opened */}
+            <div className={`${mobileOpen ? "flex" : "hidden"} min-h-0 flex-1 flex-col md:flex`}>
+                {/* Profile */}
+                <div className={`border-b border-white/10 px-5 py-5 ${collapsed ? "md:hidden" : ""}`}>
+                    <p className="truncate text-xl font-semibold" title={username}>
+                        {displayName}
+                    </p>
+                    <span className="mt-2 inline-block rounded bg-white/20 px-2.5 py-0.5 text-sm font-medium">
+                        {roleLabels[role] ?? role}
+                    </span>
+                </div>
+
+                {/* Menu */}
+                <nav className="flex-1 overflow-y-auto py-3">
+                    {visibleItems.map((item) => {
+                        const Icon = item.icon;
+                        const active = isActive(item.href);
+                        return (
+                            <Link
+                                key={item.href}
+                                href={item.href}
+                                title={item.label}
+                                onClick={() => setMobileOpen(false)}
+                                className={`flex items-center gap-3.5 border-r-4 px-5 py-3 text-[0.95rem] transition-colors ${collapsed ? "md:justify-center md:px-0" : ""
+                                    } ${active
+                                        ? "border-white bg-white/15 font-semibold text-white"
+                                        : "border-transparent text-white/85 hover:bg-white/10"
+                                    }`}
+                            >
+                                <Icon className="h-5 w-5 shrink-0" strokeWidth={1.8} />
+                                <span className={`truncate ${collapsed ? "md:hidden" : ""}`}>{item.label}</span>
+                            </Link>
+                        );
+                    })}
+                </nav>
+
+                {/* Sign out */}
+                <div className={`border-t border-white/10 px-4 py-4 ${collapsed ? "md:px-2" : ""}`}>
+                    <form action={logout}>
+                        <ConfirmSubmit
+                            title="Sign out"
+                            message="Are you sure you want to sign out?"
+                            confirmLabel="Sign out"
+                            className={`flex w-full items-center gap-3.5 rounded-lg px-3 py-2.5 text-[0.95rem] font-medium text-white/90 hover:bg-white/10 ${collapsed ? "md:justify-center md:px-0" : ""
                                 }`}
                         >
-                            <Icon className="h-4.5 w-4.5 shrink-0" strokeWidth={1.8} />
-                            {item.label}
-                        </Link>
-                    );
-                })}
-            </nav>
-
-            <div className="border-t border-white/10 px-5 py-5">
-                <form action={logout}>
-                    <button
-                        type="submit"
-                        className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-white/90 hover:bg-white/10"
-                    >
-                        <LogOut className="h-4.5 w-4.5" strokeWidth={1.8} />
-                        Sign out
-                    </button>
-                </form>
+                            <LogOut className="h-5 w-5 shrink-0" strokeWidth={1.8} />
+                            <span className={collapsed ? "md:hidden" : ""}>Sign out</span>
+                        </ConfirmSubmit>
+                    </form>
+                </div>
             </div>
         </aside>
     );

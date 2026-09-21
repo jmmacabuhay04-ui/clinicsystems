@@ -25,6 +25,7 @@ export type VisitRecord = {
     temperature: number | null;
 };
 
+
 export async function getStudent(studentId: number) {
     const rows = await prisma.$queryRaw<StudentInfo[]>`
     SELECT student_id, student_number, last_name, first_name, middle_name,
@@ -62,4 +63,22 @@ export function show(value: number | string | null | undefined, unit = "") {
 
 export function initialsOf(first: string, last: string) {
     return `${first[0] ?? ""}${last[0] ?? ""}`.toUpperCase();
+}
+export type DentalVisit = {
+    dental_id: number;
+    visit_date: Date;
+    procedure_name: string;
+    tooth: string | null;
+    dentist_name: string | null;
+    status: string;
+    notes: string | null;
+};
+
+export async function getStudentDental(studentId: number) {
+    return prisma.$queryRaw<DentalVisit[]>`
+    SELECT dental_id, visit_date, procedure_name, tooth, dentist_name, status, notes
+    FROM dental_records
+    WHERE student_id = ${studentId} AND archived_at IS NULL
+    ORDER BY visit_date DESC, dental_id DESC
+  `;
 }

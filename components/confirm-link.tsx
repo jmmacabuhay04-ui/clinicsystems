@@ -11,6 +11,7 @@ type Props = {
     message: string;
     confirmLabel?: string;
     className?: string;
+    icon?: React.ReactNode;
     children: React.ReactNode;
 };
 
@@ -20,6 +21,7 @@ export default function ConfirmLink({
     message,
     confirmLabel = "View",
     className,
+    icon,
     children,
 }: Props) {
     const [open, setOpen] = useState(false);
@@ -43,13 +45,11 @@ export default function ConfirmLink({
             >
                 <div className="flex items-start gap-3">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#15664f]/10 text-[#15664f]">
-                        <Eye className="h-5 w-5" />
+                        {icon ?? <Eye className="h-5 w-5" />}
                     </div>
                     <div className="min-w-0 flex-1">
                         <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-                        <p className="mt-1 break-words text-sm leading-relaxed text-gray-600">
-                            {message}
-                        </p>
+                        <p className="mt-1 break-words text-sm leading-relaxed text-gray-600">{message}</p>
                     </div>
                 </div>
 
@@ -89,4 +89,4 @@ export default function ConfirmLink({
             {open && createPortal(modal, document.body)}
         </>
     );
-}
+}   

@@ -125,13 +125,19 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
       ORDER BY c.archived_at DESC
     `,
         prisma.$queryRaw<ArchivedDental[]>`
-      SELECT d.dental_id, s.student_number, s.last_name, s.first_name,
+      SELECT d.dental_id,
+             COALESCE(s.student_number, e.employee_number) AS student_number,
+             COALESCE(s.last_name, e.last_name) AS last_name,
+             COALESCE(s.first_name, e.first_name) AS first_name,
              d.procedure_name, d.tooth, d.visit_date, d.archived_at
       FROM dental_records d
-      JOIN students s ON s.student_id = d.student_id
+      LEFT JOIN students s ON s.student_id = d.student_id
+      LEFT JOIN employees e ON e.employee_id = d.employee_id
       WHERE d.archived_at IS NOT NULL
-        AND (${q}::text = '' OR s.student_number ILIKE ${like}
-             OR s.last_name ILIKE ${like} OR s.first_name ILIKE ${like})
+        AND (${q}::text = ''
+             OR COALESCE(s.student_number, e.employee_number) ILIKE ${like}
+             OR COALESCE(s.last_name, e.last_name) ILIKE ${like}
+             OR COALESCE(s.first_name, e.first_name) ILIKE ${like})
       ORDER BY d.archived_at DESC
     `,
         prisma.$queryRaw<ArchivedSlip[]>`

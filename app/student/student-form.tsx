@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { createStudent, updateStudent, type StudentState } from "./actions";
-
+import ConfirmSubmit from "@/components/confirm-submit";
+import ConfirmLink from "@/components/confirm-link";
 const initialState: StudentState = {};
 
 const inputClass =
@@ -177,14 +178,14 @@ export default function StudentForm({ mode, student, cancelHref }: Props) {
                 >
                     Cancel
                 </Link>
-                <button
-                    type="submit"
-                    disabled={pending}
-                    suppressHydrationWarning
-                    className="h-10 rounded-lg bg-[#15664f] px-5 text-sm font-semibold text-white hover:bg-[#10523f] disabled:opacity-60"
+                <ConfirmSubmit
+                    title="Save this student?"
+                    message="Please make sure the student information is correct before saving."
+                    confirmLabel="Save"
+                    className="rounded-lg bg-[#15664f] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#10523f]"
                 >
-                    {pending ? "Saving..." : mode === "create" ? "Create Student" : "Save Changes"}
-                </button>
+                    Create Student
+                </ConfirmSubmit>
             </div>
         </form>
     );

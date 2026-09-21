@@ -4,28 +4,28 @@ import { ArrowLeft } from "lucide-react";
 import { getSession } from "@/lib/session";
 import { canManageDental } from "@/lib/permissions";
 import DentalForm, { type DentalValues } from "../dental-form";
+import { prisma } from "@/lib/prisma";
+import { examinerName } from "../../dental-health-form/chart-data";
 
 const BASE = "/dashboard/dental-records";
 
-export default async function NewDentalPage() {
+export default async function NewDentalRecordPage() {
     const session = await getSession();
     if (!session) redirect("/login");
     if (!canManageDental(session.role)) redirect(BASE);
 
-    const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date());
-
-    const localPart = session.username.split("@")[0];
-    const dentistName =
-        session.role === "dentist"
-            ? `Dr. ${localPart.charAt(0).toUpperCase() + localPart.slice(1)}`
-            : "";
+    const me = await prisma.$queryRaw<{ full_name: string | null; username: string }[]>`
+    SELECT full_name, username FROM users WHERE user_id = ${session.userId} LIMIT 1
+  `;
+    const onDuty = examinerName(me[0]?.full_name ?? null, me[0]?.username ?? session.username);
 
     const empty: DentalValues = {
-        studentNumber: "",
-        visitDate: today,
-        procedureName: "",
+        patientType: "student",
+        patientNumber: "",
+        visitDate: new Date().toISOString().slice(0, 10),
+        procedure: "",
         tooth: "",
-        dentistName,
+        dentistName: onDuty,
         status: "completed",
         notes: "",
     };

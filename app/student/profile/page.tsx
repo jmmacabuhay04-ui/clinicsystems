@@ -14,47 +14,38 @@ export default async function StudentProfilePage() {
 
     const fields = [
         { label: "Student Number", value: student.student_number },
-        { label: "Grade/Level", value: show(student.grade_level) },
-        { label: "Program", value: show(student.program) },
         { label: "Last Name", value: student.last_name },
         { label: "First Name", value: student.first_name },
         { label: "Middle Name", value: show(student.middle_name) },
+        { label: "Grade/Level", value: show(student.grade_level) },
+        { label: "Program", value: show(student.program) },
         { label: "Date of Birth", value: formatDate(student.date_of_birth) },
         { label: "Gender", value: show(student.gender) },
     ];
 
     return (
-        <div className="min-h-screen bg-[#f6f7f6]">
+        <div className="min-h-screen bg-gray-50">
             <StudentNav fullName={fullName} initials={initialsOf(student.first_name, student.last_name)} />
 
-            <main className="mx-auto max-w-4xl space-y-6 px-4 py-6">
-                <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                    These are read-only records managed by BCAS clinic staff. Visit the clinic to correct any
-                    errors.
+            <main className="mx-auto max-w-5xl space-y-6 p-6">
+                <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[#15664f] text-xl font-semibold text-white">
+                        {initialsOf(student.first_name, student.last_name)}
+                    </div>
+                    <div className="min-w-0">
+                        <p className="text-2xl font-semibold text-gray-900">{fullName}</p>
+                        <p className="text-sm text-gray-600">{student.student_number}</p>
+                    </div>
                 </div>
 
-                <h1 className="text-xl font-semibold text-gray-900">My Profile</h1>
-
-                <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                    <div className="flex items-center gap-4 border-b border-gray-100 pb-5">
-                        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#15664f] text-lg font-semibold text-white">
-                            {initialsOf(student.first_name, student.last_name)}
+                <div className="divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white shadow-sm">
+                    {fields.map((f) => (
+                        <div key={f.label} className="flex items-center justify-between gap-4 px-6 py-4">
+                            <span className="text-sm text-gray-600">{f.label}</span>
+                            <span className="text-right text-sm font-semibold text-gray-900">{f.value}</span>
                         </div>
-                        <div>
-                            <p className="text-lg font-semibold text-gray-900">{fullName}</p>
-                            <p className="text-sm text-gray-500">{student.student_number}</p>
-                        </div>
-                    </div>
-
-                    <dl className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-                        {fields.map((f) => (
-                            <div key={f.label} className="min-w-0">
-                                <dt className="text-xs uppercase tracking-wide text-gray-500">{f.label}</dt>
-                                <dd className="mt-1 break-words font-semibold text-gray-900">{f.value}</dd>
-                            </div>
-                        ))}
-                    </dl>
-                </section>
+                    ))}
+                </div>
             </main>
         </div>
     );

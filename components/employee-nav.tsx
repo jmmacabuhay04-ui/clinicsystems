@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { employeeLogout } from "@/app/employee/login/actions";
+import ConfirmSubmit from "./confirm-submit";
 
 const tabs = [
     { label: "Overview", href: "/employee/dashboard" },
     { label: "My Visits", href: "/employee/visits" },
+    { href: "/employee/dental", label: "Dental" },
     { label: "Vitals", href: "/employee/vitals" },
     { label: "Profile", href: "/employee/profile" },
 ];
@@ -53,13 +55,14 @@ export default function EmployeeNav({ fullName, initials }: Props) {
                     </div>
                     <span className="hidden text-sm font-medium sm:inline">{fullName}</span>
                     <form action={employeeLogout}>
-                        <button
-                            type="submit"
-                            suppressHydrationWarning
+                        <ConfirmSubmit
+                            title="Sign out"
+                            message="Are you sure you want to sign out?"
+                            confirmLabel="Sign out"
                             className="rounded-lg border border-white/30 px-3 py-1.5 text-sm font-medium text-white hover:bg-white/10"
                         >
                             Sign out
-                        </button>
+                        </ConfirmSubmit>
                     </form>
                 </div>
             </div>

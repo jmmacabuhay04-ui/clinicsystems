@@ -1,9 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useActionState } from "react";
 import { createStudent, updateStudent, type StudentState } from "./actions";
 import PasswordInput from "@/components/password-input";
+import ConfirmSubmit from "@/components/confirm-submit";
+import ConfirmLink from "@/components/confirm-link";
 
 const initialState: StudentState = {};
 
@@ -163,20 +164,28 @@ export default function StudentForm({ mode, student, cancelHref }: Props) {
             </section>
 
             <div className="flex justify-end gap-3">
-                <Link
+                <ConfirmLink
                     href={cancelHref}
+                    title="Discard changes?"
+                    message="The information you entered will not be saved."
+                    confirmLabel="Discard"
                     className="inline-flex h-10 items-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 hover:bg-gray-50"
                 >
                     Cancel
-                </Link>
-                <button
-                    type="submit"
+                </ConfirmLink>
+                <ConfirmSubmit
+                    title={mode === "create" ? "Save this student?" : "Save changes?"}
+                    message={
+                        mode === "create"
+                            ? "Please make sure the student information is correct before saving."
+                            : "The student's current information will be replaced with your changes."
+                    }
+                    confirmLabel="Save"
                     disabled={pending}
-                    suppressHydrationWarning
                     className="h-10 rounded-lg bg-[#15664f] px-5 text-sm font-semibold text-white hover:bg-[#10523f] disabled:opacity-60"
                 >
                     {pending ? "Saving..." : mode === "create" ? "Create Student" : "Save Changes"}
-                </button>
+                </ConfirmSubmit>
             </div>
         </form>
     );

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { Activity, FileText, UserCheck, Users, type LucideIcon } from "lucide-react";
+import { Activity, FileText, Stethoscope, UserCheck, Users, type LucideIcon } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 
@@ -8,6 +8,15 @@ type VisitRow = {
     last_name: string;
     first_name: string;
     complaint: string;
+    visit_date: Date;
+};
+
+type DentalRow = {
+    dental_id: number;
+    last_name: string | null;
+    first_name: string | null;
+    patient_type: string;
+    procedure_name: string;
     visit_date: Date;
 };
 
@@ -59,7 +68,7 @@ async function loadDashboard() {
     const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date());
 
     try {
-        const [students, visitsToday, pending, recentVisits, caseSummary, visitors] =
+        const [students, visitsToday, pending, recentVisits, caseSummary, visitors, dentalToday, recentDental] =
             await Promise.all([
                 prisma.$queryRaw<{ total: bigint }[]>`
           SELECT COUNT(*) AS total FROM students WHERE archived_at IS NULL
@@ -92,6 +101,24 @@ async function loadDashboard() {
           SELECT COUNT(*) AS total FROM visitor_logs
           WHERE archived_at IS NULL AND visit_date = CAST(${today} AS DATE)
         `,
+                prisma.$queryRaw<{ total: bigint }[]>`
+          SELECT COUNT(*) AS total FROM dental_records
+          WHERE archived_at IS NULL AND CAST(visit_date AS DATE) = CAST(${today} AS DATE)
+        `,
+                prisma.$queryRaw<DentalRow[]>`
+          SELECT d.dental_id,
+                 COALESCE(s.last_name, e.last_name)   AS last_name,
+                 COALESCE(s.first_name, e.first_name) AS first_name,
+                 CASE WHEN d.student_id IS NOT NULL THEN 'Student' ELSE 'Employee' END AS patient_type,
+                 d.procedure_name,
+                 d.visit_date
+          FROM dental_records d
+          LEFT JOIN students s  ON s.student_id  = d.student_id
+          LEFT JOIN employees e ON e.employee_id = d.employee_id
+          WHERE d.archived_at IS NULL
+          ORDER BY d.visit_date DESC, d.dental_id DESC
+          LIMIT 5
+        `,
             ]);
 
         return {
@@ -99,7 +126,9 @@ async function loadDashboard() {
             visitsToday: Number(visitsToday[0]?.total ?? 0),
             pendingReports: Number(pending[0]?.total ?? 0),
             visitorsToday: Number(visitors[0]?.total ?? 0),
+            dentalToday: Number(dentalToday[0]?.total ?? 0),
             recentVisits,
+            recentDental,
             caseSummary,
         };
     } catch (err) {
@@ -109,7 +138,9 @@ async function loadDashboard() {
             visitsToday: 0,
             pendingReports: 0,
             visitorsToday: 0,
+            dentalToday: 0,
             recentVisits: [] as VisitRow[],
+            recentDental: [] as DentalRow[],
             caseSummary: [] as CaseSummaryRow[],
         };
     }
@@ -124,6 +155,7 @@ export default async function DashboardPage() {
     const stats: { label: string; value: number; icon: LucideIcon }[] = [
         { label: "Total Students", value: data.totalStudents, icon: Users },
         { label: "Clinic Visits Today", value: data.visitsToday, icon: Activity },
+        { label: "Dental Visits Today", value: data.dentalToday, icon: Stethoscope },
         { label: "Pending Reports", value: data.pendingReports, icon: FileText },
         { label: "Visitors Today", value: data.visitorsToday, icon: UserCheck },
     ];
@@ -135,7 +167,7 @@ export default async function DashboardPage() {
                 <p className="mt-1 text-gray-600">Welcome back! Here&apos;s what&apos;s happening today.</p>
             </div>
 
-            <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
                 {stats.map((stat) => {
                     const Icon = stat.icon;
                     return (
@@ -158,6 +190,7 @@ export default async function DashboardPage() {
             </section>
 
             <section className="grid gap-6 xl:grid-cols-2">
+                {/* Recent Clinic Visits */}
                 <div>
                     <h2 className="mb-3 text-lg font-semibold text-gray-900">Recent Clinic Visits</h2>
                     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -173,8 +206,7 @@ export default async function DashboardPage() {
                                     >
                                         <div className="flex min-w-0 items-center gap-3">
                                             <div
-                                                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white ${avatarColors[index % avatarColors.length]
-                                                    }`}
+                                                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white ${avatarColors[index % avatarColors.length]}`}
                                             >
                                                 {initials(name)}
                                             </div>
@@ -193,6 +225,7 @@ export default async function DashboardPage() {
                     </div>
                 </div>
 
+                {/* Case Report Summary */}
                 <div>
                     <h2 className="mb-3 text-lg font-semibold text-gray-900">Case Report Summary</h2>
                     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -227,6 +260,49 @@ export default async function DashboardPage() {
                                     })}
                                 </tbody>
                             </table>
+                        )}
+                    </div>
+                </div>
+
+                {/* Recent Dental Visits */}
+                <div>
+                    <h2 className="mb-3 text-lg font-semibold text-gray-900">Recent Dental Visits</h2>
+                    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                        {data.recentDental.length === 0 ? (
+                            <p className="p-8 text-center text-sm text-gray-500">No dental visits recorded yet.</p>
+                        ) : (
+                            data.recentDental.map((d, index) => {
+                                const name = `${d.first_name ?? ""} ${d.last_name ?? ""}`.trim() || "Unknown";
+                                return (
+                                    <div
+                                        key={d.dental_id}
+                                        className="flex items-center justify-between gap-4 border-b border-gray-100 px-4 py-4 last:border-0"
+                                    >
+                                        <div className="flex min-w-0 items-center gap-3">
+                                            <div
+                                                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white ${avatarColors[index % avatarColors.length]}`}
+                                            >
+                                                {initials(name)}
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="truncate font-medium text-gray-900">
+                                                    {name}
+                                                    <span
+                                                        className={`ml-2 rounded-full px-2 py-0.5 text-xs font-medium ${d.patient_type === "Student"
+                                                            ? "bg-[#dff1ea] text-[#15664f]"
+                                                            : "bg-amber-100 text-amber-800"
+                                                            }`}
+                                                    >
+                                                        {d.patient_type}
+                                                    </span>
+                                                </p>
+                                                <p className="truncate text-sm text-gray-500">{d.procedure_name}</p>
+                                            </div>
+                                        </div>
+                                        <p className="shrink-0 text-sm text-gray-500">{formatVisitDate(d.visit_date)}</p>
+                                    </div>
+                                );
+                            })
                         )}
                     </div>
                 </div>

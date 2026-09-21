@@ -4,10 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { studentLogout } from "@/app/student/login/actions";
 import Image from "next/image";
+import ConfirmSubmit from "./confirm-submit";
 
 const tabs = [
     { href: "/student/dashboard", label: "Overview" },
     { href: "/student/visits", label: "My Visits" },
+    { href: "/student/dental", label: "Dental" },
     { href: "/student/vitals", label: "Vitals" },
     { href: "/student/profile", label: "Profile" },
 ];
@@ -58,13 +60,14 @@ export default function StudentNav({ fullName, initials }: Props) {
                     </div>
                     <span className="hidden text-sm font-medium sm:inline">{fullName}</span>
                     <form action={studentLogout}>
-                        <button
-                            type="submit"
-                            suppressHydrationWarning
+                        <ConfirmSubmit
+                            title="Sign out"
+                            message="Are you sure you want to sign out?"
+                            confirmLabel="Sign out"
                             className="rounded-lg border border-white/30 px-3 py-1.5 text-sm font-medium text-white hover:bg-white/10"
                         >
                             Sign out
-                        </button>
+                        </ConfirmSubmit>
                     </form>
                 </div>
             </div>

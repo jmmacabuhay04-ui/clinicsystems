@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 
+
 export type EmployeeInfo = {
     employee_id: number;
     employee_number: string;
@@ -62,4 +63,22 @@ export function show(value: number | string | null | undefined, unit = "") {
 
 export function initialsOf(first: string, last: string) {
     return `${first[0] ?? ""}${last[0] ?? ""}`.toUpperCase();
+}
+export type EmployeeDentalVisit = {
+    dental_id: number;
+    visit_date: Date;
+    procedure_name: string;
+    tooth: string | null;
+    dentist_name: string | null;
+    status: string;
+    notes: string | null;
+};
+
+export async function getEmployeeDental(employeeId: number) {
+    return prisma.$queryRaw<EmployeeDentalVisit[]>`
+    SELECT dental_id, visit_date, procedure_name, tooth, dentist_name, status, notes
+    FROM dental_records
+    WHERE employee_id = ${employeeId} AND archived_at IS NULL
+    ORDER BY visit_date DESC, dental_id DESC
+  `;
 }

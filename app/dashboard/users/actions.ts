@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
+import { canManageAccounts, canCreateAccounts } from "@/lib/permissions";
 
 export type CreateUserState = {
     error?: string;
@@ -17,10 +18,9 @@ export async function createUser(
     formData: FormData
 ): Promise<CreateUserState> {
     const session = await getSession();
-    if (!session || session.role !== "admin") {
-        return { error: "Only admins can create accounts." };
+    if (!session || !canCreateAccounts(session.role)) {
+        return { error: "You are not allowed to create accounts." };
     }
-
     const email = String(formData.get("email") ?? "").trim().toLowerCase();
     const password = String(formData.get("password") ?? "");
     const role = String(formData.get("role") ?? "");

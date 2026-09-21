@@ -60,7 +60,7 @@ async function searchStudents(q: string) {
              grade_level, program, date_of_birth, gender
       FROM students
       WHERE archived_at IS NULL
-      ORDER BY created_at DESC
+        ORDER BY student_number ASC
       LIMIT 20
     `;
     }
@@ -163,21 +163,33 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
                 {canEdit ? (
                     <div className="flex flex-wrap items-center gap-3">
                         {canAddStudent && (
-                            <Link
+                            <ConfirmLink
                                 href={`${BASE}/students/new`}
+                                title="Add student"
+                                message="Register a new student and create their student portal account?"
+                                confirmLabel="Continue"
+                                icon={<UserPlus className="h-5 w-5" />}
                                 className="inline-flex h-10 items-center gap-2 rounded-lg bg-amber-400 px-4 text-sm font-semibold text-gray-900 hover:bg-amber-500"
                             >
                                 <UserPlus className="h-4 w-4" />
                                 Add Student
-                            </Link>
+                            </ConfirmLink>
                         )}
-                        <Link
+                        <ConfirmLink
                             href={addHref}
+                            title="Add visit record"
+                            message={
+                                selected
+                                    ? `Add a new visit record for ${selected.first_name} ${selected.last_name} (${selected.student_number})?`
+                                    : "Add a new clinic visit record?"
+                            }
+                            confirmLabel="Continue"
+                            icon={<Plus className="h-5 w-5" />}
                             className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#15664f] px-4 text-sm font-semibold text-white hover:bg-[#10523f]"
                         >
                             <Plus className="h-4 w-4" />
                             Add Record
-                        </Link>
+                        </ConfirmLink>
                     </div>
                 ) : (
                     <span className="rounded-full bg-gray-200 px-3 py-1 text-xs font-medium text-gray-600">

@@ -1,85 +1,108 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { canManageDental } from "@/lib/permissions";
+import { examinerName } from "../dental-health-form/chart-data";
 
 const BASE = "/dashboard/dental-records";
 
-export type DentalState = {
-    error?: string;
-    values?: Record<string, string>;
-};
+export type DentalState = { error?: string; values?: Record<string, string> };
 
-function refresh() {
-    revalidatePath(BASE);
-    revalidatePath("/dashboard/archive-records");
+function readValues(formData: FormData) {
+    const get = (key: string) => String(formData.get(key) ?? "").trim();
+    return {
+        patientType: get("patientType") === "employee" ? "employee" : "student",
+        patientNumber: get("patientNumber"),
+        visitDate: get("visitDate"),
+        procedure: get("procedure"),
+        tooth: get("tooth"),
+        dentistName: get("dentistName"),
+        status: get("status") === "follow-up" ? "follow-up" : "completed",
+        notes: get("notes"),
+    };
 }
 
-function collect(formData: FormData) {
-    const values: Record<string, string> = {};
-    for (const [key, value] of formData.entries()) {
-        if (typeof value === "string" && !key.startsWith("$")) values[key] = value.trim();
-    }
-    return values;
-}
+type Values = ReturnType<typeof readValues>;
 
-function validate(values: Record<string, string>) {
-    const get = (key: string) => values[key] ?? "";
-
-    if (!get("visitDate") || !get("procedureName")) {
-        return "Visit date and procedure are required.";
+function validate(values: Values) {
+    if (!values.patientNumber) {
+        return values.patientType === "employee"
+            ? "Employee number is required."
+            : "Student number is required.";
     }
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(get("visitDate"))) return "Enter a valid visit date.";
-    if (!["completed", "follow-up"].includes(get("status"))) return "Select a valid status.";
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(values.visitDate)) return "Enter a valid visit date.";
+    if (!values.procedure) return "Procedure is required.";
+    if (values.procedure.length > 150) return "Procedure is too long.";
     return null;
+}
+
+async function findPatient(values: Values) {
+    if (values.patientType === "employee") {
+        const rows = await prisma.$queryRaw<{ id: number }[]>`
+      SELECT employee_id AS id FROM employees
+      WHERE employee_number = ${values.patientNumber} AND archived_at IS NULL
+      LIMIT 1
+    `;
+        return rows[0] ? { studentId: null, employeeId: rows[0].id } : null;
+    }
+
+    const rows = await prisma.$queryRaw<{ id: number }[]>`
+    SELECT student_id AS id FROM students
+    WHERE student_number = ${values.patientNumber} AND archived_at IS NULL
+    LIMIT 1
+  `;
+    return rows[0] ? { studentId: rows[0].id, employeeId: null } : null;
 }
 
 export async function createDental(
     _prev: DentalState,
     formData: FormData
 ): Promise<DentalState> {
-    const values = collect(formData);
-    const fail = (error: string): DentalState => ({ error, values });
-    const get = (key: string) => values[key] ?? "";
-
     const session = await getSession();
-    if (!session) return fail("Your session has expired. Please sign in again.");
+    if (!session) return { error: "Session expired. Please sign in again." };
     if (!canManageDental(session.role)) {
-        return fail("Only dentists and nurses can add dental records.");
+        return { error: "You do not have permission to add dental records." };
     }
 
-    const studentNumber = get("studentNumber");
-    if (!studentNumber) return fail("Student number is required.");
-
+    const values = readValues(formData);
     const problem = validate(values);
-    if (problem) return fail(problem);
+    if (problem) return { error: problem, values };
 
     try {
-        const rows = await prisma.$queryRaw<{ student_id: number }[]>`
-      SELECT student_id FROM students
-      WHERE student_number = ${studentNumber} AND archived_at IS NULL
-      LIMIT 1
+        const me = await prisma.$queryRaw<{ full_name: string | null; username: string }[]>`
+      SELECT full_name, username FROM users WHERE user_id = ${session.userId} LIMIT 1
     `;
-        const studentId = rows[0]?.student_id;
-        if (!studentId) return fail(`No active student found with number ${studentNumber}.`);
+        const dentistName = examinerName(
+            me[0]?.full_name ?? null,
+            me[0]?.username ?? session.username
+        );
+
+        const patient = await findPatient(values);
+        if (!patient) {
+            return {
+                error: `No active ${values.patientType} found with number ${values.patientNumber}.`,
+                values,
+            };
+        }
 
         await prisma.$executeRaw`
       INSERT INTO dental_records
-        (student_id, visit_date, procedure_name, tooth, dentist_name, status, notes, recorded_by)
+        (student_id, employee_id, visit_date, procedure_name, tooth,
+         dentist_name, status, notes)
       VALUES
-        (${studentId}, CAST(${get("visitDate")} AS DATE), ${get("procedureName")},
-         ${get("tooth") || null}, ${get("dentistName") || null}, ${get("status")},
-         ${get("notes") || null}, ${session.userId})
+        (${patient.studentId}, ${patient.employeeId}, ${values.visitDate}::date,
+         ${values.procedure}, ${values.tooth || null}, ${dentistName},
+         ${values.status}, ${values.notes || null})
     `;
     } catch (err) {
         console.error("Create dental record error:", err);
-        return fail("Could not save the record. Please try again.");
+        return { error: "Could not save the dental record. Please try again.", values };
     }
 
-    refresh();
+    revalidatePath(BASE);
     redirect(BASE);
 }
 
@@ -87,39 +110,46 @@ export async function updateDental(
     _prev: DentalState,
     formData: FormData
 ): Promise<DentalState> {
-    const values = collect(formData);
-    const fail = (error: string): DentalState => ({ error, values });
-    const get = (key: string) => values[key] ?? "";
-
     const session = await getSession();
-    if (!session) return fail("Your session has expired. Please sign in again.");
+    if (!session) return { error: "Session expired. Please sign in again." };
     if (!canManageDental(session.role)) {
-        return fail("Only dentists and nurses can edit dental records.");
+        return { error: "You do not have permission to edit dental records." };
     }
 
-    const dentalId = Number(get("dentalId"));
-    if (!dentalId) return fail("Invalid record.");
+    const dentalId = Number(formData.get("dentalId"));
+    if (!dentalId) return { error: "Missing dental record." };
 
+    const values = readValues(formData);
     const problem = validate(values);
-    if (problem) return fail(problem);
+    if (problem) return { error: problem, values };
 
     try {
+        const patient = await findPatient(values);
+        if (!patient) {
+            return {
+                error: `No active ${values.patientType} found with number ${values.patientNumber}.`,
+                values,
+            };
+        }
+
         await prisma.$executeRaw`
-      UPDATE dental_records
-      SET visit_date     = CAST(${get("visitDate")} AS DATE),
-          procedure_name = ${get("procedureName")},
-          tooth          = ${get("tooth") || null},
-          dentist_name   = ${get("dentistName") || null},
-          status         = ${get("status")},
-          notes          = ${get("notes") || null}
+      UPDATE dental_records SET
+        student_id     = ${patient.studentId},
+        employee_id    = ${patient.employeeId},
+        visit_date     = ${values.visitDate}::date,
+        procedure_name = ${values.procedure},
+        tooth          = ${values.tooth || null},
+               dentist_name   = ${values.dentistName || null},
+        status         = ${values.status},
+        notes          = ${values.notes || null}
       WHERE dental_id = ${dentalId}
     `;
     } catch (err) {
         console.error("Update dental record error:", err);
-        return fail("Could not save the changes. Please try again.");
+        return { error: "Could not save the changes. Please try again.", values };
     }
 
-    refresh();
+    revalidatePath(BASE);
     redirect(BASE);
 }
 
@@ -131,12 +161,12 @@ export async function archiveDental(formData: FormData) {
     if (!dentalId) return;
 
     await prisma.$executeRaw`
-    UPDATE dental_records
-    SET archived_at = NOW(), archived_by = ${session.userId}
+    UPDATE dental_records SET archived_at = NOW()
     WHERE dental_id = ${dentalId} AND archived_at IS NULL
   `;
 
-    refresh();
+    revalidatePath(BASE);
+    revalidatePath("/dashboard/archive-records");
 }
 
 export async function restoreDental(formData: FormData) {
@@ -151,7 +181,8 @@ export async function restoreDental(formData: FormData) {
     WHERE dental_id = ${dentalId}
   `;
 
-    refresh();
+    revalidatePath(BASE);
+    revalidatePath("/dashboard/archive-records");
 }
 
 export async function deleteDental(formData: FormData) {
@@ -165,5 +196,6 @@ export async function deleteDental(formData: FormData) {
     DELETE FROM dental_records WHERE dental_id = ${dentalId} AND archived_at IS NOT NULL
   `;
 
-    refresh();
+    revalidatePath(BASE);
+    revalidatePath("/dashboard/archive-records");
 }

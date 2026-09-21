@@ -1,13 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
+import { Save } from "lucide-react";
+import ConfirmSubmit from "@/components/confirm-submit";
 import { createDental, updateDental, type DentalState } from "./actions";
 
 const initialState: DentalState = {};
 
 const inputClass =
-    "h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20";
+    "h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20";
+
+export type DentalValues = {
+    dentalId?: number;
+    patientType: "student" | "employee";
+    patientNumber: string;
+    visitDate: string;
+    procedure: string;
+    tooth: string;
+    dentistName: string;
+    status: string;
+    notes: string;
+};
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
     return (
@@ -18,29 +32,34 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     );
 }
 
-export type DentalValues = {
-    dentalId?: number;
-    studentNumber: string;
-    visitDate: string;
-    procedureName: string;
-    tooth: string;
-    dentistName: string;
-    status: string;
-    notes: string;
-};
-
-type Props = {
+export default function DentalForm({
+    mode,
+    record,
+    cancelHref,
+}: {
     mode: "create" | "edit";
     record: DentalValues;
     cancelHref: string;
-};
-
-export default function DentalForm({ mode, record, cancelHref }: Props) {
+}) {
     const action = mode === "create" ? createDental : updateDental;
     const [state, formAction, pending] = useActionState(action, initialState);
 
-    const { dentalId, ...rest } = record;
-    const v: Record<string, string> = { ...rest, ...(state.values ?? {}) };
+    const v: Record<string, string> = {
+        patientType: record.patientType,
+        patientNumber: record.patientNumber,
+        visitDate: record.visitDate,
+        procedure: record.procedure,
+        tooth: record.tooth,
+        dentistName: record.dentistName,
+        status: record.status,
+        notes: record.notes,
+        ...(state.values ?? {}),
+    };
+
+    const [patientType, setPatientType] = useState<"student" | "employee">(
+        v.patientType === "employee" ? "employee" : "student"
+    );
+    const isEmployee = patientType === "employee";
 
     return (
         <form action={formAction} className="space-y-6">
@@ -50,32 +69,45 @@ export default function DentalForm({ mode, record, cancelHref }: Props) {
                 </p>
             )}
 
-            {mode === "edit" && <input type="hidden" name="dentalId" value={dentalId} />}
+            {mode === "edit" && <input type="hidden" name="dentalId" value={record.dentalId} />}
+            <input type="hidden" name="patientType" value={patientType} />
 
             <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                 <h2 className="text-lg font-semibold text-gray-900">Dental Visit</h2>
-                <div className="mt-4 grid gap-4 md:grid-cols-2">
-                    {mode === "create" ? (
-                        <Field label="Student Number *">
-                            <input
-                                name="studentNumber"
-                                defaultValue={v.studentNumber}
-                                placeholder="e.g. 2024-00123"
-                                required
-                                suppressHydrationWarning
-                                className={inputClass}
-                            />
-                        </Field>
-                    ) : (
-                        <Field label="Student Number">
-                            <input
-                                value={v.studentNumber}
-                                disabled
-                                className={`${inputClass} bg-gray-100 text-gray-500`}
-                            />
-                        </Field>
-                    )}
 
+                <div className="mt-4">
+                    <p className="text-sm font-medium text-gray-700">Patient</p>
+                    <div className="mt-2 inline-flex rounded-lg border border-gray-300 bg-gray-50 p-1">
+                        {(["student", "employee"] as const).map((type) => (
+                            <button
+                                key={type}
+                                type="button"
+                                onClick={() => setPatientType(type)}
+                                suppressHydrationWarning
+                                className={`rounded-md px-4 py-1.5 text-sm font-medium capitalize transition-colors ${patientType === type
+                                    ? "bg-[#15664f] text-white shadow-sm"
+                                    : "text-gray-700 hover:bg-white"
+                                    }`}
+                            >
+                                {type}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="mt-5 grid gap-4 md:grid-cols-2">
+                    <Field label={isEmployee ? "Employee Number *" : "Student Number *"}>
+                        <input
+                            key={patientType}
+                            name="patientNumber"
+                            defaultValue={v.patientType === patientType ? v.patientNumber : ""}
+                            placeholder={isEmployee ? "e.g. 2001-001" : "e.g. 2024-00123"}
+                            maxLength={20}
+                            required
+                            suppressHydrationWarning
+                            className={inputClass}
+                        />
+                    </Field>
                     <Field label="Visit Date *">
                         <input
                             name="visitDate"
@@ -86,11 +118,10 @@ export default function DentalForm({ mode, record, cancelHref }: Props) {
                             className={inputClass}
                         />
                     </Field>
-
                     <Field label="Procedure *">
                         <input
-                            name="procedureName"
-                            defaultValue={v.procedureName}
+                            name="procedure"
+                            defaultValue={v.procedure}
                             placeholder="e.g. Tooth Extraction"
                             maxLength={150}
                             required
@@ -98,7 +129,6 @@ export default function DentalForm({ mode, record, cancelHref }: Props) {
                             className={inputClass}
                         />
                     </Field>
-
                     <Field label="Tooth">
                         <input
                             name="tooth"
@@ -109,22 +139,23 @@ export default function DentalForm({ mode, record, cancelHref }: Props) {
                             className={inputClass}
                         />
                     </Field>
-
                     <Field label="Attending Dentist">
                         <input
-                            name="dentistName"
-                            defaultValue={v.dentistName}
-                            placeholder="e.g. Dr. Ana Lim"
-                            maxLength={100}
+                            value={v.dentistName}
+                            readOnly
                             suppressHydrationWarning
-                            className={inputClass}
+                            className={`${inputClass} bg-gray-50`}
                         />
+                        <span className="text-xs text-gray-500">
+                            {mode === "create"
+                                ? "Automatic — the account currently logged in."
+                                : "Recorded when this entry was created."}
+                        </span>
                     </Field>
-
                     <Field label="Status">
                         <select
                             name="status"
-                            defaultValue={v.status}
+                            defaultValue={v.status || "completed"}
                             suppressHydrationWarning
                             className={inputClass}
                         >
@@ -132,19 +163,18 @@ export default function DentalForm({ mode, record, cancelHref }: Props) {
                             <option value="follow-up">Follow-up</option>
                         </select>
                     </Field>
-                </div>
-
-                <div className="mt-4">
-                    <Field label="Notes">
-                        <textarea
-                            name="notes"
-                            defaultValue={v.notes}
-                            rows={4}
-                            placeholder="Additional details about the procedure..."
-                            suppressHydrationWarning
-                            className="w-full rounded-lg border border-gray-300 bg-white p-3 text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20"
-                        />
-                    </Field>
+                    <div className="md:col-span-2">
+                        <Field label="Notes">
+                            <textarea
+                                name="notes"
+                                defaultValue={v.notes}
+                                rows={4}
+                                placeholder="Additional details about the procedure..."
+                                suppressHydrationWarning
+                                className="w-full rounded-lg border border-gray-300 bg-white p-3 text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20"
+                            />
+                        </Field>
+                    </div>
                 </div>
             </section>
 
@@ -155,14 +185,20 @@ export default function DentalForm({ mode, record, cancelHref }: Props) {
                 >
                     Cancel
                 </Link>
-                <button
-                    type="submit"
+                <ConfirmSubmit
+                    title={mode === "create" ? "Save dental record" : "Save changes"}
+                    message={
+                        mode === "create"
+                            ? `Save this new dental record for this ${patientType}?`
+                            : "Save the changes to this dental record?"
+                    }
+                    confirmLabel="Save"
+                    icon={<Save className="h-5 w-5" />}
                     disabled={pending}
-                    suppressHydrationWarning
                     className="h-10 rounded-lg bg-[#15664f] px-5 text-sm font-semibold text-white hover:bg-[#10523f] disabled:opacity-60"
                 >
                     {pending ? "Saving..." : mode === "create" ? "Save Record" : "Save Changes"}
-                </button>
+                </ConfirmSubmit>
             </div>
         </form>
     );
