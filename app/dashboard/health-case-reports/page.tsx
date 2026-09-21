@@ -6,6 +6,7 @@ import { getSession } from "@/lib/session";
 import { canManageRecords } from "@/lib/permissions";
 import ConfirmButton from "@/components/confirm-button";
 import { archiveCase } from "./case-actions";
+import ConfirmLink from "@/components/confirm-link";
 
 type CaseRow = {
     case_id: number;
@@ -181,13 +182,16 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
                                             {canEdit && (
                                                 <td className="whitespace-nowrap px-4 py-3">
                                                     <div className="flex items-center gap-3">
-                                                        <Link
+                                                        <ConfirmLink
                                                             href={`${BASE}/edit?case=${c.case_id}`}
+                                                            title="Edit case report"
+                                                            message={`Edit case ${c.case_number} (${c.complaint}) of ${c.first_name} ${c.last_name}?`}
+                                                            confirmLabel="Edit"
                                                             className="inline-flex items-center gap-1 font-medium text-[#15664f] hover:underline"
                                                         >
                                                             <Pencil className="h-3.5 w-3.5" />
                                                             Edit
-                                                        </Link>
+                                                        </ConfirmLink>
                                                         <form action={archiveCase}>
                                                             <input type="hidden" name="caseId" value={c.case_id} />
                                                             <ConfirmButton

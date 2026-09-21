@@ -280,13 +280,16 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
 
                         {canAddStudent && (
                             <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-gray-100 pt-4">
-                                <Link
+                                <ConfirmLink
                                     href={`${BASE}/students/edit?student=${encodeURIComponent(selected.student_number)}`}
+                                    title="Edit student details"
+                                    message={`Edit the details of ${selected.first_name} ${selected.last_name} (${selected.student_number})? Changes will replace the current information.`}
+                                    confirmLabel="Edit"
                                     className="inline-flex h-9 items-center gap-2 rounded-lg border border-[#15664f] bg-white px-4 text-sm font-medium text-[#15664f] hover:bg-[#eef6f2]"
                                 >
                                     <Pencil className="h-4 w-4" />
                                     Edit student details
-                                </Link>
+                                </ConfirmLink>
 
                                 <form action={archiveStudent}>
                                     <input type="hidden" name="studentId" value={selected.student_id} />
@@ -345,13 +348,16 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
                                                     {canEdit && (
                                                         <td className="whitespace-nowrap px-4 py-3">
                                                             <div className="flex items-center gap-3">
-                                                                <Link
+                                                                <ConfirmLink
                                                                     href={`${BASE}/edit?record=${r.record_id}`}
+                                                                    title="Edit visit record"
+                                                                    message={`Edit this visit (${formatDate(r.visit_date)} - ${r.complaint})?`}
+                                                                    confirmLabel="Edit"
                                                                     className="inline-flex items-center gap-1 font-medium text-[#15664f] hover:underline"
                                                                 >
                                                                     <Pencil className="h-3.5 w-3.5" />
                                                                     Edit
-                                                                </Link>
+                                                                </ConfirmLink>
                                                                 <form action={archiveRecord}>
                                                                     <input type="hidden" name="recordId" value={r.record_id} />
                                                                     <ConfirmButton

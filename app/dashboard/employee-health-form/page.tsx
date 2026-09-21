@@ -13,6 +13,7 @@ import {
 } from "./form-data";
 import { addLabExam, addPhysicalExam, deleteLabExam, deletePhysicalExam } from "./actions";
 import PrintButton from "./print-button";
+import ConfirmLink from "@/components/confirm-link";
 
 const BASE = "/dashboard/employee-health-form";
 
@@ -204,13 +205,16 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
                     <div className="flex gap-3">
                         <PrintButton />
                         {canEdit && (
-                            <Link
+                            <ConfirmLink
                                 href={`${BASE}/edit?employee=${encodeURIComponent(selected.employee_number)}`}
+                                title={form ? "Edit form" : "Fill out form"}
+                                message={`${form ? "Edit" : "Fill out"} the form of ${selected.first_name} ${selected.last_name} (${selected.employee_number})?`}
+                                confirmLabel={form ? "Edit" : "Continue"}
                                 className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#15664f] px-4 text-sm font-semibold text-white hover:bg-[#10523f]"
                             >
                                 <Pencil className="h-4 w-4" />
                                 {form ? "Edit Form" : "Fill Out Form"}
-                            </Link>
+                            </ConfirmLink>
                         )}
                     </div>
                 )}
@@ -242,23 +246,20 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
                         {employees.map((e) => {
                             const active = e.employee_number === employeeNumber;
                             return (
-                                <Link
+                                <ConfirmLink
                                     key={e.employee_id}
-                                    href={`${BASE}?q=${encodeURIComponent(q)}&employee=${encodeURIComponent(
-                                        e.employee_number
-                                    )}`}
-                                    className={`block rounded-lg px-3 py-2 text-sm ${active ? "bg-[#15664f] text-white" : "text-gray-700 hover:bg-gray-100"
-                                        }`}
+                                    href={`${BASE}?q=${encodeURIComponent(q)}&employee=${encodeURIComponent(e.employee_number)}`}
+                                    title="View health form"
+                                    message={`Open the health form of ${e.first_name} ${e.last_name} (${e.employee_number})? This contains confidential medical information.`}
+                                    className={`block w-full rounded-lg px-3 py-2 text-left text-sm ${active ? "bg-[#15664f] text-white" : "text-gray-700 hover:bg-gray-100"}`}
                                 >
                                     <span className="block font-medium">
                                         {e.last_name}, {e.first_name}
                                     </span>
-                                    <span
-                                        className={`block text-xs ${active ? "text-white/80" : "text-gray-500"}`}
-                                    >
+                                    <span className={`block text-xs ${active ? "text-white/80" : "text-gray-500"}`}>
                                         {e.employee_number}
                                     </span>
-                                </Link>
+                                </ConfirmLink>
                             );
                         })}
                     </div>
@@ -305,14 +306,16 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
                                 <div className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center">
                                     <p className="text-gray-500">No health form yet for this employee.</p>
                                     {canEdit && (
-                                        <Link
-                                            href={`${BASE}/edit?employee=${encodeURIComponent(
-                                                selected.employee_number
-                                            )}`}
-                                            className="mt-4 inline-flex h-10 items-center rounded-lg bg-[#15664f] px-5 text-sm font-semibold text-white hover:bg-[#10523f]"
+                                        <ConfirmLink
+                                            href={`${BASE}/edit?employee=${encodeURIComponent(selected.employee_number)}`}
+                                            title={form ? "Edit form" : "Fill out form"}
+                                            message={`${form ? "Edit" : "Fill out"} the form of ${selected.first_name} ${selected.last_name} (${selected.employee_number})?`}
+                                            confirmLabel={form ? "Edit" : "Continue"}
+                                            className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#15664f] px-4 text-sm font-semibold text-white hover:bg-[#10523f]"
                                         >
-                                            Fill Out Form
-                                        </Link>
+                                            <Pencil className="h-4 w-4" />
+                                            {form ? "Edit Form" : "Fill Out Form"}
+                                        </ConfirmLink>
                                     )}
                                 </div>
                             )}

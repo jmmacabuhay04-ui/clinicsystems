@@ -11,6 +11,7 @@ import {
     REVIEW_OF_SYSTEM,
 } from "./form-data";
 import PrintButton from "./print-button";
+import ConfirmLink from "@/components/confirm-link";
 
 const BASE = "/dashboard/student-health-form";
 
@@ -170,13 +171,16 @@ export default async function StudentHealthFormPage({ searchParams }: Props) {
                     <div className="flex gap-3">
                         <PrintButton />
                         {canEdit && (
-                            <Link
+                            <ConfirmLink
                                 href={`${BASE}/edit?student=${encodeURIComponent(selected.student_number)}`}
+                                title={form ? "Edit form" : "Fill out form"}
+                                message={`${form ? "Edit" : "Fill out"} the form of ${selected.first_name} ${selected.last_name} (${selected.student_number})?`}
+                                confirmLabel={form ? "Edit" : "Continue"}
                                 className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#15664f] px-4 text-sm font-semibold text-white hover:bg-[#10523f]"
                             >
                                 <Pencil className="h-4 w-4" />
                                 {form ? "Edit Form" : "Fill Out Form"}
-                            </Link>
+                            </ConfirmLink>
                         )}
                     </div>
                 )}
@@ -208,23 +212,20 @@ export default async function StudentHealthFormPage({ searchParams }: Props) {
                         {students.map((s) => {
                             const active = s.student_number === studentNumber;
                             return (
-                                <Link
+                                <ConfirmLink
                                     key={s.student_id}
-                                    href={`${BASE}?q=${encodeURIComponent(q)}&student=${encodeURIComponent(
-                                        s.student_number
-                                    )}`}
-                                    className={`block rounded-lg px-3 py-2 text-sm ${active ? "bg-[#15664f] text-white" : "text-gray-700 hover:bg-gray-100"
-                                        }`}
+                                    href={`${BASE}?q=${encodeURIComponent(q)}&student=${encodeURIComponent(s.student_number)}`}
+                                    title="View health form"
+                                    message={`Open the health form of ${s.first_name} ${s.last_name} (${s.student_number})? This contains confidential medical information.`}
+                                    className={`block w-full rounded-lg px-3 py-2 text-left text-sm ${active ? "bg-[#15664f] text-white" : "text-gray-700 hover:bg-gray-100"}`}
                                 >
                                     <span className="block font-medium">
                                         {s.last_name}, {s.first_name}
                                     </span>
-                                    <span
-                                        className={`block text-xs ${active ? "text-white/80" : "text-gray-500"}`}
-                                    >
+                                    <span className={`block text-xs ${active ? "text-white/80" : "text-gray-500"}`}>
                                         {s.student_number}
                                     </span>
-                                </Link>
+                                </ConfirmLink>
                             );
                         })}
                     </div>

@@ -6,7 +6,7 @@ import { getSession } from "@/lib/session";
 import { canManageDental } from "@/lib/permissions";
 import ConfirmButton from "@/components/confirm-button";
 import { archiveDental } from "./actions";
-
+import ConfirmLink from "@/components/confirm-link";
 type DentalRow = {
     dental_id: number;
     visit_date: Date;
@@ -150,13 +150,16 @@ export default async function DentalRecordsPage({ searchParams }: Props) {
                                             {canEdit && (
                                                 <td className="whitespace-nowrap px-4 py-4">
                                                     <div className="flex items-center gap-3">
-                                                        <Link
+                                                        <ConfirmLink
                                                             href={`${BASE}/edit?record=${d.dental_id}`}
+                                                            title="Edit dental record"
+                                                            message={`Edit this dental record (${d.procedure_name})? Changes will replace the current information.`}
+                                                            confirmLabel="Edit"
                                                             className="inline-flex items-center gap-1 font-medium text-[#15664f] hover:underline"
                                                         >
                                                             <Pencil className="h-3.5 w-3.5" />
                                                             Edit
-                                                        </Link>
+                                                        </ConfirmLink>
                                                         <form action={archiveDental}>
                                                             <input type="hidden" name="dentalId" value={d.dental_id} />
                                                             <ConfirmButton
