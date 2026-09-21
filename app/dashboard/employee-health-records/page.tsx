@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Archive, Pencil, Plus, Search, UserPlus } from "lucide-react";
+import { Archive, ArrowLeft, Pencil, Plus, Search, UserPlus } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { canManageRecords, canManageStudents } from "@/lib/permissions";
 import ConfirmButton from "@/components/confirm-button";
 import { archiveEmployee } from "./employee-actions";
 import { archiveEmployeeRecord } from "./record-actions";
+import ConfirmLink from "@/components/confirm-link";
 
 const BASE = "/dashboard/employee-health-records";
 
@@ -39,18 +40,27 @@ type Props = {
     searchParams: Promise<{ q?: string; employee?: string }>;
 };
 
-function fmt(date: Date | null) {
+function fmt(date: Date | null, month: "short" | "long" = "short") {
     if (!date) return "—";
     return new Date(date).toLocaleDateString("en-US", {
-        month: "short",
+        month,
         day: "numeric",
         year: "numeric",
         timeZone: "UTC",
     });
 }
 
-function show(value: number | string | null, unit = "") {
-    return value === null || value === "" ? "—" : `${value}${unit}`;
+function show(value: number | string | null | undefined, unit = "") {
+    return value === null || value === undefined || value === "" ? "—" : `${value}${unit}`;
+}
+
+function Info({ label, value }: { label: string; value: string }) {
+    return (
+        <div>
+            <p className="text-xs uppercase tracking-wide text-gray-500">{label}</p>
+            <p className="mt-1 font-medium text-gray-900">{value}</p>
+        </div>
+    );
 }
 
 export default async function EmployeeHealthRecordsPage({ searchParams }: Props) {
@@ -62,24 +72,34 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
     const canEditEmployees = canManageStudents(session.role);
     const like = `%${q}%`;
 
-    const employees = await prisma.$queryRaw<EmployeeRow[]>`
-    SELECT employee_id, employee_number, last_name, first_name, middle_name,
-           department, position, date_of_birth, gender
-    FROM employees
-    WHERE archived_at IS NULL
-      AND (
-        ${q}::text = ''
-        OR employee_number ILIKE ${like}
-        OR last_name ILIKE ${like}
-        OR first_name ILIKE ${like}
-      )
-    ORDER BY employee_number
-    LIMIT 50
-  `;
+    let selected: EmployeeRow | undefined;
+    if (employeeNumber) {
+        const rows = await prisma.$queryRaw<EmployeeRow[]>`
+      SELECT employee_id, employee_number, last_name, first_name, middle_name,
+             department, position, date_of_birth, gender
+      FROM employees
+      WHERE employee_number = ${employeeNumber} AND archived_at IS NULL
+      LIMIT 1
+    `;
+        selected = rows[0];
+    }
 
-    const selected = employeeNumber
-        ? employees.find((e) => e.employee_number === employeeNumber)
-        : undefined;
+    const employees = selected
+        ? []
+        : await prisma.$queryRaw<EmployeeRow[]>`
+      SELECT employee_id, employee_number, last_name, first_name, middle_name,
+             department, position, date_of_birth, gender
+      FROM employees
+      WHERE archived_at IS NULL
+        AND (
+          ${q}::text = ''
+          OR employee_number ILIKE ${like}
+          OR last_name ILIKE ${like}
+          OR first_name ILIKE ${like}
+        )
+      ORDER BY created_at DESC, employee_id DESC
+      LIMIT 50
+    `;
 
     let records: RecordRow[] = [];
     if (selected) {
@@ -92,228 +112,242 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
     `;
     }
 
-    const latest = records[0];
+    const latest = records.find(
+        (r) =>
+            r.height_cm !== null ||
+            r.weight_kg !== null ||
+            r.heart_rate !== null ||
+            r.blood_pressure !== null ||
+            r.temperature !== null
+    );
 
     return (
         <main className="space-y-6 p-6 md:p-8">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                    <h1 className="text-3xl font-semibold text-gray-900">Employee Health Records</h1>
-                    <p className="mt-1 text-gray-600">
-                        Clinic records for teachers and staff, plus their portal accounts.
-                    </p>
+            <div className="flex flex-wrap items-center justify-between gap-4">
+                <h1 className="text-3xl font-semibold text-gray-900">Employee Health Records</h1>
+
+                <div className="flex flex-wrap gap-3">
+                    {canEditEmployees && (
+                        <Link
+                            href={`${BASE}/employees/new`}
+                            className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#f5b800] px-4 text-sm font-semibold text-gray-900 hover:bg-[#e0a800]"
+                        >
+                            <UserPlus className="h-4 w-4" />
+                            Add Employee
+                        </Link>
+                    )}
+                    {selected && canEditRecords && (
+                        <Link
+                            href={`${BASE}/records/new?employee=${encodeURIComponent(
+                                selected.employee_number
+                            )}`}
+                            className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#15664f] px-4 text-sm font-semibold text-white hover:bg-[#10523f]"
+                        >
+                            <Plus className="h-4 w-4" />
+                            Add Record
+                        </Link>
+                    )}
                 </div>
-                {canEditEmployees && (
-                    <Link
-                        href={`${BASE}/employees/new`}
-                        className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#f5b800] px-4 text-sm font-semibold text-gray-900 hover:bg-[#e0a800]"
-                    >
-                        <UserPlus className="h-4 w-4" />
-                        Add Employee
-                    </Link>
-                )}
             </div>
 
-            <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
-                <aside className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                    <form method="get" className="relative">
-                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                        <input
-                            name="q"
-                            defaultValue={q}
-                            placeholder="Search employee..."
-                            suppressHydrationWarning
-                            className="h-10 w-full rounded-lg border border-gray-300 bg-white pl-9 pr-3 text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20"
-                        />
-                    </form>
+            <form method="get" action={BASE} className="relative max-w-md">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <input
+                    name="q"
+                    defaultValue={q}
+                    placeholder="Search by employee number or name..."
+                    suppressHydrationWarning
+                    className="h-11 w-full rounded-lg border border-gray-300 bg-white pl-10 pr-3 text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20"
+                />
+            </form>
 
-                    <div className="mt-4 max-h-[560px] space-y-1 overflow-y-auto">
-                        {employees.length === 0 && (
-                            <p className="p-3 text-sm text-gray-500">No employees found.</p>
-                        )}
-                        {employees.map((e) => {
-                            const active = e.employee_number === employeeNumber;
-                            return (
-                                <Link
-                                    key={e.employee_id}
-                                    href={`${BASE}?q=${encodeURIComponent(q)}&employee=${encodeURIComponent(
-                                        e.employee_number
-                                    )}`}
-                                    className={`block rounded-lg px-3 py-2 text-sm ${active ? "bg-[#15664f] text-white" : "text-gray-700 hover:bg-gray-100"
-                                        }`}
-                                >
-                                    <span className="block font-medium">
-                                        {e.last_name}, {e.first_name}
-                                    </span>
-                                    <span
-                                        className={`block text-xs ${active ? "text-white/80" : "text-gray-500"}`}
-                                    >
-                                        {e.employee_number}
-                                    </span>
-                                </Link>
-                            );
-                        })}
-                    </div>
-                </aside>
+            {!selected && (
+                <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                    <p className="border-b border-gray-100 px-4 py-3 text-sm text-gray-600">
+                        {q ? `Search results for “${q}”` : "Recently registered employees"}
+                    </p>
 
-                <section className="space-y-6">
-                    {!selected && (
-                        <div className="rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center">
-                            <p className="text-gray-500">Select an employee on the left to view records.</p>
+                    {employees.length === 0 ? (
+                        <p className="p-8 text-center text-sm text-gray-500">No employees found.</p>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left text-sm">
+                                <thead className="bg-gray-50 text-gray-700">
+                                    <tr>
+                                        <th className="px-4 py-3 font-medium">Department</th>
+                                        <th className="px-4 py-3 font-medium">Position</th>
+                                        <th className="whitespace-nowrap px-4 py-3 font-medium">Employee Number</th>
+                                        <th className="whitespace-nowrap px-4 py-3 font-medium">Last Name</th>
+                                        <th className="whitespace-nowrap px-4 py-3 font-medium">First Name</th>
+                                        <th className="whitespace-nowrap px-4 py-3 font-medium">Middle Name</th>
+                                        <th className="px-4 py-3 font-medium">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {employees.map((e) => (
+                                        <tr key={e.employee_id} className="border-t border-gray-100">
+                                            <td className="px-4 py-3 text-gray-600">{e.department ?? "—"}</td>
+                                            <td className="px-4 py-3 text-gray-600">{e.position ?? "—"}</td>
+                                            <td className="whitespace-nowrap px-4 py-3 font-semibold text-gray-900">
+                                                {e.employee_number}
+                                            </td>
+                                            <td className="px-4 py-3 text-gray-900">{e.last_name}</td>
+                                            <td className="px-4 py-3 text-gray-900">{e.first_name}</td>
+                                            <td className="px-4 py-3 text-gray-900">{e.middle_name ?? "—"}</td>
+                                            <td className="whitespace-nowrap px-4 py-3">
+                                                <ConfirmLink
+                                                    href={`${BASE}?employee=${encodeURIComponent(e.employee_number)}`}
+                                                    title="View health record"
+                                                    message={`Open the health record of ${e.first_name} ${e.last_name} (${e.employee_number})? This contains confidential medical information.`}
+                                                    className="font-medium text-[#15664f] hover:underline"
+                                                >
+                                                    View record
+                                                </ConfirmLink>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
                     )}
-
-                    {selected && (
-                        <>
-                            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                                <div className="flex flex-wrap items-start justify-between gap-4">
-                                    <div>
-                                        <h2 className="text-xl font-semibold text-gray-900">
-                                            {selected.first_name}
-                                            {selected.middle_name ? ` ${selected.middle_name}` : ""}{" "}
-                                            {selected.last_name}
-                                        </h2>
-                                        <p className="mt-1 text-sm text-gray-600">
-                                            {selected.employee_number}
-                                            {selected.position ? ` · ${selected.position}` : ""}
-                                            {selected.department ? ` · ${selected.department}` : ""}
-                                        </p>
-                                        <p className="mt-1 text-sm text-gray-500">
-                                            {fmt(selected.date_of_birth)} · {selected.gender || "—"}
-                                        </p>
-                                    </div>
-
-                                    <div className="flex flex-wrap gap-2">
-                                        {canEditRecords && (
-                                            <Link
-                                                href={`${BASE}/records/new?employee=${encodeURIComponent(
-                                                    selected.employee_number
-                                                )}`}
-                                                className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#15664f] px-3 text-sm font-semibold text-white hover:bg-[#10523f]"
-                                            >
-                                                <Plus className="h-4 w-4" />
-                                                Add Record
-                                            </Link>
-                                        )}
-                                        {canEditEmployees && (
-                                            <>
-                                                <Link
-                                                    href={`${BASE}/employees/edit?employee=${encodeURIComponent(
-                                                        selected.employee_number
-                                                    )}`}
-                                                    className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-gray-300 px-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                                                >
-                                                    <Pencil className="h-4 w-4" />
-                                                    Edit
-                                                </Link>
-                                                <form action={archiveEmployee}>
-                                                    <input type="hidden" name="employeeId" value={selected.employee_id} />
-                                                    <ConfirmButton
-                                                        title="Archive employee"
-                                                        confirmLabel="Archive"
-                                                        message={`Archive ${selected.last_name}, ${selected.first_name}? Their portal login will stop working until restored.`}
-                                                        className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-gray-300 px-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                                                    >
-                                                        <Archive className="h-4 w-4" />
-                                                        Archive
-                                                    </ConfirmButton>
-                                                </form>
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                                <h3 className="text-lg font-semibold text-gray-900">Latest Vital Signs</h3>
-                                {!latest ? (
-                                    <p className="mt-3 text-sm text-gray-500">No records yet.</p>
-                                ) : (
-                                    <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-                                        {[
-                                            { label: "Height", value: show(latest.height_cm, " cm") },
-                                            { label: "Weight", value: show(latest.weight_kg, " kg") },
-                                            { label: "Heart Rate", value: show(latest.heart_rate, " bpm") },
-                                            { label: "Blood Pressure", value: show(latest.blood_pressure) },
-                                            { label: "Temperature", value: show(latest.temperature, " °C") },
-                                        ].map((item) => (
-                                            <div key={item.label} className="rounded-lg bg-gray-50 p-4">
-                                                <p className="text-xs text-gray-600">{item.label}</p>
-                                                <p className="mt-1 text-lg font-semibold text-gray-900">{item.value}</p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                                <h3 className="border-b border-gray-100 p-5 text-lg font-semibold text-gray-900">
-                                    Visit History ({records.length})
-                                </h3>
-                                {records.length === 0 ? (
-                                    <p className="p-8 text-center text-sm text-gray-500">No visit records yet.</p>
-                                ) : (
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full text-left text-sm">
-                                            <thead className="bg-gray-50 text-gray-700">
-                                                <tr>
-                                                    <th className="whitespace-nowrap px-4 py-3 font-medium">Date</th>
-                                                    <th className="px-4 py-3 font-medium">Complaint</th>
-                                                    <th className="px-4 py-3 font-medium">Action Taken</th>
-                                                    <th className="px-4 py-3 font-medium">Staff</th>
-                                                    {canEditRecords && <th className="px-4 py-3 font-medium">Actions</th>}
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {records.map((r) => (
-                                                    <tr key={r.record_id} className="border-t border-gray-100">
-                                                        <td className="whitespace-nowrap px-4 py-3 font-medium text-gray-900">
-                                                            {fmt(r.visit_date)}
-                                                        </td>
-                                                        <td className="px-4 py-3 text-gray-900">{r.complaint}</td>
-                                                        <td className="px-4 py-3 text-gray-700">{r.action_taken || "—"}</td>
-                                                        <td className="px-4 py-3 text-gray-700">
-                                                            {r.attending_staff || "—"}
-                                                        </td>
-                                                        {canEditRecords && (
-                                                            <td className="whitespace-nowrap px-4 py-3">
-                                                                <div className="flex items-center gap-3">
-                                                                    <Link
-                                                                        href={`${BASE}/records/edit?record=${r.record_id}&employee=${encodeURIComponent(
-                                                                            selected.employee_number
-                                                                        )}`}
-                                                                        className="inline-flex items-center gap-1 font-medium text-[#15664f] hover:underline"
-                                                                    >
-                                                                        <Pencil className="h-3.5 w-3.5" />
-                                                                        Edit
-                                                                    </Link>
-                                                                    <form action={archiveEmployeeRecord}>
-                                                                        <input type="hidden" name="recordId" value={r.record_id} />
-                                                                        <ConfirmButton
-                                                                            title="Archive record"
-                                                                            confirmLabel="Archive"
-                                                                            message={`Archive this visit? ${fmt(r.visit_date)} · ${r.complaint
-                                                                                }`}
-                                                                            className="inline-flex items-center gap-1 font-medium text-gray-600 hover:underline"
-                                                                        >
-                                                                            <Archive className="h-3.5 w-3.5" />
-                                                                            Archive
-                                                                        </ConfirmButton>
-                                                                    </form>
-                                                                </div>
-                                                            </td>
-                                                        )}
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                )}
-                            </div>
-                        </>
-                    )}
                 </section>
-            </div>
+            )}
+
+            {selected && (
+                <>
+                    <Link
+                        href={BASE}
+                        className="inline-flex items-center gap-1 text-sm font-medium text-[#15664f] hover:underline"
+                    >
+                        <ArrowLeft className="h-4 w-4" />
+                        Back to employee list
+                    </Link>
+
+                    <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                        <div className="grid gap-x-6 gap-y-5 sm:grid-cols-3 lg:grid-cols-6">
+                            <Info label="Department" value={show(selected.department)} />
+                            <Info label="Position" value={show(selected.position)} />
+                            <Info label="Employee Number" value={selected.employee_number} />
+                            <Info label="Last Name" value={selected.last_name} />
+                            <Info label="First Name" value={selected.first_name} />
+                            <Info label="Middle Name" value={show(selected.middle_name)} />
+                            <Info label="Date of Birth" value={fmt(selected.date_of_birth, "long")} />
+                            <Info label="Gender" value={show(selected.gender)} />
+                        </div>
+
+                        {canEditEmployees && (
+                            <div className="mt-6 flex flex-wrap gap-3 border-t border-gray-100 pt-5">
+                                <Link
+                                    href={`${BASE}/employees/edit?employee=${encodeURIComponent(
+                                        selected.employee_number
+                                    )}`}
+                                    className="inline-flex h-10 items-center gap-2 rounded-lg border border-[#15664f] px-4 text-sm font-medium text-[#15664f] hover:bg-[#15664f]/5"
+                                >
+                                    <Pencil className="h-4 w-4" />
+                                    Edit employee details
+                                </Link>
+                                <form action={archiveEmployee}>
+                                    <input type="hidden" name="employeeId" value={selected.employee_id} />
+                                    <ConfirmButton
+                                        title="Archive employee"
+                                        confirmLabel="Archive"
+                                        message={`Archive ${selected.last_name}, ${selected.first_name}? Their portal login will stop working until restored.`}
+                                        className="inline-flex h-10 items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 text-sm font-medium text-amber-800 hover:bg-amber-100"
+                                    >
+                                        <Archive className="h-4 w-4" />
+                                        Archive this employee
+                                    </ConfirmButton>
+                                </form>
+                            </div>
+                        )}
+                    </section>
+
+                    <section>
+                        <h2 className="mb-3 text-lg font-semibold text-gray-900">Vital Signs</h2>
+                        <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
+                            {[
+                                { label: "Height", value: show(latest?.height_cm, " cm") },
+                                { label: "Weight", value: show(latest?.weight_kg, " kg") },
+                                { label: "Heart Rate", value: show(latest?.heart_rate, " bpm") },
+                                { label: "Blood Pressure", value: show(latest?.blood_pressure) },
+                                { label: "Temperature", value: show(latest?.temperature, " °C") },
+                                {
+                                    label: "Last Updated",
+                                    value: records[0] ? fmt(records[0].visit_date) : "—",
+                                },
+                            ].map((item) => (
+                                <div
+                                    key={item.label}
+                                    className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+                                >
+                                    <p className="text-sm text-gray-600">{item.label}</p>
+                                    <p className="mt-2 text-xl font-semibold text-gray-900">{item.value}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+
+                    <section>
+                        <h2 className="mb-3 text-lg font-semibold text-gray-900">Visit History</h2>
+                        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                            {records.length === 0 ? (
+                                <p className="p-8 text-center text-sm text-gray-500">No visit records yet.</p>
+                            ) : (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left text-sm">
+                                        <thead className="bg-gray-50 text-gray-700">
+                                            <tr>
+                                                <th className="whitespace-nowrap px-4 py-3 font-medium">Date</th>
+                                                <th className="px-4 py-3 font-medium">Complaint</th>
+                                                <th className="px-4 py-3 font-medium">Action Taken</th>
+                                                <th className="whitespace-nowrap px-4 py-3 font-medium">Attending Staff</th>
+                                                {canEditRecords && <th className="px-4 py-3 font-medium">Actions</th>}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {records.map((r) => (
+                                                <tr key={r.record_id} className="border-t border-gray-100">
+                                                    <td className="whitespace-nowrap px-4 py-3 text-gray-900">
+                                                        {fmt(r.visit_date)}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-gray-900">{r.complaint}</td>
+                                                    <td className="px-4 py-3 text-gray-900">{r.action_taken || "—"}</td>
+                                                    <td className="px-4 py-3 text-gray-900">{r.attending_staff || "—"}</td>
+                                                    {canEditRecords && (
+                                                        <td className="whitespace-nowrap px-4 py-3">
+                                                            <div className="flex items-center gap-3">
+                                                                <Link
+                                                                    href={`${BASE}/records/edit?record=${r.record_id}`}
+                                                                    className="inline-flex items-center gap-1 font-medium text-[#15664f] hover:underline"
+                                                                >
+                                                                    <Pencil className="h-3.5 w-3.5" />
+                                                                    Edit
+                                                                </Link>
+                                                                <form action={archiveEmployeeRecord}>
+                                                                    <input type="hidden" name="recordId" value={r.record_id} />
+                                                                    <ConfirmButton
+                                                                        title="Archive record"
+                                                                        confirmLabel="Archive"
+                                                                        message={`Archive this visit? ${fmt(r.visit_date)} · ${r.complaint}`}
+                                                                        className="inline-flex items-center gap-1 font-medium text-amber-700 hover:underline"
+                                                                    >
+                                                                        <Archive className="h-3.5 w-3.5" />
+                                                                        Archive
+                                                                    </ConfirmButton>
+                                                                </form>
+                                                            </div>
+                                                        </td>
+                                                    )}
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    </section>
+                </>
+            )}
         </main>
     );
 }

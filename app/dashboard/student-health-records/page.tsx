@@ -3,11 +3,11 @@ import { redirect } from "next/navigation";
 import { Archive, ArrowLeft, Pencil, Plus, Search, UserPlus } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
-
 import ConfirmButton from "@/components/confirm-button";
 import { archiveRecord } from "./record-actions";
 import { archiveStudent } from "./student-actions";
 import { canManageRecords, canManageStudents } from "@/lib/permissions";
+import ConfirmLink from "@/components/confirm-link";
 type StudentRow = {
     student_id: number;
     student_number: string;
@@ -107,7 +107,6 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
         selected = rows[0];
     } else {
         results = await searchStudents(q);
-        if (q && results.length === 1) selected = results[0];
     }
 
     const records = selected
@@ -237,13 +236,14 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
                                             <td className="px-4 py-3 text-gray-900">{show(s.middle_name)}</td>
                                             <td className="whitespace-nowrap px-4 py-3">
                                                 <div className="flex items-center gap-3">
-                                                    <Link
-                                                        href={`${BASE}?student=${encodeURIComponent(s.student_number)}${q ? `&q=${encodeURIComponent(q)}` : ""
-                                                            }`}
+                                                    <ConfirmLink
+                                                        href={`${BASE}?student=${encodeURIComponent(s.student_number)}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
+                                                        title="View health record"
+                                                        message={`Open the health record of ${s.first_name} ${s.last_name} (${s.student_number})? This contains confidential medical information.`}
                                                         className="font-medium text-[#15664f] hover:underline"
                                                     >
                                                         View record
-                                                    </Link>
+                                                    </ConfirmLink>
 
                                                 </div>
                                             </td>
