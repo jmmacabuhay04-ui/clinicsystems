@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Archive, Pencil, Plus } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { canManageStaff } from "@/lib/permissions";
 import ConfirmButton from "@/components/confirm-button";
-import { deleteStaff } from "./actions";
+import { archiveStaff } from "./actions";
+import ConfirmLink from "@/components/confirm-link";
 
 type StaffRow = {
     staff_id: number;
@@ -32,9 +33,9 @@ export default async function ClinicStaffPage() {
     const staff = await prisma.$queryRaw<StaffRow[]>`
     SELECT staff_id, full_name, position, email, contact, license_no, status
     FROM clinic_staff
+    WHERE archived_at IS NULL
     ORDER BY full_name
   `;
-
     return (
         <main className="space-y-6 p-6 md:p-8">
             <div className="flex flex-wrap items-start justify-between gap-4">
@@ -43,13 +44,16 @@ export default async function ClinicStaffPage() {
                     <p className="mt-1 text-gray-600">Manage clinic personnel and their roles.</p>
                 </div>
 
-                <Link
-                    href={`${BASE}/new`}
+                <ConfirmLink
+                    href="/dashboard/clinic-staff/new"
+                    title="Add clinic staff?"
+                    message="You will be taken to the form to add a new clinic staff member."
+                    confirmLabel="Continue"
                     className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#15664f] px-4 text-sm font-semibold text-white hover:bg-[#10523f]"
                 >
                     <Plus className="h-4 w-4" />
                     Add Staff
-                </Link>
+                </ConfirmLink>
             </div>
 
             <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -95,23 +99,24 @@ export default async function ClinicStaffPage() {
                                             </td>
                                             <td className="whitespace-nowrap px-4 py-4">
                                                 <div className="flex items-center gap-3">
-                                                    <Link
+                                                    <ConfirmLink
                                                         href={`${BASE}/edit?staff=${s.staff_id}`}
-                                                        aria-label="Edit"
+                                                        title="Edit staff member"
+                                                        message={`Edit the details of ${s.full_name}? Changes will replace the current information.`}
+                                                        confirmLabel="Edit"
                                                         className="text-gray-400 hover:text-[#15664f]"
                                                     >
                                                         <Pencil className="h-4 w-4" />
-                                                    </Link>
-                                                    <form action={deleteStaff}>
+                                                    </ConfirmLink>
+                                                    <form action={archiveStaff}>
                                                         <input type="hidden" name="staffId" value={s.staff_id} />
                                                         <ConfirmButton
-                                                            title="Delete staff record"
-                                                            confirmLabel="Delete permanently"
-                                                            danger
-                                                            message={`Permanently delete ${s.full_name} from clinic staff? This cannot be undone.`}
-                                                            className="text-gray-400 hover:text-red-600"
+                                                            title="Archive staff record"
+                                                            confirmLabel="Archive"
+                                                            message={`Archive ${s.full_name}? The record will move to Archive Records and can be restored anytime.`}
+                                                            className="text-gray-400 hover:text-amber-600"
                                                         >
-                                                            <Trash2 className="h-4 w-4" />
+                                                            <Archive className="h-4 w-4" />
                                                         </ConfirmButton>
                                                     </form>
                                                 </div>

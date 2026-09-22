@@ -122,15 +122,63 @@
     @apply border-border outline-ring/50;
   }
 
+
+
+  /* Font size that adjusts to the screen */
   html {
-    font-size: 125%;
+    font-size: 100%;
   }
 
-  body {
-    @apply bg-background text-foreground;
+  /* phones: 16px */
+  @media (min-width: 640px) {
+    html {
+      font-size: 112.5%;
+    }
   }
 
-  .auth-bg {
-    background: linear-gradient(180deg, #e8f5ef 0%, #f7fbf9 100%);
+  /* tablets: 18px */
+  @media (min-width: 1024px) {
+    html {
+      font-size: 125%;
+    }
   }
+
+  /* laptops: 20px */
+  @media (min-width: 1440px) {
+    html {
+      font-size: 137.5%;
+    }
+  }
+
+  /* large monitors: 21px */
+
+  /* On phones, tables scroll sideways instead of squeezing the text */
+  @media (max-width: 639px) {
+
+    table th,
+    table td {
+      white-space: nowrap;
+    }
+  }
+}
+
+body {
+  @apply bg-background text-foreground;
+}
+
+.auth-bg {
+  background: linear-gradient(180deg, #e8f5ef 0%, #f7fbf9 100%);
+}
+
+/* Hide the scrollbar but keep scrolling */
+.no-scrollbar {
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* old Edge */
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+  /* Chrome, Edge, Safari */
 }

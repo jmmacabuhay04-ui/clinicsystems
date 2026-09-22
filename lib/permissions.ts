@@ -31,9 +31,7 @@ export function isViewOnly(role: string) {
     return !canManageRecords(role);
 }
 /** Admins and nurses manage clinic personnel records. */
-export function canManageStaff(role: string) {
-    return role === "admin" || role === "nurse" || role === "dentist";
-}
+export const canManageStaff = (role: string) => role === "nurse";
 
 export function canManageDentalForm(role: string) {
     return role === "dentist";

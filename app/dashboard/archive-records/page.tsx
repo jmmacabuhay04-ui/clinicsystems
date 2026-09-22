@@ -3,13 +3,14 @@ import { redirect } from "next/navigation";
 import { RotateCcw, Search, Trash2, X } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
-import { canManageDental, canManageRecords } from "@/lib/permissions";
+import { canManageDental, canManageRecords, canManageStaff } from "@/lib/permissions";
 import ConfirmButton from "@/components/confirm-button";
 import { deleteRecord, restoreRecord } from "../student-health-records/record-actions";
 import { deleteStudent, restoreStudent } from "../student-health-records/student-actions";
 import { deleteCase, restoreCase } from "../health-case-reports/case-actions";
 import { deleteDental, restoreDental } from "../dental-records/actions";
 import { deleteSlip, restoreSlip } from "../referral-slips/actions";
+import { deleteStaff, restoreStaff } from "../clinic-staff/actions";
 
 type ArchivedStudent = {
     student_id: number;
@@ -70,6 +71,15 @@ type ArchivedSlip = {
     archived_at: Date;
 };
 
+type ArchivedStaff = {
+    staff_id: number;
+    full_name: string;
+    position: string;
+    email: string | null;
+    license_no: string | null;
+    archived_at: Date;
+};
+
 type Props = {
     searchParams: Promise<{ q?: string }>;
 };
@@ -91,8 +101,9 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
     const { q = "" } = await searchParams;
     const like = `%${q}%`;
     const canEdit = canManageRecords(session.role) || canManageDental(session.role);
+    const canEditStaff = canManageStaff(session.role);
 
-    const [students, records, cases, dental, slips] = await Promise.all([
+    const [students, records, cases, dental, slips, staff] = await Promise.all([
         prisma.$queryRaw<ArchivedStudent[]>`
       SELECT s.student_id, s.student_number, s.last_name, s.first_name,
              s.grade_level, s.program, s.archived_at,
@@ -151,10 +162,18 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
              OR s.last_name ILIKE ${like} OR s.first_name ILIKE ${like})
       ORDER BY f.archived_at DESC
     `,
+        prisma.$queryRaw<ArchivedStaff[]>`
+      SELECT staff_id, full_name, position, email, license_no, archived_at
+      FROM clinic_staff
+      WHERE archived_at IS NOT NULL
+        AND (${q}::text = '' OR full_name ILIKE ${like}
+             OR position ILIKE ${like} OR COALESCE(email, '') ILIKE ${like})
+      ORDER BY archived_at DESC
+    `,
     ]);
 
     const total =
-        students.length + records.length + cases.length + dental.length + slips.length;
+        students.length + records.length + cases.length + dental.length + slips.length + staff.length;
 
     return (
         <main className="space-y-8 p-6 md:p-8">
@@ -559,6 +578,78 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                                                                 confirmLabel="Delete permanently"
                                                                 danger
                                                                 message={`Permanently delete this referral slip for ${f.last_name}, ${f.first_name} (${f.reason})? This cannot be undone.`}
+                                                                className="inline-flex items-center gap-1 font-medium text-red-600 hover:underline"
+                                                            >
+                                                                <Trash2 className="h-3.5 w-3.5" />
+                                                                Delete
+                                                            </ConfirmButton>
+                                                        </form>
+                                                    </div>
+                                                </td>
+                                            )}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+            </section>
+
+            <section>
+                <h2 className="mb-3 text-lg font-semibold text-gray-900">
+                    Archived Clinic Staff ({staff.length})
+                </h2>
+                <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                    {staff.length === 0 ? (
+                        <p className="p-8 text-center text-sm text-gray-500">No archived clinic staff.</p>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left text-sm">
+                                <thead className="bg-gray-50 text-gray-700">
+                                    <tr>
+                                        <th className="px-4 py-3 font-medium">Name</th>
+                                        <th className="px-4 py-3 font-medium">Role</th>
+                                        <th className="px-4 py-3 font-medium">Email</th>
+                                        <th className="whitespace-nowrap px-4 py-3 font-medium">License / PRC No.</th>
+                                        <th className="whitespace-nowrap px-4 py-3 font-medium">Archived On</th>
+                                        {canEditStaff && <th className="px-4 py-3 font-medium">Actions</th>}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {staff.map((st) => (
+                                        <tr key={st.staff_id} className="border-t border-gray-100">
+                                            <td className="px-4 py-3 font-medium text-gray-900">{st.full_name}</td>
+                                            <td className="px-4 py-3 text-gray-700">{st.position}</td>
+                                            <td className="px-4 py-3 text-gray-700">{st.email ?? "—"}</td>
+                                            <td className="whitespace-nowrap px-4 py-3 text-gray-600">
+                                                {st.license_no ?? "—"}
+                                            </td>
+                                            <td className="whitespace-nowrap px-4 py-3 text-gray-500">
+                                                {formatDate(st.archived_at)}
+                                            </td>
+                                            {canEditStaff && (
+                                                <td className="whitespace-nowrap px-4 py-3">
+                                                    <div className="flex items-center gap-3">
+                                                        <form action={restoreStaff}>
+                                                            <input type="hidden" name="staffId" value={st.staff_id} />
+                                                            <ConfirmButton
+                                                                title="Restore staff record"
+                                                                confirmLabel="Restore"
+                                                                message={`Restore ${st.full_name} to the Clinic Staff list?`}
+                                                                className="inline-flex items-center gap-1 font-medium text-[#15664f] hover:underline"
+                                                            >
+                                                                <RotateCcw className="h-3.5 w-3.5" />
+                                                                Restore
+                                                            </ConfirmButton>
+                                                        </form>
+                                                        <form action={deleteStaff}>
+                                                            <input type="hidden" name="staffId" value={st.staff_id} />
+                                                            <ConfirmButton
+                                                                title="Delete staff record"
+                                                                confirmLabel="Delete permanently"
+                                                                danger
+                                                                message={`Permanently delete ${st.full_name} from clinic staff? This cannot be undone.`}
                                                                 className="inline-flex items-center gap-1 font-medium text-red-600 hover:underline"
                                                             >
                                                                 <Trash2 className="h-3.5 w-3.5" />

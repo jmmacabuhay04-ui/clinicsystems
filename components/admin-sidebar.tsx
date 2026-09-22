@@ -10,6 +10,7 @@ import {
     ClipboardList,
     FileCheck,
     FileText,
+    KeyRound,
     LayoutDashboard,
     LogOut,
     Menu,
@@ -23,6 +24,7 @@ import {
 } from "lucide-react";
 import { logout } from "@/app/login/actions";
 import ConfirmSubmit from "@/components/confirm-submit";
+
 
 type NavItem = {
     href: string;
@@ -45,8 +47,9 @@ const navItems: NavItem[] = [
     { href: "/dashboard/referral-slips", label: "Referral Slips", icon: FileCheck, roles: ["admin", "doctor", "nurse"] },
     { href: "/dashboard/illness-alerts", label: "Illness Alerts", icon: Activity, roles: ["admin", "doctor", "nurse"] },
     { href: "/dashboard/archive-records", label: "Archive Records", icon: Archive, roles: ["admin", "nurse"] },
-    { href: "/dashboard/clinic-staff", label: "Clinic Staff", icon: UserCog, roles: ["admin", "nurse"] },
+    { href: "/dashboard/clinic-staff", label: "Clinic Staff", icon: UserCog, roles: ["nurse"] },
     { href: "/dashboard/users", label: "User Management", icon: ShieldCheck, roles: ["admin", "ittech"] },
+    { href: "/dashboard/password-requests", label: "Password Requests", icon: KeyRound, roles: ["nurse"] },
     { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
 
@@ -101,26 +104,32 @@ export default function AdminSidebar({ username, role }: Props) {
         >
             {/* Header: logo + menu button */}
             <div
-                className={`flex items-center justify-between gap-3 border-b border-white/10 px-4 py-4 ${collapsed ? "md:justify-center md:px-2" : ""
+                className={`relative flex items-center justify-center border-b border-white/10 px-4 py-6 ${collapsed ? "md:px-2 md:py-4" : ""
                     }`}
             >
-                <div className={`flex min-w-0 items-center gap-3 ${collapsed ? "md:hidden" : ""}`}>
+                <Link
+                    href={role === "ittech" ? "/dashboard/users" : "/dashboard"}
+                    onClick={() => setMobileOpen(false)}
+                    title="Go to Dashboard"
+                    className={`flex flex-col items-center gap-2 text-center hover:opacity-90 ${collapsed ? "md:hidden" : ""
+                        }`}
+                >
                     <img
                         src="/bcas.jpg"
                         alt="BCAS"
-                        className="h-12 w-12 shrink-0 rounded-full bg-white object-contain p-1"
+                        className="h-20 w-20 rounded-full bg-white object-contain"
                     />
-                    <p className="truncate text-base font-semibold uppercase tracking-wide text-white/90">
+                    <p className="text-base font-semibold uppercase tracking-wider text-white/90">
                         BCAS Clinic
                     </p>
-                </div>
+                </Link>
 
                 {/* Phone: open/close menu */}
                 <button
                     type="button"
                     onClick={() => setMobileOpen((o) => !o)}
                     aria-label={mobileOpen ? "Close menu" : "Open menu"}
-                    className="rounded-lg p-2 hover:bg-white/10 md:hidden"
+                    className="absolute right-3 top-3 rounded-lg p-2 hover:bg-white/10 md:hidden"
                 >
                     {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
                 </button>
@@ -131,7 +140,8 @@ export default function AdminSidebar({ username, role }: Props) {
                     onClick={toggleCollapsed}
                     aria-label={collapsed ? "Expand menu" : "Collapse menu"}
                     title={collapsed ? "Expand menu" : "Collapse menu"}
-                    className="hidden rounded-lg p-2 hover:bg-white/10 md:inline-flex"
+                    className={`hidden rounded-lg p-2 hover:bg-white/10 md:inline-flex ${collapsed ? "" : "md:absolute md:right-3 md:top-3"
+                        }`}
                 >
                     <Menu className="h-6 w-6" />
                 </button>
@@ -150,7 +160,7 @@ export default function AdminSidebar({ username, role }: Props) {
                 </div>
 
                 {/* Menu */}
-                <nav className="flex-1 overflow-y-auto py-3">
+                <nav className="no-scrollbar flex-1 overflow-y-auto py-3">
                     {visibleItems.map((item) => {
                         const Icon = item.icon;
                         const active = isActive(item.href);

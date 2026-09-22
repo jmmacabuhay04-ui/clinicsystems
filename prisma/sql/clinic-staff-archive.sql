@@ -1,0 +1,1 @@
+ALTER TABLE clinic_staff ADD COLUMN IF NOT EXISTS archived_at TIMESTAMP;

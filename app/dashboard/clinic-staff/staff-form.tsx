@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { createStaff, updateStaff, type StaffState } from "./actions";
-
+import ConfirmSubmit from "@/components/confirm-submit";
+import ConfirmLink from "@/components/confirm-link";
 const initialState: StaffState = {};
 
 const inputClass =
@@ -133,14 +134,14 @@ export default function StaffForm({ mode, staff, cancelHref }: Props) {
                 >
                     Cancel
                 </Link>
-                <button
-                    type="submit"
-                    disabled={pending}
-                    suppressHydrationWarning
-                    className="h-10 rounded-lg bg-[#15664f] px-5 text-sm font-semibold text-white hover:bg-[#10523f] disabled:opacity-60"
+                <ConfirmSubmit
+                    title="Save this staff member?"
+                    message="Please make sure the staff details are correct before saving."
+                    confirmLabel="Save"
+                    className="h-10 rounded-lg bg-[#15664f] px-5 text-sm font-semibold text-white hover:bg-[#10523f]"
                 >
-                    {pending ? "Saving..." : mode === "create" ? "Add Staff" : "Save Changes"}
-                </button>
+                    Add Staff
+                </ConfirmSubmit>
             </div>
         </form>
     );

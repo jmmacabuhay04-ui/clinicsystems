@@ -167,21 +167,19 @@ export default async function StudentHealthFormPage({ searchParams }: Props) {
                         Student&apos;s Health Record — medical history, review of system, and consent.
                     </p>
                 </div>
-                {selected && (
+                {selected && canEdit && (
                     <div className="flex gap-3">
                         <PrintButton />
-                        {canEdit && (
-                            <ConfirmLink
-                                href={`${BASE}/edit?student=${encodeURIComponent(selected.student_number)}`}
-                                title={form ? "Edit form" : "Fill out form"}
-                                message={`${form ? "Edit" : "Fill out"} the form of ${selected.first_name} ${selected.last_name} (${selected.student_number})?`}
-                                confirmLabel={form ? "Edit" : "Continue"}
-                                className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#15664f] px-4 text-sm font-semibold text-white hover:bg-[#10523f]"
-                            >
-                                <Pencil className="h-4 w-4" />
-                                {form ? "Edit Form" : "Fill Out Form"}
-                            </ConfirmLink>
-                        )}
+                        <ConfirmLink
+                            href={`${BASE}/edit?student=${encodeURIComponent(selected.student_number)}`}
+                            title={form ? "Edit form" : "Fill out form"}
+                            message={`${form ? "Edit" : "Fill out"} the form of ${selected.first_name} ${selected.last_name} (${selected.student_number})?`}
+                            confirmLabel={form ? "Edit" : "Continue"}
+                            className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#15664f] px-4 text-sm font-semibold text-white hover:bg-[#10523f]"
+                        >
+                            <Pencil className="h-4 w-4" />
+                            {form ? "Edit Form" : "Fill Out Form"}
+                        </ConfirmLink>
                     </div>
                 )}
             </div>
@@ -189,6 +187,11 @@ export default async function StudentHealthFormPage({ searchParams }: Props) {
             {saved === "1" && (
                 <p className="no-print rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800">
                     Health record saved.
+                </p>
+            )}
+            {!canEdit && (
+                <p className="no-print rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                    View only. You can view this form but cannot edit or print it.
                 </p>
             )}
 

@@ -108,3 +108,32 @@ export async function deleteStaff(formData: FormData) {
 
     revalidatePath(BASE);
 }
+export async function archiveStaff(formData: FormData) {
+    const session = await getSession();
+    if (!session || !canManageStaff(session.role)) return;
+
+    const staffId = Number(formData.get("staffId"));
+    if (!staffId) return;
+
+    await prisma.$executeRaw`
+        UPDATE clinic_staff SET archived_at = CURRENT_TIMESTAMP WHERE staff_id = ${staffId}
+    `;
+
+    revalidatePath("/dashboard/clinic-staff");
+    revalidatePath("/dashboard/archive-records");
+}
+
+export async function restoreStaff(formData: FormData) {
+    const session = await getSession();
+    if (!session || !canManageStaff(session.role)) return;
+
+    const staffId = Number(formData.get("staffId"));
+    if (!staffId) return;
+
+    await prisma.$executeRaw`
+        UPDATE clinic_staff SET archived_at = NULL WHERE staff_id = ${staffId}
+    `;
+
+    revalidatePath("/dashboard/clinic-staff");
+    revalidatePath("/dashboard/archive-records");
+}

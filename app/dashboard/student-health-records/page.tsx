@@ -162,7 +162,7 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
                 <h1 className="text-3xl font-semibold text-gray-900">Student Health Records</h1>
                 {canEdit ? (
                     <div className="flex flex-wrap items-center gap-3">
-                        {canAddStudent && (
+                        {canAddStudent && !selected && (
                             <ConfirmLink
                                 href={`${BASE}/students/new`}
                                 title="Add student"
@@ -198,16 +198,18 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
                 )}
             </div>
 
-            <form method="get" action={BASE} className="relative max-w-md">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                <input
-                    name="q"
-                    defaultValue={q}
-                    placeholder="Search by student number or name..."
-                    suppressHydrationWarning
-                    className="h-11 w-full rounded-lg border border-gray-300 bg-white pl-10 pr-3 text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20"
-                />
-            </form>
+            {!selected && (
+                <form method="get" action={BASE} className="relative max-w-md">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                    <input
+                        name="q"
+                        defaultValue={q}
+                        placeholder="Search by student number or name..."
+                        suppressHydrationWarning
+                        className="h-11 w-full rounded-lg border border-gray-300 bg-white pl-10 pr-3 text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20"
+                    />
+                </form>
+            )}
 
             {selectedNumber && !selected && (
                 <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">

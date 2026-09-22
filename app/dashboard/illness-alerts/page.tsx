@@ -18,8 +18,9 @@ type Props = {
     searchParams: Promise<{ week?: string }>;
 };
 
-const WARNING_THRESHOLD = 10;
-const DANGER_THRESHOLD = 20;
+// Number of sick persons in ONE day
+const WARNING_PER_DAY = 5; // 5–9 persons in a day = Warning
+const OUTBREAK_PER_DAY = 10; // 10+ persons in a day = Outbreak
 
 const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri"];
 
@@ -61,6 +62,18 @@ function formatDay(date: Date) {
     });
 }
 
+function levelOf(count: number) {
+    if (count >= OUTBREAK_PER_DAY) return "outbreak" as const;
+    if (count >= WARNING_PER_DAY) return "warning" as const;
+    return "safe" as const;
+}
+
+const barColor = {
+    safe: "bg-[#15664f]",
+    warning: "bg-amber-500",
+    outbreak: "bg-red-600",
+};
+
 export default async function IllnessAlertsPage({ searchParams }: Props) {
     const session = await getSession();
     if (!session) redirect("/login");
@@ -97,7 +110,6 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
 
     const totalStudents = Number(studentRows[0]?.total ?? 0);
     const totalCases = cases.length;
-    const infectionRate = totalStudents > 0 ? (totalCases / totalStudents) * 100 : 0;
 
     const breakdownMap = new Map<string, number>();
     for (const c of cases) {
@@ -110,44 +122,41 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
     const daily = dayNames.map((name, i) => {
         const key = addDays(weekStart, i);
         const count = cases.filter((c) => keyOf(new Date(c.visit_date)) === key).length;
-        return { name, count };
+        return { name, count, level: levelOf(count) };
     });
-    const maxDaily = Math.max(1, ...daily.map((d) => d.count));
 
-    const level =
-        infectionRate >= DANGER_THRESHOLD
-            ? "outbreak"
-            : infectionRate >= WARNING_THRESHOLD
-                ? "warning"
-                : "safe";
+    // Busiest day decides the week's alert level
+    const peak = daily.reduce((best, d) => (d.count > best.count ? d : best), daily[0]);
+    const level = levelOf(peak.count);
+
+    // Chart always shows at least up to the outbreak line
+    const scale = Math.max(OUTBREAK_PER_DAY + 2, ...daily.map((d) => d.count));
+    const linePos = (n: number) => `${(n / scale) * 100}%`;
 
     const levels = {
         safe: {
-            key: "safe",
             tab: "Safe Week",
             mode: "Face-to-Face",
             title: "Safe Week - Face-to-Face Classes Continue",
-            note: "Illness rates are within normal range. Standard health protocols apply.",
+            note: `No day reached ${WARNING_PER_DAY} sick persons. Standard health protocols apply.`,
             banner: "border-green-200 bg-green-50 text-green-800",
             icon: CheckCircle2,
             iconColor: "text-green-600",
         },
         warning: {
-            key: "warning",
             tab: "Warning Week",
             mode: "Blended",
             title: "Warning Week - Blended Classes Recommended",
-            note: "Illness rates are rising. Increase health monitoring and limit large gatherings.",
+            note: `At least one day had ${WARNING_PER_DAY} or more sick persons. Increase health monitoring and limit large gatherings.`,
             banner: "border-amber-200 bg-amber-50 text-amber-800",
             icon: AlertTriangle,
             iconColor: "text-amber-600",
         },
         outbreak: {
-            key: "outbreak",
             tab: "Outbreak Week",
             mode: "Online Classes",
             title: "Outbreak Week - Online Classes Recommended",
-            note: "Illness rates exceeded the danger threshold. Consider suspending face-to-face classes.",
+            note: `At least one day had ${OUTBREAK_PER_DAY} or more sick persons. Consider suspending face-to-face classes.`,
             banner: "border-red-200 bg-red-50 text-red-800",
             icon: ShieldAlert,
             iconColor: "text-red-600",
@@ -159,7 +168,10 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
 
     const stats = [
         { label: "Total Cases This Week", value: String(totalCases) },
-        { label: "Infection Rate (%)", value: `${infectionRate.toFixed(1)}%` },
+        {
+            label: "Highest Cases in a Day",
+            value: peak.count > 0 ? `${peak.count} · ${peak.name}` : "0",
+        },
         { label: "Top Illness", value: breakdown[0]?.illness ?? "—" },
         { label: "Recommended Mode", value: current.mode },
     ];
@@ -221,7 +233,7 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                                             <div className="flex items-center justify-between gap-4 text-sm">
                                                 <span className="font-medium text-gray-900">{b.illness}</span>
                                                 <span className="shrink-0 text-gray-600">
-                                                    {b.count} case{b.count === 1 ? "" : "s"} ({pct.toFixed(1)}%)
+                                                    {b.count} case{b.count === 1 ? "" : "s"} ({pct.toFixed(1)}% of students)
                                                 </span>
                                             </div>
                                             <div className="mt-2 h-3 w-full overflow-hidden rounded-full bg-gray-100">
@@ -237,13 +249,23 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                         )}
 
                         <div className="mt-6 space-y-2 border-t border-gray-100 pt-4 text-sm">
-                            <div className="flex justify-between">
+                            <div className="flex justify-between gap-4">
                                 <span className="text-gray-600">Warning Threshold</span>
-                                <span className="font-medium text-amber-600">{WARNING_THRESHOLD}%</span>
+                                <span className="text-right font-medium text-amber-600">
+                                    {totalStudents > 0 ? ((WARNING_PER_DAY / totalStudents) * 100).toFixed(1) : "0.0"}%
+                                    <span className="ml-1 text-xs font-normal text-gray-500">
+                                        ({WARNING_PER_DAY} persons per day)
+                                    </span>
+                                </span>
                             </div>
-                            <div className="flex justify-between">
-                                <span className="text-gray-600">Danger Threshold</span>
-                                <span className="font-medium text-red-600">{DANGER_THRESHOLD}%</span>
+                            <div className="flex justify-between gap-4">
+                                <span className="text-gray-600">Outbreak Threshold</span>
+                                <span className="text-right font-medium text-red-600">
+                                    {totalStudents > 0 ? ((OUTBREAK_PER_DAY / totalStudents) * 100).toFixed(1) : "0.0"}%
+                                    <span className="ml-1 text-xs font-normal text-gray-500">
+                                        ({OUTBREAK_PER_DAY} persons per day)
+                                    </span>
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -252,16 +274,48 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                 <div>
                     <h2 className="mb-3 text-lg font-semibold text-gray-900">Daily Case Trend</h2>
                     <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                        <div className="flex h-64 items-end gap-4">
-                            {daily.map((d) => (
-                                <div key={d.name} className="flex flex-1 flex-col items-center gap-2">
-                                    <span className="text-sm font-medium text-gray-700">{d.count}</span>
-                                    <div
-                                        className="w-full rounded-t bg-[#15664f]"
-                                        style={{ height: `${(d.count / maxDaily) * 100}%`, minHeight: "2px" }}
-                                    />
-                                    <span className="text-sm text-gray-600">{d.name}</span>
+                        <div className="flex gap-4">
+                            {/* Bars area */}
+                            <div className="relative h-56 flex-1">
+                                {/* Outbreak line */}
+                                <div
+                                    className="absolute inset-x-0 border-t-2 border-dashed border-red-400"
+                                    style={{ bottom: linePos(OUTBREAK_PER_DAY) }}
+                                >
+                                    <span className="absolute -top-5 right-0 text-xs font-medium text-red-600">
+                                        Outbreak ({OUTBREAK_PER_DAY})
+                                    </span>
                                 </div>
+                                {/* Warning line */}
+                                <div
+                                    className="absolute inset-x-0 border-t-2 border-dashed border-amber-300"
+                                    style={{ bottom: linePos(WARNING_PER_DAY) }}
+                                >
+                                    <span className="absolute -top-5 right-0 text-xs font-medium text-amber-600">
+                                        Warning ({WARNING_PER_DAY})
+                                    </span>
+                                </div>
+
+                                <div className="absolute inset-0 flex items-end gap-4 border-b border-gray-200">
+                                    {daily.map((d) => (
+                                        <div key={d.name} className="flex h-full flex-1 flex-col items-center justify-end">
+                                            <span className="mb-1 text-sm font-semibold text-gray-700">{d.count}</span>
+                                            <div
+                                                className={`w-full max-w-14 rounded-t ${barColor[d.level]}`}
+                                                style={{ height: `${(d.count / scale) * 100}%`, minHeight: "3px" }}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Day labels */}
+                        <div className="mt-2 flex gap-4">
+                            {daily.map((d) => (
+                                <span key={d.name} className="flex-1 text-center text-sm text-gray-600">
+                                    {d.name}
+                                </span>
                             ))}
                         </div>
                     </div>
