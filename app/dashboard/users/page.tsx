@@ -16,6 +16,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import RoleBadge from "@/components/role-badge";
 
 type Props = { searchParams: Promise<{ reset?: string; otp?: string; err?: string }> };
 
@@ -106,9 +107,7 @@ export default async function UsersPage({ searchParams }: Props) {
                                             <TableCell>{i + 1}</TableCell>
                                             <TableCell className="font-medium">{u.username}</TableCell>
                                             <TableCell>
-                                                <Badge variant={u.role === "admin" ? "default" : "secondary"}>
-                                                    {u.role}
-                                                </Badge>
+                                                <RoleBadge role={u.role} />
                                             </TableCell>
                                             <TableCell>{u.created_at.toISOString().slice(0, 10)}</TableCell>
                                             <TableCell>
