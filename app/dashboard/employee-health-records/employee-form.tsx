@@ -149,7 +149,7 @@ export default function EmployeeForm({
                         ? "The employee signs in with their employee number and this password."
                         : "Leave blank to keep the current password."}
                 </p>
-                <div className="mt-4 max-w-sm">
+                <div className="mt-4 grid gap-4 sm:grid-cols-2">
                     <Field label={mode === "create" ? "Password *" : "New Password"}>
                         <input
                             name="password"
@@ -162,6 +162,39 @@ export default function EmployeeForm({
                             className={inputClass}
                         />
                     </Field>
+                    <Field label={mode === "create" ? "Confirm Password *" : "Confirm New Password"}>
+                        <input
+                            name="confirmPassword"
+                            type="password"
+                            placeholder="Re-type the password"
+                            autoComplete="new-password"
+                            minLength={8}
+                            required={mode === "create"}
+                            suppressHydrationWarning
+                            className={inputClass}
+                        />
+                    </Field>
+                </div>
+
+                <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4">
+                    <p className="text-sm font-semibold text-amber-900">Confirm it&apos;s you</p>
+                    <p className="mt-1 text-xs text-amber-800">
+                        Employee passwords are confidential. Enter your own account password to save this
+                        {mode === "create" ? " new account." : " password change."}
+                    </p>
+                    <div className="mt-3 max-w-sm">
+                        <Field label={mode === "create" ? "Your Password *" : "Your Password"}>
+                            <input
+                                name="staffPassword"
+                                type="password"
+                                placeholder="Your own login password"
+                                autoComplete="current-password"
+                                required={mode === "create"}
+                                suppressHydrationWarning
+                                className={inputClass}
+                            />
+                        </Field>
+                    </div>
                 </div>
             </section>
 

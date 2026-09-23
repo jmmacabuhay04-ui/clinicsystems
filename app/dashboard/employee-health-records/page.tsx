@@ -127,7 +127,7 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
                 <h1 className="text-3xl font-semibold text-gray-900">Employee Health Records</h1>
 
                 <div className="flex flex-wrap gap-3">
-                    {canEditEmployees && (
+                    {canEditEmployees && !selected && (
                         <ConfirmLink
                             href="/dashboard/employee-health-records/employees/new"
                             title="Add a new employee?"
@@ -139,11 +139,19 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
                             Add Employee
                         </ConfirmLink>
                     )}
-                    {selected && canEditRecords && (
+                    {canEditRecords && (
                         <ConfirmLink
-                            href={`${BASE}/records/new?employee=${encodeURIComponent(selected.employee_number)}`}
+                            href={
+                                selected
+                                    ? `${BASE}/records/new?employee=${encodeURIComponent(selected.employee_number)}`
+                                    : `${BASE}/records/new`
+                            }
                             title="Add a new visit record?"
-                            message={`Add a health record for ${selected.first_name} ${selected.last_name} (${selected.employee_number})?`}
+                            message={
+                                selected
+                                    ? `Add a health record for ${selected.first_name} ${selected.last_name} (${selected.employee_number})?`
+                                    : "You will be taken to the form to add a new employee health record."
+                            }
                             confirmLabel="Continue"
                             className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#15664f] px-4 text-sm font-semibold text-white hover:bg-[#10523f]"
                         >
@@ -154,17 +162,18 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
                 </div>
             </div>
 
-            <form method="get" action={BASE} className="relative max-w-md">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                <input
-                    name="q"
-                    defaultValue={q}
-                    placeholder="Search by employee number or name..."
-                    suppressHydrationWarning
-                    className="h-11 w-full rounded-lg border border-gray-300 bg-white pl-10 pr-3 text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20"
-                />
-            </form>
-
+            {!selected && (
+                <form method="get" action={BASE} className="relative max-w-md">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                    <input
+                        name="q"
+                        defaultValue={q}
+                        placeholder="Search by employee number or name..."
+                        suppressHydrationWarning
+                        className="h-11 w-full rounded-lg border border-gray-300 bg-white pl-10 pr-3 text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20"
+                    />
+                </form>
+            )}
             {!selected && (
                 <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                     <p className="border-b border-gray-100 px-4 py-3 text-sm text-gray-600">

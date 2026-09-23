@@ -8,7 +8,7 @@ import { createEmployeeSession, destroyEmployeeSession } from "@/lib/employee-se
 
 export type EmployeeLoginState = { error?: string };
 
-const MAX_ATTEMPTS = 10; // wrong tries allowed
+const MAX_ATTEMPTS = 5; // wrong tries allowed
 const WINDOW_MINUTES = 15; // within this many minutes
 
 type Row = {

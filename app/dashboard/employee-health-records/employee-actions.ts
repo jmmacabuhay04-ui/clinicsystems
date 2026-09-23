@@ -25,6 +25,13 @@ function readValues(formData: FormData) {
     };
 }
 
+async function verifyStaffPassword(userId: number, input: string) {
+    if (!input) return false;
+    const staff = await prisma.user.findUnique({ where: { user_id: userId } });
+    if (!staff) return false;
+    return bcrypt.compare(input, staff.password);
+}
+
 export async function createEmployee(
     _prev: EmployeeState,
     formData: FormData
@@ -43,6 +50,17 @@ export async function createEmployee(
     }
     if (password.length < 8) {
         return { error: "Password must be at least 8 characters.", values };
+    }
+    if (password !== String(formData.get("confirmPassword") ?? "")) {
+        return { error: "Passwords do not match. Please re-type them.", values };
+    }
+
+    const confirmed = await verifyStaffPassword(
+        Number(session.userId),
+        String(formData.get("staffPassword") ?? "")
+    );
+    if (!confirmed) {
+        return { error: "Your own password is incorrect. The employee account was not created.", values };
     }
 
     try {
@@ -96,6 +114,19 @@ export async function updateEmployee(
     }
     if (password && password.length < 8) {
         return { error: "Password must be at least 8 characters.", values };
+    }
+    if (password) {
+        if (password !== String(formData.get("confirmPassword") ?? "")) {
+            return { error: "Passwords do not match. Please re-type them.", values };
+        }
+
+        const confirmed = await verifyStaffPassword(
+            Number(session.userId),
+            String(formData.get("staffPassword") ?? "")
+        );
+        if (!confirmed) {
+            return { error: "Your own password is incorrect. The password was not changed.", values };
+        }
     }
 
     try {

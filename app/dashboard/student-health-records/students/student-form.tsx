@@ -149,7 +149,8 @@ export default function StudentForm({ mode, student, cancelHref }: Props) {
                         ? "The student signs in with their student number and this password."
                         : "Leave blank to keep the current password."}
                 </p>
-                <div className="mt-4 max-w-sm">
+
+                <div className="mt-4 grid gap-4 sm:grid-cols-2">
                     <Field label={mode === "create" ? "Password *" : "New Password"}>
                         <PasswordInput
                             name="password"
@@ -160,6 +161,35 @@ export default function StudentForm({ mode, student, cancelHref }: Props) {
                             className={inputClass}
                         />
                     </Field>
+                    <Field label={mode === "create" ? "Confirm Password *" : "Confirm New Password"}>
+                        <PasswordInput
+                            name="confirmPassword"
+                            placeholder="Re-type the password"
+                            autoComplete="new-password"
+                            minLength={8}
+                            required={mode === "create"}
+                            className={inputClass}
+                        />
+                    </Field>
+                </div>
+
+                <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4">
+                    <p className="text-sm font-semibold text-amber-900">Confirm it&apos;s you</p>
+                    <p className="mt-1 text-xs text-amber-800">
+                        Student passwords are confidential. Enter your own account password to save this
+                        {mode === "create" ? " new account." : " password change."}
+                    </p>
+                    <div className="mt-3 max-w-sm">
+                        <Field label="Your Password *">
+                            <PasswordInput
+                                name="staffPassword"
+                                placeholder="Your own login password"
+                                autoComplete="current-password"
+                                required={mode === "create"}
+                                className={inputClass}
+                            />
+                        </Field>
+                    </div>
                 </div>
             </section>
 

@@ -41,9 +41,18 @@ function validate(values: Record<string, string>, requirePassword: boolean) {
     if (get("gender") && get("gender") !== "Male" && get("gender") !== "Female") {
         return "Select a valid gender.";
     }
+    if (get("password") && get("password") !== get("confirmPassword")) {
+        return "Passwords do not match. Please re-type them.";
+    }
+
     return null;
 }
-
+async function verifyStaffPassword(userId: number, input: string) {
+    if (!input) return false;
+    const staff = await prisma.user.findUnique({ where: { user_id: userId } });
+    if (!staff) return false;
+    return bcrypt.compare(input, staff.password);
+}
 export async function createStudent(
     _prev: StudentState,
     formData: FormData
@@ -58,6 +67,8 @@ export async function createStudent(
 
     const problem = validate(values, true);
     if (problem) return fail(problem);
+    const confirmed = await verifyStaffPassword(Number(session.userId), get("staffPassword"));
+    if (!confirmed) return fail("Your own password is incorrect. The student account was not created.");
 
     const studentNumber = get("studentNumber");
 
@@ -105,6 +116,10 @@ export async function updateStudent(
 
     const problem = validate(values, false);
     if (problem) return fail(problem);
+    if (get("password")) {
+        const confirmed = await verifyStaffPassword(Number(session.userId), get("staffPassword"));
+        if (!confirmed) return fail("Your own password is incorrect. The password was not changed.");
+    }
 
     const studentNumber = get("studentNumber");
 
