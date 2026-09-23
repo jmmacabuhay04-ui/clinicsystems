@@ -109,7 +109,8 @@ model VisitorLog {
 
 model DentalRecord {
   dental_id      Int       @id @default(autoincrement())
-  student_id     Int
+  student_id     Int?
+  employee_id    Int?
   visit_date     DateTime  @db.Date
   procedure_name String    @db.VarChar(150)
   tooth          String?   @db.VarChar(50)
@@ -122,6 +123,7 @@ model DentalRecord {
   created_at     DateTime  @default(now())
 
   @@index([student_id])
+  @@index([employee_id])
   @@map("dental_records")
 }
 

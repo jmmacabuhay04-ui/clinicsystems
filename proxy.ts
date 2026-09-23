@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyToken } from "@/lib/jwt";
+import { signToken, verifyToken } from "@/lib/jwt";
 
 const IT_TECH_ALLOWED = ["/dashboard/users", "/dashboard/settings"];
 
+// Session expires after this many minutes of inactivity
+const IDLE_MINUTES = 30;
+
+type Renew = { cookie: string; payload: Record<string, unknown> } | null;
+
 export async function proxy(req: NextRequest) {
     const { pathname } = req.nextUrl;
+    let renew: Renew = null;
 
     if (pathname.startsWith("/dashboard")) {
         const staff = await verifyToken(req.cookies.get("session")?.value);
@@ -18,6 +24,8 @@ export async function proxy(req: NextRequest) {
                 return NextResponse.redirect(new URL("/dashboard/users", req.url));
             }
         }
+
+        renew = { cookie: "session", payload: staff as unknown as Record<string, unknown> };
     }
 
     if (pathname.startsWith("/student/") && pathname !== "/student/login") {
@@ -25,6 +33,8 @@ export async function proxy(req: NextRequest) {
         if (!student || student.role !== "student") {
             return NextResponse.redirect(new URL("/student/login", req.url));
         }
+
+        renew = { cookie: "student_session", payload: student as unknown as Record<string, unknown> };
     }
 
     if (pathname.startsWith("/employee/") && pathname !== "/employee/login") {
@@ -32,9 +42,33 @@ export async function proxy(req: NextRequest) {
         if (!employee || employee.role !== "employee") {
             return NextResponse.redirect(new URL("/employee/login", req.url));
         }
+
+        renew = { cookie: "employee_session", payload: employee as unknown as Record<string, unknown> };
     }
 
-    return NextResponse.next();
+    const res = NextResponse.next();
+
+    // Sliding session: every page visit extends the session
+    if (renew) {
+        try {
+            const { exp, iat, ...payload } = renew.payload;
+            void exp;
+            void iat;
+
+            const token = await signToken(payload as never, IDLE_MINUTES);
+            res.cookies.set(renew.cookie, token, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === "production",
+                sameSite: "lax",
+                path: "/",
+                maxAge: IDLE_MINUTES * 60,
+            });
+        } catch (err) {
+            console.error("Session renew error:", err);
+        }
+    }
+
+    return res;
 }
 
 export const config = {

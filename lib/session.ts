@@ -3,7 +3,7 @@ import { signToken, verifyToken, type SessionPayload } from "./jwt";
 
 const COOKIE = "session";
 
-export async function createSession(user: SessionPayload, minutes = 60) {
+export async function createSession(user: SessionPayload, minutes = 30) {
     const token = await signToken(user, minutes);
     const cookieStore = await cookies();
     cookieStore.set(COOKIE, token, {

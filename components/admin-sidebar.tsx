@@ -47,7 +47,7 @@ const navItems: NavItem[] = [
     { href: "/dashboard/referral-slips", label: "Referral Slips", icon: FileCheck, roles: ["admin", "doctor", "nurse"] },
     { href: "/dashboard/illness-alerts", label: "Illness Alerts", icon: Activity, roles: ["admin", "doctor", "nurse"] },
     { href: "/dashboard/archive-records", label: "Archive Records", icon: Archive, roles: ["admin", "nurse"] },
-    { href: "/dashboard/clinic-staff", label: "Clinic Staff", icon: UserCog, roles: ["nurse"] },
+    { href: "/dashboard/clinic-staff", label: "Clinic Staff", icon: UserCog, roles: ["nurse", "admin"] },
     { href: "/dashboard/users", label: "User Management", icon: ShieldCheck, roles: ["admin", "ittech"] },
     { href: "/dashboard/password-requests", label: "Password Requests", icon: KeyRound, roles: ["nurse"] },
     { href: "/dashboard/settings", label: "Settings", icon: Settings },

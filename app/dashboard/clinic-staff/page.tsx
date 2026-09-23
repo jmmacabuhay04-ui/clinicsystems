@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { Archive, Pencil, Plus } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
-import { canManageStaff } from "@/lib/permissions";
+import { canManageStaff, canViewStaff } from "@/lib/permissions";
 import ConfirmButton from "@/components/confirm-button";
 import { archiveStaff } from "./actions";
 import ConfirmLink from "@/components/confirm-link";
@@ -28,7 +28,8 @@ const statusStyles: Record<string, { label: string; className: string }> = {
 export default async function ClinicStaffPage() {
     const session = await getSession();
     if (!session) redirect("/login");
-    if (!canManageStaff(session.role)) redirect("/dashboard");
+    if (!canViewStaff(session.role)) redirect("/dashboard");
+    const canEdit = canManageStaff(session.role);
 
     const staff = await prisma.$queryRaw<StaffRow[]>`
     SELECT staff_id, full_name, position, email, contact, license_no, status
@@ -44,16 +45,22 @@ export default async function ClinicStaffPage() {
                     <p className="mt-1 text-gray-600">Manage clinic personnel and their roles.</p>
                 </div>
 
-                <ConfirmLink
-                    href="/dashboard/clinic-staff/new"
-                    title="Add clinic staff?"
-                    message="You will be taken to the form to add a new clinic staff member."
-                    confirmLabel="Continue"
-                    className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#15664f] px-4 text-sm font-semibold text-white hover:bg-[#10523f]"
-                >
-                    <Plus className="h-4 w-4" />
-                    Add Staff
-                </ConfirmLink>
+                {canEdit ? (
+                    <ConfirmLink
+                        href="/dashboard/clinic-staff/new"
+                        title="Add clinic staff?"
+                        message="You will be taken to the form to add a new clinic staff member."
+                        confirmLabel="Continue"
+                        className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#15664f] px-4 text-sm font-semibold text-white hover:bg-[#10523f]"
+                    >
+                        <Plus className="h-4 w-4" />
+                        Add Staff
+                    </ConfirmLink>
+                ) : (
+                    <span className="rounded-full bg-gray-200 px-3 py-1 text-xs font-medium text-gray-600">
+                        View only
+                    </span>
+                )}
             </div>
 
             <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -70,7 +77,7 @@ export default async function ClinicStaffPage() {
                                     <th className="px-4 py-3 font-medium">Contact</th>
                                     <th className="whitespace-nowrap px-4 py-3 font-medium">License / PRC No.</th>
                                     <th className="px-4 py-3 font-medium">Status</th>
-                                    <th className="px-4 py-3" />
+                                    {canEdit && <th className="px-4 py-3" />}
                                 </tr>
                             </thead>
                             <tbody>
@@ -97,30 +104,32 @@ export default async function ClinicStaffPage() {
                                                     {badge.label}
                                                 </span>
                                             </td>
-                                            <td className="whitespace-nowrap px-4 py-4">
-                                                <div className="flex items-center gap-3">
-                                                    <ConfirmLink
-                                                        href={`${BASE}/edit?staff=${s.staff_id}`}
-                                                        title="Edit staff member"
-                                                        message={`Edit the details of ${s.full_name}? Changes will replace the current information.`}
-                                                        confirmLabel="Edit"
-                                                        className="text-gray-400 hover:text-[#15664f]"
-                                                    >
-                                                        <Pencil className="h-4 w-4" />
-                                                    </ConfirmLink>
-                                                    <form action={archiveStaff}>
-                                                        <input type="hidden" name="staffId" value={s.staff_id} />
-                                                        <ConfirmButton
-                                                            title="Archive staff record"
-                                                            confirmLabel="Archive"
-                                                            message={`Archive ${s.full_name}? The record will move to Archive Records and can be restored anytime.`}
-                                                            className="text-gray-400 hover:text-amber-600"
+                                            {canEdit && (
+                                                <td className="whitespace-nowrap px-4 py-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <ConfirmLink
+                                                            href={`${BASE}/edit?staff=${s.staff_id}`}
+                                                            title="Edit staff member"
+                                                            message={`Edit the details of ${s.full_name}? Changes will replace the current information.`}
+                                                            confirmLabel="Edit"
+                                                            className="text-gray-400 hover:text-[#15664f]"
                                                         >
-                                                            <Archive className="h-4 w-4" />
-                                                        </ConfirmButton>
-                                                    </form>
-                                                </div>
-                                            </td>
+                                                            <Pencil className="h-4 w-4" />
+                                                        </ConfirmLink>
+                                                        <form action={archiveStaff}>
+                                                            <input type="hidden" name="staffId" value={s.staff_id} />
+                                                            <ConfirmButton
+                                                                title="Archive staff record"
+                                                                confirmLabel="Archive"
+                                                                message={`Archive ${s.full_name}? The record will move to Archive Records and can be restored anytime.`}
+                                                                className="text-gray-400 hover:text-amber-600"
+                                                            >
+                                                                <Archive className="h-4 w-4" />
+                                                            </ConfirmButton>
+                                                        </form>
+                                                    </div>
+                                                </td>
+                                            )}
                                         </tr>
                                     );
                                 })}
