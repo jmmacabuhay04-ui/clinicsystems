@@ -5,11 +5,15 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { createSession, deleteSession } from "@/lib/session";
+import {
+    getClientIp,
+    checkLoginAllowed,
+    recordLoginFailure,
+    clearLoginFailures,
+    LOCK_MINUTES,
+} from "@/lib/login-guard";
 
 export type LoginState = { error?: string } | undefined;
-
-const MAX_ATTEMPTS = 5; // wrong tries allowed
-const WINDOW_MINUTES = 15; // within this many minutes
 
 function deviceFrom(ua: string) {
     const browser = /Edg\//.test(ua)
@@ -56,43 +60,34 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
 
     const headerList = await headers();
     const device = deviceFrom(headerList.get("user-agent") ?? "");
+    const ip = await getClientIp();
 
-    // Count recent failed attempts for this email
-    let recentFails = 0;
-    try {
-        const rows = await prisma.$queryRaw<{ fails: bigint }[]>`
-      SELECT COUNT(*) AS fails
-      FROM login_logs
-      WHERE username = ${email}
-        AND status = 'failed'
-        AND created_at > NOW() - (${WINDOW_MINUTES} || ' minutes')::interval
-    `;
-        recentFails = Number(rows[0]?.fails ?? 0);
-    } catch (err) {
-        console.error("Login attempt check error:", err);
-    }
-
-    if (recentFails >= MAX_ATTEMPTS) {
+    // Check the lockout table BEFORE touching the password.
+    // Counts live in login_lockouts, so clearing login_logs cannot reset them.
+    const guard = await checkLoginAllowed(email, ip);
+    if (guard.blocked) {
         await log(email, "blocked", device);
-        return {
-            error: `Too many failed attempts. This account is locked for ${WINDOW_MINUTES} minutes. Please try again later or ask the IT Technician for help.`,
-        };
+        return { error: guard.message };
     }
 
     const user = await prisma.user.findUnique({ where: { username: email } });
     const valid = user ? await bcrypt.compare(password, user.password) : false;
 
-    await log(email, valid ? "success" : "failed", device);
-
     if (!user || !valid) {
-        const left = MAX_ATTEMPTS - (recentFails + 1);
+        const left = await recordLoginFailure(email, ip);
+        await log(email, "failed", device);
+
         return {
             error:
                 left > 0
                     ? `Invalid email or password. ${left} attempt${left === 1 ? "" : "s"} left before this account is locked.`
-                    : `Invalid email or password. This account is now locked for ${WINDOW_MINUTES} minutes.`,
+                    : `Invalid email or password. This account is now locked for ${LOCK_MINUTES} minutes.`,
         };
     }
+
+    // Correct password: clear the counters for this user and this device.
+    await clearLoginFailures(email, ip);
+    await log(email, "success", device);
 
     await createSession(
         { userId: user.user_id, username: user.username, role: user.role },

@@ -9,10 +9,16 @@ export type EmployeeSession = {
     employeeId: number;
     employeeNumber: string;
     role: "employee";
+    // Set by a walk-in reset. proxy.ts forces a password change while true.
+    mustChangePassword?: boolean;
 };
 
 export async function createEmployeeSession(
-    employee: { employeeId: number; employeeNumber: string },
+    employee: {
+        employeeId: number;
+        employeeNumber: string;
+        mustChangePassword?: boolean;
+    },
     minutes = 480
 ) {
     const payload = { ...employee, role: "employee" } as unknown as TokenPayload;

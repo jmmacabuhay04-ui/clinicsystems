@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { canManageStudents } from "@/lib/permissions";
+import { validatePasswordStrength } from "@/lib/password-policy";
 
 const BASE = "/dashboard/employee-health-records";
 
@@ -48,8 +49,10 @@ export async function createEmployee(
     if (!values.employeeNumber || !values.lastName || !values.firstName) {
         return { error: "Employee number, last name, and first name are required.", values };
     }
-    if (password.length < 8) {
-        return { error: "Password must be at least 8 characters.", values };
+
+    const passwordError = validatePasswordStrength(password);
+    if (passwordError) {
+        return { error: passwordError, values };
     }
     if (password !== String(formData.get("confirmPassword") ?? "")) {
         return { error: "Passwords do not match. Please re-type them.", values };
@@ -74,15 +77,18 @@ export async function createEmployee(
 
         const hash = await bcrypt.hash(password, 12);
 
+        // must_change_password = TRUE because the nurse chose this password
+        // and therefore knows it. The employee replaces it at first login.
+        // Change TRUE to FALSE below to turn this off.
         await prisma.$executeRaw`
       INSERT INTO employees
         (employee_number, last_name, first_name, middle_name, department,
-         position, date_of_birth, gender, password)
+         position, date_of_birth, gender, password, must_change_password)
       VALUES
         (${values.employeeNumber}, ${values.lastName}, ${values.firstName},
          ${values.middleName || null}, ${values.department || null},
          ${values.position || null}, ${values.dateOfBirth || null}::date,
-         ${values.gender || null}, ${hash})
+         ${values.gender || null}, ${hash}, TRUE)
     `;
     } catch (err) {
         console.error("Create employee error:", err);
@@ -112,10 +118,12 @@ export async function updateEmployee(
     if (!values.employeeNumber || !values.lastName || !values.firstName) {
         return { error: "Employee number, last name, and first name are required.", values };
     }
-    if (password && password.length < 8) {
-        return { error: "Password must be at least 8 characters.", values };
-    }
+
     if (password) {
+        const passwordError = validatePasswordStrength(password);
+        if (passwordError) {
+            return { error: passwordError, values };
+        }
         if (password !== String(formData.get("confirmPassword") ?? "")) {
             return { error: "Passwords do not match. Please re-type them.", values };
         }
@@ -154,8 +162,13 @@ export async function updateEmployee(
 
         if (password) {
             const hash = await bcrypt.hash(password, 12);
+
+            // Same reasoning as on create: the nurse knows this password,
+            // so the employee is asked to replace it at next login.
             await prisma.$executeRaw`
-        UPDATE employees SET password = ${hash} WHERE employee_id = ${employeeId}
+        UPDATE employees
+        SET password = ${hash}, must_change_password = TRUE
+        WHERE employee_id = ${employeeId}
       `;
         }
     } catch (err) {

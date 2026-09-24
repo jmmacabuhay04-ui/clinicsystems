@@ -5,16 +5,21 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { createStudentSession, deleteStudentSession } from "@/lib/student-session";
+import {
+    getClientIp,
+    checkLoginAllowed,
+    recordLoginFailure,
+    clearLoginFailures,
+    LOCK_MINUTES,
+} from "@/lib/login-guard";
 
 export type StudentLoginState = { error?: string };
-
-const MAX_ATTEMPTS = 5; // wrong tries allowed
-const WINDOW_MINUTES = 15; // within this many minutes
 
 type StudentRow = {
     student_id: number;
     student_number: string;
     password: string;
+    must_change_password: boolean;
 };
 
 function deviceFrom(ua: string) {
@@ -67,34 +72,21 @@ export async function studentLogin(
 
     const headerList = await headers();
     const device = deviceFrom(headerList.get("user-agent") ?? "");
+    const ip = await getClientIp();
 
-    // Count recent failed attempts for this student number
-    let recentFails = 0;
-    try {
-        const rows = await prisma.$queryRaw<{ fails: bigint }[]>`
-      SELECT COUNT(*) AS fails
-      FROM login_logs
-      WHERE username = ${studentNumber}
-        AND status = 'failed'
-        AND created_at > NOW() - (${WINDOW_MINUTES} || ' minutes')::interval
-    `;
-        recentFails = Number(rows[0]?.fails ?? 0);
-    } catch (err) {
-        console.error("Login attempt check error:", err);
-    }
-
-    if (recentFails >= MAX_ATTEMPTS) {
+    // Check the lockout table BEFORE touching the password.
+    // Counts live in login_lockouts, so clearing login_logs cannot reset them.
+    const guard = await checkLoginAllowed(studentNumber, ip);
+    if (guard.blocked) {
         await log(studentNumber, "blocked", device);
-        return {
-            error: `Too many failed attempts. This account is locked for ${WINDOW_MINUTES} minutes. Please visit the clinic for help.`,
-        };
+        return { error: guard.message };
     }
 
     let student: StudentRow | undefined;
 
     try {
         const rows = await prisma.$queryRaw<StudentRow[]>`
-      SELECT student_id, student_number, password
+      SELECT student_id, student_number, password, must_change_password
       FROM students
       WHERE student_number = ${studentNumber} AND archived_at IS NULL
       LIMIT 1
@@ -107,22 +99,28 @@ export async function studentLogin(
 
     const valid = student ? await bcrypt.compare(password, student.password) : false;
 
-    await log(studentNumber, valid ? "success" : "failed", device);
-
     if (!student || !valid) {
-        const left = MAX_ATTEMPTS - (recentFails + 1);
+        const left = await recordLoginFailure(studentNumber, ip);
+        await log(studentNumber, "failed", device);
+
         return {
             error:
                 left > 0
                     ? `Invalid student number or password. ${left} attempt${left === 1 ? "" : "s"} left before this account is locked.`
-                    : `Invalid student number or password. This account is now locked for ${WINDOW_MINUTES} minutes.`,
+                    : `Invalid student number or password. This account is now locked for ${LOCK_MINUTES} minutes.`,
         };
     }
+
+    // Correct password: clear the counters for this account and this device.
+    await clearLoginFailures(studentNumber, ip);
+    await log(studentNumber, "success", device);
 
     await createStudentSession({
         userId: student.student_id,
         username: student.student_number,
         role: "student",
+        // When true, proxy.ts sends them to /student/change-password first.
+        mustChangePassword: student.must_change_password,
     });
 
     redirect("/student/dashboard");

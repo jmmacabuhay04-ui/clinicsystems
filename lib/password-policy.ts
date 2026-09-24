@@ -1,0 +1,90 @@
+// lib/password-policy.ts
+// Password complexity policy para sa buong system.
+// Gamitin ito sa LAHAT ng lugar na may bagong password:
+// student form, employee form, user management, password requests.
+
+export const PASSWORD_MIN_LENGTH = 8;
+
+export const PASSWORD_RULES_TEXT =
+    "Kailangan ay hindi bababa sa 8 characters, may kahit isang letra at isang numero.";
+
+// Mga password na bawal kahit pumasa sa haba.
+const BLOCKED_PASSWORDS = new Set([
+    "password",
+    "password1",
+    "password123",
+    "12345678",
+    "123456789",
+    "1234567890",
+    "qwerty123",
+    "abc12345",
+    "bcasclinic",
+    "bcas1234",
+    "clinic123",
+    "student123",
+    "employee123",
+    "nurse123",
+    "admin123",
+    "letmein1",
+    "iloveyou",
+]);
+
+/**
+ * Sinusuri ang lakas ng password.
+ * Nagbabalik ng error message (string) kapag mali, o null kapag okay.
+ */
+export function validatePasswordStrength(password: string): string | null {
+    if (!password) return "Kailangan ang password.";
+
+    const value = password.trim();
+
+    if (value.length < PASSWORD_MIN_LENGTH) {
+        return `Masyadong maikli ang password. ${PASSWORD_RULES_TEXT}`;
+    }
+
+    if (value.length > 72) {
+        // bcrypt limit
+        return "Masyadong mahaba ang password. Hanggang 72 characters lang.";
+    }
+
+    if (!/[A-Za-z]/.test(value)) {
+        return `Kailangan ng kahit isang letra. ${PASSWORD_RULES_TEXT}`;
+    }
+
+    if (!/[0-9]/.test(value)) {
+        return `Kailangan ng kahit isang numero. ${PASSWORD_RULES_TEXT}`;
+    }
+
+    if (/\s/.test(value)) {
+        return "Hindi pwedeng may space ang password.";
+    }
+
+    if (BLOCKED_PASSWORDS.has(value.toLowerCase())) {
+        return "Masyadong karaniwan ang password na ito. Pumili ng iba.";
+    }
+
+    // Lahat ng letra ay pareho (aaaaaaa1) o puro sunod-sunod (12345678abc)
+    if (/^(.)\1+[0-9]*$/.test(value)) {
+        return "Masyadong simple ang password. Pumili ng iba.";
+    }
+
+    return null;
+}
+
+/**
+ * Password + confirm password sabay na tsek.
+ * Nagbabalik ng error message o null.
+ */
+export function validatePasswordPair(
+    password: string,
+    confirm: string,
+): string | null {
+    const strength = validatePasswordStrength(password);
+    if (strength) return strength;
+
+    if (password !== confirm) {
+        return "Hindi tugma ang Password at Confirm Password.";
+    }
+
+    return null;
+}

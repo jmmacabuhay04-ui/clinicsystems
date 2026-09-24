@@ -8,6 +8,7 @@ import { archiveRecord } from "./record-actions";
 import { archiveStudent } from "./student-actions";
 import { canManageRecords, canManageStudents } from "@/lib/permissions";
 import ConfirmLink from "@/components/confirm-link";
+import { logAccess } from "@/lib/access-log";
 type StudentRow = {
     student_id: number;
     student_number: string;
@@ -40,7 +41,7 @@ type Props = {
 const BASE = "/dashboard/student-health-records";
 
 function formatDate(date: Date | null, month: "short" | "long" = "short") {
-    if (!date) return "\u2014";
+    if (!date) return "—";
     return new Date(date).toLocaleDateString("en-US", {
         month,
         day: "numeric",
@@ -50,7 +51,7 @@ function formatDate(date: Date | null, month: "short" | "long" = "short") {
 }
 
 function show(value: number | string | null | undefined, unit = "") {
-    return value === null || value === undefined || value === "" ? "\u2014" : `${value}${unit}`;
+    return value === null || value === undefined || value === "" ? "—" : `${value}${unit}`;
 }
 
 async function searchStudents(q: string) {
@@ -119,6 +120,31 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
       `
         : [];
 
+    // --- Audit log (RA 10173) ---
+    // Naitatala kung sino ang nagbukas ng partikular na health record.
+    // Hindi nagta-log kapag listahan pa lang ang tinitingnan.
+    const actor = {
+        userId: Number((session as any).userId ?? (session as any).id ?? 0),
+        role: session.role,
+        name: String(
+            (session as any).fullName ??
+            (session as any).full_name ??
+            (session as any).name ??
+            (session as any).username ??
+            ""
+        ),
+    };
+
+    if (selected) {
+        await logAccess(
+            actor,
+            "student_health_record",
+            selected.student_id,
+            "view",
+            `${selected.last_name}, ${selected.first_name} (${selected.student_number})`
+        );
+    }
+
     const latestVitals = records.find(
         (r) =>
             r.height_cm !== null ||
@@ -133,8 +159,8 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
         { label: "Weight", value: show(latestVitals?.weight_kg, " kg") },
         { label: "Heart Rate", value: show(latestVitals?.heart_rate, " bpm") },
         { label: "Blood Pressure", value: show(latestVitals?.blood_pressure) },
-        { label: "Temperature", value: show(latestVitals?.temperature, "\u00B0C") },
-        { label: "Last Updated", value: records[0] ? formatDate(records[0].visit_date) : "\u2014" },
+        { label: "Temperature", value: show(latestVitals?.temperature, "°C") },
+        { label: "Last Updated", value: records[0] ? formatDate(records[0].visit_date) : "—" },
     ];
 
     const profile = selected
@@ -253,7 +279,7 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
                                                     <ConfirmLink
                                                         href={`${BASE}?student=${encodeURIComponent(s.student_number)}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
                                                         title="View health record"
-                                                        message={`Open the health record of ${s.first_name} ${s.last_name} (${s.student_number})? This contains confidential medical information.`}
+                                                        message={`Open the health record of ${s.first_name} ${s.last_name} (${s.student_number})? This contains confidential medical information and your access will be recorded.`}
                                                         className="font-medium text-[#15664f] hover:underline"
                                                     >
                                                         View record
@@ -357,8 +383,8 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
                                                         {formatDate(r.visit_date)}
                                                     </td>
                                                     <td className="px-4 py-3 text-gray-900">{r.complaint}</td>
-                                                    <td className="px-4 py-3 text-gray-900">{r.action_taken ?? "\u2014"}</td>
-                                                    <td className="px-4 py-3 text-gray-900">{r.attending_staff ?? "\u2014"}</td>
+                                                    <td className="px-4 py-3 text-gray-900">{r.action_taken ?? "—"}</td>
+                                                    <td className="px-4 py-3 text-gray-900">{r.attending_staff ?? "—"}</td>
                                                     {canEdit && (
                                                         <td className="whitespace-nowrap px-4 py-3">
                                                             <div className="flex items-center gap-3">

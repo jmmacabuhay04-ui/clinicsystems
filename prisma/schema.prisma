@@ -170,3 +170,43 @@ model LoginLog {
   @@index([username])
   @@map("login_logs")
 }
+model RecordAccessLog {
+  id          Int      @id @default(autoincrement())
+  actor_id    Int?
+  actor_role  String?
+  actor_name  String?
+  record_type String
+  record_id   Int?
+  action      String   @default("view")
+  detail      String?
+  ip          String?
+  created_at  DateTime @default(now())
+
+  @@map("record_access_logs")
+}
+
+model LoginLockout {
+  id           Int       @id @default(autoincrement())
+  scope        String
+  lock_key     String
+  fails        Int       @default(0)
+  locked_until DateTime?
+  first_fail   DateTime  @default(now())
+  updated_at   DateTime  @default(now())
+
+  @@unique([scope, lock_key])
+  @@map("login_lockouts")
+}
+
+model IdentityVerification {
+  id               Int      @id @default(autoincrement())
+  subject_type     String
+  subject_id       Int
+  id_presented     String
+  verified_by      Int
+  verified_by_name String?
+  note             String?
+  created_at       DateTime @default(now())
+
+  @@map("identity_verifications")
+}

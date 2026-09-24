@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { signToken, verifyToken } from "@/lib/jwt";
 
-const IT_TECH_ALLOWED = ["/dashboard/users", "/dashboard/settings"];
+// Mga page na pwedeng buksan ng IT Tech. Walang clinical data dito.
+const IT_TECH_ALLOWED = [
+    "/dashboard/users",
+    "/dashboard/settings",
+    "/dashboard/access-logs",
+];
 
 // Session expires after this many minutes of inactivity
 const IDLE_MINUTES = 30;
@@ -34,6 +39,16 @@ export async function proxy(req: NextRequest) {
             return NextResponse.redirect(new URL("/student/login", req.url));
         }
 
+        // Pilitin ang pagpapalit ng password kapag ang clinic staff ang gumawa nito.
+        if (
+            (student as Record<string, unknown>).mustChangePassword &&
+            !pathname.startsWith("/student/change-password")
+        ) {
+            return NextResponse.redirect(
+                new URL("/student/change-password?forced=1", req.url),
+            );
+        }
+
         renew = { cookie: "student_session", payload: student as unknown as Record<string, unknown> };
     }
 
@@ -41,6 +56,15 @@ export async function proxy(req: NextRequest) {
         const employee = await verifyToken(req.cookies.get("employee_session")?.value);
         if (!employee || employee.role !== "employee") {
             return NextResponse.redirect(new URL("/employee/login", req.url));
+        }
+
+        if (
+            (employee as Record<string, unknown>).mustChangePassword &&
+            !pathname.startsWith("/employee/change-password")
+        ) {
+            return NextResponse.redirect(
+                new URL("/employee/change-password?forced=1", req.url),
+            );
         }
 
         renew = { cookie: "employee_session", payload: employee as unknown as Record<string, unknown> };

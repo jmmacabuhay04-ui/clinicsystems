@@ -1,6 +1,11 @@
 import { SignJWT, jwtVerify } from "jose";
 
-export type SessionPayload = { userId: number; username: string; role: string };
+export type SessionPayload = {
+    userId: number;
+    username: string;
+    role: string;
+    mustChangePassword?: boolean;     // ← idagdag ito
+};
 
 const DEV_FALLBACK_SECRET = "bcas-clinic-dev-only-secret-change-this-before-deploying";
 

@@ -6,6 +6,8 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { canManageStudents } from "@/lib/permissions";
+import { validatePasswordStrength } from "@/lib/password-policy";
+import { logAccess } from "@/lib/access-log";
 
 const BASE = "/dashboard/password-requests";
 
@@ -19,7 +21,12 @@ export async function setPasswordFromRequest(formData: FormData) {
     const requestId = Number(formData.get("requestId"));
     const password = String(formData.get("password") ?? "");
     if (!requestId) return;
-    if (password.length < 8) redirect(`${BASE}?error=short`);
+
+    // Same policy as every other place a password is set.
+    const passwordError = validatePasswordStrength(password);
+    if (passwordError) {
+        redirect(`${BASE}?error=short&msg=${encodeURIComponent(passwordError)}`);
+    }
 
     const rows = await prisma.$queryRaw<PendingRow[]>`
         SELECT student_id, employee_id FROM portal_password_requests
@@ -30,9 +37,19 @@ export async function setPasswordFromRequest(formData: FormData) {
 
     const hash = await bcrypt.hash(password, 12);
 
+    // must_change_password = TRUE because the nurse chose this password and
+    // therefore knows it. The owner replaces it at their next login.
     const updateAccount = req.student_id
-        ? prisma.$executeRaw`UPDATE students SET password = ${hash} WHERE student_id = ${req.student_id}`
-        : prisma.$executeRaw`UPDATE employees SET password = ${hash} WHERE employee_id = ${req.employee_id}`;
+        ? prisma.$executeRaw`
+            UPDATE students
+            SET password = ${hash}, must_change_password = TRUE
+            WHERE student_id = ${req.student_id}
+          `
+        : prisma.$executeRaw`
+            UPDATE employees
+            SET password = ${hash}, must_change_password = TRUE
+            WHERE employee_id = ${req.employee_id}
+          `;
 
     await prisma.$transaction([
         updateAccount,
@@ -42,6 +59,19 @@ export async function setPasswordFromRequest(formData: FormData) {
             WHERE request_id = ${requestId}
         `,
     ]);
+
+    // Audit trail, the same as a walk-in reset.
+    await logAccess(
+        {
+            userId: Number(session.userId),
+            role: session.role,
+            name: String(session.username ?? ""),
+        },
+        req.student_id ? "student_health_record" : "employee_health_record",
+        req.student_id ?? req.employee_id,
+        "update",
+        "Password set from a portal password request.",
+    );
 
     revalidatePath(BASE);
     redirect(`${BASE}?done=1`);

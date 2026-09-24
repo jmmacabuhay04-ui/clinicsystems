@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { canManageRecords } from "@/lib/permissions";
+import { validatePasswordStrength } from "@/lib/password-policy";
 
 export type StudentState = {
     error?: string;
@@ -22,6 +23,23 @@ function collect(formData: FormData) {
     return values;
 }
 
+/**
+ * Password policy check. The confirmation field is only enforced when the
+ * form actually sends one, so this works with or without it.
+ */
+function checkPassword(values: Record<string, string>): string | null {
+    const password = values["password"] ?? "";
+
+    const strength = validatePasswordStrength(password);
+    if (strength) return strength;
+
+    if ("confirmPassword" in values && values["confirmPassword"] !== password) {
+        return "Password and Confirm Password do not match.";
+    }
+
+    return null;
+}
+
 function validate(values: Record<string, string>, requirePassword: boolean) {
     const get = (key: string) => values[key] ?? "";
 
@@ -29,12 +47,14 @@ function validate(values: Record<string, string>, requirePassword: boolean) {
         return "Student number, last name, and first name are required.";
     }
     if (get("studentNumber").length > 20) return "Student number is too long.";
-    if (requirePassword && get("password").length < 8) {
-        return "Password must be at least 8 characters.";
+
+    // On create a password is required; on edit it is optional, but when one
+    // is supplied it must still satisfy the policy.
+    if (requirePassword || get("password")) {
+        const passwordError = checkPassword(values);
+        if (passwordError) return passwordError;
     }
-    if (!requirePassword && get("password") && get("password").length < 8) {
-        return "Password must be at least 8 characters.";
-    }
+
     if (get("dateOfBirth") && !/^\d{4}-\d{2}-\d{2}$/.test(get("dateOfBirth"))) {
         return "Enter a valid date of birth.";
     }
@@ -69,14 +89,17 @@ export async function createStudent(
 
         const hashed = await bcrypt.hash(get("password"), 12);
 
+        // must_change_password = TRUE because the nurse chose this password
+        // and therefore knows it. The student is forced to replace it at
+        // first login. Change TRUE to FALSE below to turn this off.
         await prisma.$executeRaw`
       INSERT INTO students
         (student_number, password, last_name, first_name, middle_name,
-         grade_level, program, date_of_birth, gender)
+         grade_level, program, date_of_birth, gender, must_change_password)
       VALUES
         (${studentNumber}, ${hashed}, ${get("lastName")}, ${get("firstName")},
          ${get("middleName") || null}, ${get("gradeLevel") || null}, ${get("program") || null},
-         CAST(${get("dateOfBirth") || null} AS DATE), ${get("gender") || null})
+         CAST(${get("dateOfBirth") || null} AS DATE), ${get("gender") || null}, TRUE)
     `;
     } catch (err) {
         console.error("Create student error:", err);
@@ -131,8 +154,13 @@ export async function updateStudent(
 
         if (get("password")) {
             const hashed = await bcrypt.hash(get("password"), 12);
+
+            // Same reasoning as on create: the nurse knows this password,
+            // so the student is asked to replace it at next login.
             await prisma.$executeRaw`
-        UPDATE students SET password = ${hashed} WHERE student_id = ${studentId}
+        UPDATE students
+        SET password = ${hashed}, must_change_password = TRUE
+        WHERE student_id = ${studentId}
       `;
         }
     } catch (err) {

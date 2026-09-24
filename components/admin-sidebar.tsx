@@ -17,6 +17,8 @@ import {
     Settings,
     ShieldCheck,
     Stethoscope,
+    ScrollText,
+    UserCheck,
     UserCog,
     Users,
     X,
@@ -50,7 +52,10 @@ const navItems: NavItem[] = [
     { href: "/dashboard/clinic-staff", label: "Clinic Staff", icon: UserCog, roles: ["nurse", "admin"] },
     { href: "/dashboard/users", label: "User Management", icon: ShieldCheck, roles: ["admin", "ittech"] },
     { href: "/dashboard/password-requests", label: "Password Requests", icon: KeyRound, roles: ["nurse"] },
+    { href: "/dashboard/access-logs", label: "Access Logs", icon: ScrollText, roles: ["admin", "ittech"] },
+    { href: "/dashboard/walk-in-reset", label: "Walk-in Reset", icon: UserCheck, roles: ["nurse",] },
     { href: "/dashboard/settings", label: "Settings", icon: Settings },
+
 ];
 
 const roleLabels: Record<string, string> = {

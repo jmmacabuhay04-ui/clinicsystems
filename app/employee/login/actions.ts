@@ -5,16 +5,21 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { createEmployeeSession, destroyEmployeeSession } from "@/lib/employee-session";
+import {
+    getClientIp,
+    checkLoginAllowed,
+    recordLoginFailure,
+    clearLoginFailures,
+    LOCK_MINUTES,
+} from "@/lib/login-guard";
 
 export type EmployeeLoginState = { error?: string };
-
-const MAX_ATTEMPTS = 5; // wrong tries allowed
-const WINDOW_MINUTES = 15; // within this many minutes
 
 type Row = {
     employee_id: number;
     employee_number: string;
     password: string;
+    must_change_password: boolean;
 };
 
 function deviceFrom(ua: string) {
@@ -67,31 +72,18 @@ export async function employeeLogin(
 
     const headerList = await headers();
     const device = deviceFrom(headerList.get("user-agent") ?? "");
+    const ip = await getClientIp();
 
-    // Count recent failed attempts for this employee number
-    let recentFails = 0;
-    try {
-        const failRows = await prisma.$queryRaw<{ fails: bigint }[]>`
-      SELECT COUNT(*) AS fails
-      FROM login_logs
-      WHERE username = ${employeeNumber}
-        AND status = 'failed'
-        AND created_at > NOW() - (${WINDOW_MINUTES} || ' minutes')::interval
-    `;
-        recentFails = Number(failRows[0]?.fails ?? 0);
-    } catch (err) {
-        console.error("Login attempt check error:", err);
-    }
-
-    if (recentFails >= MAX_ATTEMPTS) {
+    // Check the lockout table BEFORE touching the password.
+    // Counts live in login_lockouts, so clearing login_logs cannot reset them.
+    const guard = await checkLoginAllowed(employeeNumber, ip);
+    if (guard.blocked) {
         await log(employeeNumber, "blocked", device);
-        return {
-            error: `Too many failed attempts. This account is locked for ${WINDOW_MINUTES} minutes. Please visit the clinic for help.`,
-        };
+        return { error: guard.message };
     }
 
     const rows = await prisma.$queryRaw<Row[]>`
-    SELECT employee_id, employee_number, password
+    SELECT employee_id, employee_number, password, must_change_password
     FROM employees
     WHERE employee_number = ${employeeNumber} AND archived_at IS NULL
     LIMIT 1
@@ -99,21 +91,27 @@ export async function employeeLogin(
     const employee = rows[0];
     const valid = employee ? await bcrypt.compare(password, employee.password) : false;
 
-    await log(employeeNumber, valid ? "success" : "failed", device);
-
     if (!employee || !valid) {
-        const left = MAX_ATTEMPTS - (recentFails + 1);
+        const left = await recordLoginFailure(employeeNumber, ip);
+        await log(employeeNumber, "failed", device);
+
         return {
             error:
                 left > 0
                     ? `Invalid employee number or password. ${left} attempt${left === 1 ? "" : "s"} left before this account is locked.`
-                    : `Invalid employee number or password. This account is now locked for ${WINDOW_MINUTES} minutes.`,
+                    : `Invalid employee number or password. This account is now locked for ${LOCK_MINUTES} minutes.`,
         };
     }
+
+    // Correct password: clear the counters for this account and this device.
+    await clearLoginFailures(employeeNumber, ip);
+    await log(employeeNumber, "success", device);
 
     await createEmployeeSession({
         employeeId: employee.employee_id,
         employeeNumber: employee.employee_number,
+        // When true, proxy.ts sends them to /employee/change-password first.
+        mustChangePassword: employee.must_change_password,
     });
 
     redirect("/employee/dashboard");
