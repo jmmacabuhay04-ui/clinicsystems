@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { PASSWORD_RULES_TEXT } from "@/lib/password-policy";
 import { walkInReset } from "./actions";
-
+import ConfirmLink from "@/components/confirm-link";
 const ALLOWED_ROLES = ["nurse", "admin"];
 
 type Person = {
@@ -188,12 +188,15 @@ export default async function WalkInResetPage({
                                                     ) : null}
                                                 </td>
                                                 <td className="px-4 py-3 text-right">
-                                                    <Link
+                                                    <ConfirmLink
                                                         href={`/dashboard/walk-in-reset?type=${type}&id=${person.id}`}
+                                                        title="Reset this password?"
+                                                        message={`Start a walk-in password reset for ${person.full_name}? Make sure this person is in front of you with a valid ID.`}
+                                                        confirmLabel="Continue"
                                                         className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
                                                     >
                                                         Select
-                                                    </Link>
+                                                    </ConfirmLink>
                                                 </td>
                                             </tr>
                                         ))}

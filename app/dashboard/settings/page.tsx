@@ -52,14 +52,14 @@ export default async function SettingsPage() {
         <main className="space-y-6 p-6 md:p-8">
             <div>
                 <h1 className="text-3xl font-semibold text-gray-900">Settings</h1>
-                <p className="mt-1 text-gray-600">Manage clinic system settings and configurations</p>
+                <p className="mt-1 text-base text-gray-600">Manage clinic system settings and configurations</p>
             </div>
 
             <section className="space-y-8 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                 <div>
                     <div className="flex items-center gap-2">
-                        <ShieldCheck className="h-5 w-5 text-[#15664f]" />
-                        <h2 className="text-lg font-semibold text-gray-900">Security &amp; Access</h2>
+                        <ShieldCheck className="h-6 w-6 text-[#15664f]" />
+                        <h2 className="text-xl font-semibold text-gray-900">Security &amp; Access</h2>
                     </div>
 
                     <p className="mt-5 text-xs font-semibold uppercase tracking-wide text-gray-500">
@@ -72,8 +72,8 @@ export default async function SettingsPage() {
 
                 <div className="border-t border-gray-100 pt-6">
                     <div className="flex items-center gap-2">
-                        <Clock className="h-5 w-5 text-[#15664f]" />
-                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        <Clock className="h-6 w-6 text-[#15664f]" />
+                        <p className="text-sm font-semibold uppercase tracking-wide text-gray-500">
                             Session &amp; Login
                         </p>
                     </div>
@@ -87,18 +87,18 @@ export default async function SettingsPage() {
 
                 <div className="border-t border-gray-100 pt-6">
                     <div className="flex items-center gap-2">
-                        <LogOut className="h-5 w-5 text-[#15664f]" />
-                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        <LogOut className="h-6 w-6 text-[#15664f]" />
+                        <p className="text-sm font-semibold uppercase tracking-wide text-gray-500">
                             Recent Login Activity
                         </p>
                     </div>
 
                     <div className="mt-4 overflow-hidden rounded-xl border border-gray-200">
                         {logs.length === 0 ? (
-                            <p className="p-8 text-center text-sm text-gray-500">No login activity yet.</p>
+                            <p className="p-8 text-center text-base text-gray-500">No login activity yet.</p>
                         ) : (
                             <div className="overflow-x-auto">
-                                <table className="w-full text-left text-sm">
+                                <table className="w-full text-left text-base">
                                     <thead className="bg-[#f2efe9] text-gray-700">
                                         <tr>
                                             <th className="px-4 py-3 font-medium">Account</th>
@@ -117,7 +117,7 @@ export default async function SettingsPage() {
                                                 <td className="px-4 py-3 text-gray-600">{l.device ?? "—"}</td>
                                                 <td className="px-4 py-3">
                                                     <span
-                                                        className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${l.status === "success"
+                                                        className={`rounded-full px-3 py-1 text-sm font-medium ${l.status === "success"
                                                             ? "bg-green-100 text-green-700"
                                                             : "bg-red-100 text-red-700"
                                                             }`}

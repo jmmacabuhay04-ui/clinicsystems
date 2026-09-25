@@ -59,7 +59,7 @@ export default async function AccessLogsPage() {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            <div className="mx-auto max-w-6xl space-y-4 p-6">
+            <div className="mx-auto max-w-7xl space-y-4 p-6">
                 <div>
                     <h1 className="text-2xl font-semibold text-gray-900">Record Access Logs</h1>
                     <p className="mt-1 text-sm text-gray-600">
@@ -108,27 +108,26 @@ export default async function AccessLogsPage() {
                             <table className="min-w-full divide-y divide-gray-200 text-sm">
                                 <thead className="bg-gray-50">
                                     <tr>
-                                        <th className="px-4 py-3 text-left font-medium text-gray-600">No.</th>
-                                        <th className="px-4 py-3 text-left font-medium text-gray-600">Date & Time</th>
-                                        <th className="px-4 py-3 text-left font-medium text-gray-600">User</th>
-                                        <th className="px-4 py-3 text-left font-medium text-gray-600">Role</th>
-                                        <th className="px-4 py-3 text-left font-medium text-gray-600">Action</th>
-                                        <th className="px-4 py-3 text-left font-medium text-gray-600">Record</th>
-                                        <th className="px-4 py-3 text-left font-medium text-gray-600">Details</th>
-                                        <th className="px-4 py-3 text-left font-medium text-gray-600">IP</th>
+                                        <th className="whitespace-nowrap px-3 py-2.5 text-left font-medium text-gray-600">No.</th>
+                                        <th className="whitespace-nowrap px-3 py-2.5 text-left font-medium text-gray-600">Date &amp; Time</th>
+                                        <th className="whitespace-nowrap px-3 py-2.5 text-left font-medium text-gray-600">User</th>
+                                        <th className="whitespace-nowrap px-3 py-2.5 text-left font-medium text-gray-600">Role</th>
+                                        <th className="whitespace-nowrap px-3 py-2.5 text-left font-medium text-gray-600">Action</th>
+                                        <th className="whitespace-nowrap px-3 py-2.5 text-left font-medium text-gray-600">Record</th>
+                                        <th className="whitespace-nowrap px-3 py-2.5 text-left font-medium text-gray-600">Details</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
                                     {logs.map((log, i) => (
                                         <tr key={log.id} className="hover:bg-gray-50">
-                                            <td className="px-4 py-3 text-gray-500">{i + 1}</td>
-                                            <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                                            <td className="px-3 py-2.5 text-gray-500">{i + 1}</td>
+                                            <td className="whitespace-nowrap px-3 py-2.5 text-gray-700">
                                                 {formatWhen(log.created_at)}
                                             </td>
-                                            <td className="px-4 py-3 font-medium text-gray-900">
+                                            <td className="whitespace-nowrap px-3 py-2.5 font-medium text-gray-900">
                                                 {log.actor_name ?? `User #${log.actor_id ?? "?"}`}
                                             </td>
-                                            <td className="px-4 py-3">
+                                            <td className="px-3 py-2.5">
                                                 <span
                                                     className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${ROLE_STYLES[log.actor_role ?? ""] ??
                                                         "bg-gray-100 text-gray-700"
@@ -137,7 +136,7 @@ export default async function AccessLogsPage() {
                                                     {log.actor_role ?? "unknown"}
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-3">
+                                            <td className="px-3 py-2.5">
                                                 <span
                                                     className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${ACTION_STYLES[log.action] ??
                                                         "bg-gray-100 text-gray-700"
@@ -146,14 +145,24 @@ export default async function AccessLogsPage() {
                                                     {log.action}
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-3 text-gray-700">
-                                                {TYPE_LABELS[log.record_type] ?? log.record_type}
-                                                {log.record_id ? (
-                                                    <span className="text-gray-400"> #{log.record_id}</span>
+                                            <td className="whitespace-nowrap px-3 py-2.5 text-gray-700">
+                                                <span className="block">
+                                                    {TYPE_LABELS[log.record_type] ?? log.record_type}
+                                                </span>
+                                                {log.subject_number ? (
+                                                    <span className="block text-xs text-gray-500">
+                                                        {log.subject_number}
+                                                        {log.subject_name ? ` · ${log.subject_name}` : ""}
+                                                    </span>
+                                                ) : log.record_id ? (
+                                                    <span className="block text-xs text-gray-400">
+                                                        #{log.record_id} (deleted)
+                                                    </span>
                                                 ) : null}
                                             </td>
-                                            <td className="px-4 py-3 text-gray-600">{log.detail ?? "—"}</td>
-                                            <td className="px-4 py-3 text-gray-500">{log.ip ?? "—"}</td>
+                                            <td className="whitespace-nowrap px-3 py-2.5 text-gray-600">
+                                                {log.detail ?? "—"}
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -163,9 +172,10 @@ export default async function AccessLogsPage() {
                 )}
 
                 <p className="text-xs text-gray-500">
-                    Showing the latest 300 entries. The full trail lives in the
+                    Showing the latest 300 entries. The IP address of every entry is also
+                    recorded in the
                     <span className="font-mono"> record_access_logs </span>
-                    table.
+                    table for investigations.
                 </p>
             </div>
         </div>

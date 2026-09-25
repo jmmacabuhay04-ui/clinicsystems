@@ -23,7 +23,20 @@ function readValues(formData: FormData) {
         position: get("position"),
         dateOfBirth: get("dateOfBirth"),
         gender: get("gender"),
+        contactNumber: get("contactNumber").replace(/[\s-]/g, ""),
+        email: get("email").toLowerCase(),
     };
+}
+
+/** Contact details are optional, but must be well formed when supplied. */
+function checkContact(values: { contactNumber: string; email: string }): string | null {
+    if (values.contactNumber && !/^09\d{9}$/.test(values.contactNumber)) {
+        return "Contact number must be 11 digits starting with 09, e.g. 09171234567.";
+    }
+    if (values.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
+        return "Enter a valid email address.";
+    }
+    return null;
 }
 
 async function verifyStaffPassword(userId: number, input: string) {
@@ -48,6 +61,11 @@ export async function createEmployee(
 
     if (!values.employeeNumber || !values.lastName || !values.firstName) {
         return { error: "Employee number, last name, and first name are required.", values };
+    }
+
+    const contactError = checkContact(values);
+    if (contactError) {
+        return { error: contactError, values };
     }
 
     const passwordError = validatePasswordStrength(password);
@@ -75,6 +93,15 @@ export async function createEmployee(
             return { error: `Employee number ${values.employeeNumber} already exists.`, values };
         }
 
+        if (values.email) {
+            const emailClash = await prisma.$queryRaw<{ employee_id: number }[]>`
+        SELECT employee_id FROM employees WHERE LOWER(email) = ${values.email} LIMIT 1
+      `;
+            if (emailClash[0]) {
+                return { error: `${values.email} is already used by another employee.`, values };
+            }
+        }
+
         const hash = await bcrypt.hash(password, 12);
 
         // must_change_password = TRUE because the nurse chose this password
@@ -83,12 +110,14 @@ export async function createEmployee(
         await prisma.$executeRaw`
       INSERT INTO employees
         (employee_number, last_name, first_name, middle_name, department,
-         position, date_of_birth, gender, password, must_change_password)
+         position, date_of_birth, gender, contact_number, email,
+         password, must_change_password)
       VALUES
         (${values.employeeNumber}, ${values.lastName}, ${values.firstName},
          ${values.middleName || null}, ${values.department || null},
          ${values.position || null}, ${values.dateOfBirth || null}::date,
-         ${values.gender || null}, ${hash}, TRUE)
+         ${values.gender || null}, ${values.contactNumber || null},
+         ${values.email || null}, ${hash}, TRUE)
     `;
     } catch (err) {
         console.error("Create employee error:", err);
@@ -119,6 +148,11 @@ export async function updateEmployee(
         return { error: "Employee number, last name, and first name are required.", values };
     }
 
+    const contactError = checkContact(values);
+    if (contactError) {
+        return { error: contactError, values };
+    }
+
     if (password) {
         const passwordError = validatePasswordStrength(password);
         if (passwordError) {
@@ -147,6 +181,17 @@ export async function updateEmployee(
             return { error: `Employee number ${values.employeeNumber} is already used.`, values };
         }
 
+        if (values.email) {
+            const emailClash = await prisma.$queryRaw<{ employee_id: number }[]>`
+        SELECT employee_id FROM employees
+        WHERE LOWER(email) = ${values.email} AND employee_id <> ${employeeId}
+        LIMIT 1
+      `;
+            if (emailClash[0]) {
+                return { error: `${values.email} is already used by another employee.`, values };
+            }
+        }
+
         await prisma.$executeRaw`
       UPDATE employees SET
         employee_number = ${values.employeeNumber},
@@ -156,7 +201,9 @@ export async function updateEmployee(
         department      = ${values.department || null},
         position        = ${values.position || null},
         date_of_birth   = ${values.dateOfBirth || null}::date,
-        gender          = ${values.gender || null}
+        gender          = ${values.gender || null},
+        contact_number  = ${values.contactNumber || null},
+        email           = ${values.email || null}
       WHERE employee_id = ${employeeId}
     `;
 

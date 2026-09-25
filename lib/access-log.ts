@@ -1,6 +1,6 @@
 // lib/access-log.ts
-// Audit log para sa pagtingin at pagbago ng health records.
-// Isang linya lang ang kailangan sa bawat page na nagtitingin ng record.
+// Audit log for viewing and changing health records.
+// One line per page that displays a record is all it takes.
 
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
@@ -35,8 +35,8 @@ async function clientIp(): Promise<string | null> {
 }
 
 /**
- * Nagtatala ng access sa isang record.
- * Hindi kailanman nagta-throw: kung bumagsak ang log, tuloy pa rin ang page.
+ * Records access to a single record.
+ * Never throws: if logging fails, the page still renders.
  */
 export async function logAccess(
     actor: Actor,
@@ -56,7 +56,7 @@ export async function logAccess(
                  ${recordType}, ${recordId}, ${action}, ${detail ?? null}, ${ip})
         `;
     } catch (error) {
-        console.error("[access-log] hindi naitala:", error);
+        console.error("[access-log] failed to record:", error);
     }
 }
 
@@ -71,15 +71,39 @@ export type AccessLogRow = {
     detail: string | null;
     ip: string | null;
     created_at: Date;
+    // Resolved from the record id, so the log shows 2023-048 instead of #19.
+    subject_number: string | null;
+    subject_name: string | null;
 };
 
-/** Para sa Access Logs page ng admin / IT Tech. */
+/**
+ * Used by the Access Logs page for admin / IT Tech.
+ *
+ * The record id is joined back to students and employees so the page can
+ * show the number the clinic actually uses. A deleted record simply comes
+ * back as null and the page falls back to the id.
+ */
 export async function getAccessLogs(limit = 200): Promise<AccessLogRow[]> {
     return prisma.$queryRaw<AccessLogRow[]>`
-        SELECT id, actor_id, actor_role, actor_name, record_type,
-               record_id, action, detail, ip, created_at
-        FROM record_access_logs
-        ORDER BY created_at DESC
+        SELECT l.id, l.actor_id, l.actor_role, l.actor_name, l.record_type,
+               l.record_id, l.action, l.detail, l.ip, l.created_at,
+               COALESCE(s.student_number, e.employee_number) AS subject_number,
+               CASE
+                   WHEN s.student_id IS NOT NULL
+                       THEN s.last_name || ', ' || s.first_name
+                   WHEN e.employee_id IS NOT NULL
+                       THEN e.last_name || ', ' || e.first_name
+                   ELSE NULL
+               END AS subject_name
+        FROM record_access_logs l
+        LEFT JOIN students s
+               ON s.student_id = l.record_id
+              AND l.record_type IN ('student_health_record', 'visit', 'vitals',
+                                    'health_declaration', 'referral_slip')
+        LEFT JOIN employees e
+               ON e.employee_id = l.record_id
+              AND l.record_type = 'employee_health_record'
+        ORDER BY l.created_at DESC
         LIMIT ${limit}
     `;
 }

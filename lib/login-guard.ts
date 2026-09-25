@@ -7,6 +7,10 @@
 //   ip   -> 10 failed attempts per IP address = 15 minute lock
 //
 // Use in every login action: admin, student, employee.
+//
+// NOTE: locked_until is a TIMESTAMP without time zone, so the remaining
+// time is computed inside Postgres. Reading it into JavaScript would make
+// the server's local time be treated as UTC and inflate the wait.
 
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
@@ -18,7 +22,8 @@ export const WINDOW_MINUTES = 15;
 
 type LockRow = {
     fails: number;
-    locked_until: Date | null;
+    is_locked: boolean;
+    minutes_left: number;
 };
 
 export async function getClientIp(): Promise<string> {
@@ -34,7 +39,12 @@ export async function getClientIp(): Promise<string> {
 
 async function readLock(scope: string, key: string): Promise<LockRow | null> {
     const rows = await prisma.$queryRaw<LockRow[]>`
-        SELECT fails, locked_until
+        SELECT fails,
+               (locked_until IS NOT NULL AND locked_until > NOW()) AS is_locked,
+               GREATEST(
+                   0,
+                   CEIL(EXTRACT(EPOCH FROM (COALESCE(locked_until, NOW()) - NOW())) / 60)
+               )::int AS minutes_left
         FROM login_lockouts
         WHERE scope = ${scope} AND lock_key = ${key}
         LIMIT 1
@@ -58,14 +68,10 @@ export async function checkLoginAllowed(
 ): Promise<GuardResult> {
     const user = await readLock("user", username.toLowerCase());
     const addr = await readLock("ip", ip);
-    const now = Date.now();
 
     for (const row of [user, addr]) {
-        if (row?.locked_until && new Date(row.locked_until).getTime() > now) {
-            const minutes = Math.max(
-                1,
-                Math.ceil((new Date(row.locked_until).getTime() - now) / 60000),
-            );
+        if (row?.is_locked) {
+            const minutes = Math.max(1, Number(row.minutes_left) || 1);
             return {
                 blocked: true,
                 message: `Too many failed attempts. Please wait ${minutes} minute(s) before trying again.`,
@@ -73,7 +79,7 @@ export async function checkLoginAllowed(
         }
     }
 
-    const used = user?.locked_until ? 0 : (user?.fails ?? 0);
+    const used = user?.is_locked ? 0 : Number(user?.fails ?? 0);
     return { blocked: false, attemptsLeft: Math.max(0, MAX_USER_ATTEMPTS - used) };
 }
 
@@ -114,7 +120,7 @@ export async function recordLoginFailure(
     await bump("ip", ip, MAX_IP_ATTEMPTS);
 
     const row = await readLock("user", key);
-    return Math.max(0, MAX_USER_ATTEMPTS - (row?.fails ?? 0));
+    return Math.max(0, MAX_USER_ATTEMPTS - Number(row?.fails ?? 0));
 }
 
 /** Call this when the password is CORRECT. Clears the counter. */

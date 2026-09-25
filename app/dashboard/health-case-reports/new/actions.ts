@@ -43,15 +43,18 @@ export async function createCaseReport(
     if (!session) return fail("Your session has expired. Please sign in again.");
     if (!canManageRecords(session.role)) return fail("Only nurses can create case reports.");
 
-    const studentNumber = get("studentNumber");
+    const patientType = get("patientType") === "employee" ? "employee" : "student";
+    const patientNumber = get("patientNumber");
     const complaint = get("complaint");
     const reportDate = get("reportDate");
     const staffName = get("staffName");
     const status = get("status") || "pending";
     const notes = get("notes");
 
-    if (!studentNumber || !complaint || !reportDate) {
-        return fail("Student number, complaint, and date are required.");
+    const label = patientType === "student" ? "Student number" : "Employee number";
+
+    if (!patientNumber || !complaint || !reportDate) {
+        return fail(`${label}, complaint, and date are required.`);
     }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(reportDate)) return fail("Enter a valid date.");
     if (!["pending", "referred", "resolved"].includes(status)) return fail("Select a valid status.");
@@ -59,22 +62,39 @@ export async function createCaseReport(
     let caseNumber = "";
 
     try {
-        const rows = await prisma.$queryRaw<{ student_id: number }[]>`
-      SELECT student_id FROM students
-      WHERE student_number = ${studentNumber} AND archived_at IS NULL
-      LIMIT 1
-    `;
-        const studentId = rows[0]?.student_id;
-        if (!studentId) return fail(`No active student found with number ${studentNumber}.`);
+        // Look the patient up in the table that matches the chosen type.
+        let studentId: number | null = null;
+        let employeeId: number | null = null;
+
+        if (patientType === "student") {
+            const rows = await prisma.$queryRaw<{ student_id: number }[]>`
+        SELECT student_id FROM students
+        WHERE student_number = ${patientNumber} AND archived_at IS NULL
+        LIMIT 1
+      `;
+            studentId = rows[0]?.student_id ?? null;
+            if (!studentId) return fail(`No active student found with number ${patientNumber}.`);
+        } else {
+            const rows = await prisma.$queryRaw<{ employee_id: number }[]>`
+        SELECT employee_id FROM employees
+        WHERE employee_number = ${patientNumber} AND archived_at IS NULL
+        LIMIT 1
+      `;
+            employeeId = rows[0]?.employee_id ?? null;
+            if (!employeeId) return fail(`No active employee found with number ${patientNumber}.`);
+        }
 
         caseNumber = await nextCaseNumber(Number(reportDate.slice(0, 4)));
 
+        // Exactly one of student_id / employee_id is set; the other stays NULL.
         await prisma.$executeRaw`
       INSERT INTO health_case_reports
-        (case_number, student_id, complaint, report_date, staff_name, status, notes, recorded_by)
+        (case_number, student_id, employee_id, complaint, report_date,
+         staff_name, status, notes, recorded_by)
       VALUES
-        (${caseNumber}, ${studentId}, ${complaint}, CAST(${reportDate} AS DATE),
-         ${staffName || null}, ${status}, ${notes || null}, ${session.userId})
+        (${caseNumber}, ${studentId}, ${employeeId}, ${complaint},
+         CAST(${reportDate} AS DATE), ${staffName || null}, ${status},
+         ${notes || null}, ${session.userId})
     `;
     } catch (err) {
         console.error("Create case report error:", err);
@@ -82,5 +102,6 @@ export async function createCaseReport(
     }
 
     revalidatePath(BASE);
+    revalidatePath("/dashboard/illness-alerts");
     redirect(BASE);
 }

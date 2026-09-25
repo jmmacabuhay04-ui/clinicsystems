@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { RotateCcw, Search, Trash2, X } from "lucide-react";
+import { Lock, RotateCcw, Search, Trash2, X } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { canManageDental, canManageRecords, canManageStaff } from "@/lib/permissions";
@@ -11,7 +11,7 @@ import { deleteCase, restoreCase } from "../health-case-reports/case-actions";
 import { deleteDental, restoreDental } from "../dental-records/actions";
 import { deleteSlip, restoreSlip } from "../referral-slips/actions";
 import { deleteStaff, restoreStaff } from "../clinic-staff/actions";
-
+import { canDeleteYet, formatDeletableOn, RETENTION_TEXT } from "@/lib/retention";
 type ArchivedStudent = {
     student_id: number;
     student_number: string;
@@ -36,9 +36,10 @@ type ArchivedRecord = {
 type ArchivedCase = {
     case_id: number;
     case_number: string;
-    student_number: string;
-    last_name: string;
-    first_name: string;
+    patient_type: string;
+    id_number: string | null;
+    last_name: string | null;
+    first_name: string | null;
     complaint: string;
     report_date: Date;
     status: string;
@@ -81,7 +82,7 @@ type ArchivedStaff = {
 };
 
 type Props = {
-    searchParams: Promise<{ q?: string }>;
+    searchParams: Promise<{ q?: string; notice?: string; until?: string }>;
 };
 
 function formatDate(date: Date | null) {
@@ -98,7 +99,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
     const session = await getSession();
     if (!session) redirect("/login");
 
-    const { q = "" } = await searchParams;
+    const { q = "", notice, until } = await searchParams;
     const like = `%${q}%`;
     const canEdit = canManageRecords(session.role) || canManageDental(session.role);
     const canEditStaff = canManageStaff(session.role);
@@ -125,13 +126,20 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
       ORDER BY r.archived_at DESC
     `,
         prisma.$queryRaw<ArchivedCase[]>`
-      SELECT c.case_id, c.case_number, s.student_number, s.last_name, s.first_name,
+      SELECT c.case_id, c.case_number,
+             CASE WHEN c.employee_id IS NOT NULL THEN 'employee' ELSE 'student' END AS patient_type,
+             COALESCE(s.student_number, e.employee_number) AS id_number,
+             COALESCE(s.last_name, e.last_name)            AS last_name,
+             COALESCE(s.first_name, e.first_name)          AS first_name,
              c.complaint, c.report_date, c.status, c.archived_at
       FROM health_case_reports c
-      JOIN students s ON s.student_id = c.student_id
+      LEFT JOIN students  s ON s.student_id  = c.student_id
+      LEFT JOIN employees e ON e.employee_id = c.employee_id
       WHERE c.archived_at IS NOT NULL
-        AND (${q}::text = '' OR s.student_number ILIKE ${like}
-             OR s.last_name ILIKE ${like} OR s.first_name ILIKE ${like}
+        AND (${q}::text = ''
+             OR COALESCE(s.student_number, e.employee_number) ILIKE ${like}
+             OR COALESCE(s.last_name, e.last_name) ILIKE ${like}
+             OR COALESCE(s.first_name, e.first_name) ILIKE ${like}
              OR c.case_number ILIKE ${like})
       ORDER BY c.archived_at DESC
     `,
@@ -188,6 +196,22 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                     </span>
                 )}
             </div>
+            {notice === "retention" && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                    <p className="font-medium">This record cannot be deleted yet.</p>
+                    <p className="mt-1">{RETENTION_TEXT} It becomes deletable on {until}.</p>
+                </div>
+            )}
+
+            {notice === "deleted" && (
+                <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800">
+                    <p className="font-medium">Record permanently deleted.</p>
+                </div>
+            )}
+
+            <p className="rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-600">
+                {RETENTION_TEXT}
+            </p>
 
             <form method="get" className="flex flex-wrap items-center gap-3">
                 <div className="relative max-w-md flex-1">
@@ -256,6 +280,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                                             <td className="whitespace-nowrap px-4 py-3 text-gray-500">
                                                 {formatDate(s.archived_at)}
                                             </td>
+
                                             {canEdit && (
                                                 <td className="whitespace-nowrap px-4 py-3">
                                                     <div className="flex items-center gap-3">
@@ -269,22 +294,29 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                                                                 Restore
                                                             </button>
                                                         </form>
-                                                        <form action={deleteStudent}>
-                                                            <input type="hidden" name="studentId" value={s.student_id} />
-                                                            <ConfirmButton
-                                                                title="Delete student"
-                                                                confirmLabel="Delete permanently"
-                                                                danger
-                                                                message={`Permanently delete ${s.last_name}, ${s.first_name} (${s.student_number
-                                                                    })? This also deletes ${Number(
-                                                                        s.visit_count
-                                                                    )} health record(s) and their student portal account. This cannot be undone.`}
-                                                                className="inline-flex items-center gap-1 font-medium text-red-600 hover:underline"
+                                                        {canDeleteYet(s.archived_at) ? (
+                                                            <form action={deleteStudent}>
+                                                                <input type="hidden" name="studentId" value={s.student_id} />
+                                                                <ConfirmButton
+                                                                    title="Delete student"
+                                                                    confirmLabel="Delete permanently"
+                                                                    danger
+                                                                    message={`Permanently delete ${s.last_name}, ${s.first_name} (${s.student_number})? This also deletes ${Number(s.visit_count)} health record(s) and their student portal account. This cannot be undone.`}
+                                                                    className="inline-flex items-center gap-1 font-medium text-red-600 hover:underline"
+                                                                >
+                                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                                    Delete
+                                                                </ConfirmButton>
+                                                            </form>
+                                                        ) : (
+                                                            <span
+                                                                title={RETENTION_TEXT}
+                                                                className="inline-flex items-center gap-1 text-xs text-gray-500"
                                                             >
-                                                                <Trash2 className="h-3.5 w-3.5" />
-                                                                Delete
-                                                            </ConfirmButton>
-                                                        </form>
+                                                                <Lock className="h-3.5 w-3.5" />
+                                                                Deletable on {formatDeletableOn(s.archived_at)}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </td>
                                             )}
@@ -325,6 +357,14 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                                             </td>
                                             <td className="px-4 py-3 text-gray-900">
                                                 {c.last_name}, {c.first_name}
+                                                <span
+                                                    className={`ml-2 rounded-full px-2 py-0.5 text-xs font-medium ${c.patient_type === "employee"
+                                                        ? "bg-violet-100 text-violet-800"
+                                                        : "bg-gray-100 text-gray-700"
+                                                        }`}
+                                                >
+                                                    {c.patient_type === "employee" ? "Employee" : "Student"}
+                                                </span>
                                             </td>
                                             <td className="px-4 py-3 text-gray-900">{c.complaint}</td>
                                             <td className="whitespace-nowrap px-4 py-3 text-gray-600">

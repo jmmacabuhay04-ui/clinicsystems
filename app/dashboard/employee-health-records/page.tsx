@@ -21,6 +21,8 @@ type EmployeeRow = {
     position: string | null;
     date_of_birth: Date | null;
     gender: string | null;
+    contact_number: string | null;
+    email: string | null;
 };
 
 type RecordRow = {
@@ -75,8 +77,8 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
     let selected: EmployeeRow | undefined;
     if (employeeNumber) {
         const rows = await prisma.$queryRaw<EmployeeRow[]>`
-      SELECT employee_id, employee_number, last_name, first_name, middle_name,
-             department, position, date_of_birth, gender
+          SELECT employee_id, employee_number, last_name, first_name, middle_name,
+             department, position, date_of_birth, gender, contact_number, email
       FROM employees
       WHERE employee_number = ${employeeNumber} AND archived_at IS NULL
       LIMIT 1
@@ -88,7 +90,7 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
         ? []
         : await prisma.$queryRaw<EmployeeRow[]>`
       SELECT employee_id, employee_number, last_name, first_name, middle_name,
-             department, position, date_of_birth, gender
+             department, position, date_of_birth, gender, contact_number, email
       FROM employees
       WHERE archived_at IS NULL
         AND (
@@ -187,13 +189,17 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
                             <table className="w-full text-left text-sm">
                                 <thead className="bg-gray-50 text-gray-700">
                                     <tr>
+
                                         <th className="px-4 py-3 font-medium">Department</th>
                                         <th className="px-4 py-3 font-medium">Position</th>
                                         <th className="whitespace-nowrap px-4 py-3 font-medium">Employee Number</th>
                                         <th className="whitespace-nowrap px-4 py-3 font-medium">Last Name</th>
                                         <th className="whitespace-nowrap px-4 py-3 font-medium">First Name</th>
                                         <th className="whitespace-nowrap px-4 py-3 font-medium">Middle Name</th>
+                                        <th className="whitespace-nowrap px-4 py-3 font-medium">Contact Number</th>
+                                        <th className="px-4 py-3 font-medium">Email</th>
                                         <th className="px-4 py-3 font-medium">Actions</th>
+
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -207,6 +213,10 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
                                             <td className="px-4 py-3 text-gray-900">{e.last_name}</td>
                                             <td className="px-4 py-3 text-gray-900">{e.first_name}</td>
                                             <td className="px-4 py-3 text-gray-900">{e.middle_name ?? "—"}</td>
+                                            <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                                                {e.contact_number ?? "—"}
+                                            </td>
+                                            <td className="px-4 py-3 text-gray-700">{e.email ?? "—"}</td>
                                             <td className="whitespace-nowrap px-4 py-3">
                                                 <ConfirmLink
                                                     href={`${BASE}?employee=${encodeURIComponent(e.employee_number)}`}
@@ -246,6 +256,8 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
                             <Info label="Middle Name" value={show(selected.middle_name)} />
                             <Info label="Date of Birth" value={fmt(selected.date_of_birth, "long")} />
                             <Info label="Gender" value={show(selected.gender)} />
+                            <Info label="Contact Number" value={show(selected.contact_number)} />
+                            <Info label="Email Address" value={show(selected.email)} />
                         </div>
 
                         {canEditEmployees && (

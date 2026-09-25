@@ -28,6 +28,9 @@ export type EmployeeValues = {
     position: string;
     dateOfBirth: string;
     gender: string;
+    // Optional so the new/edit pages keep working until they pass these too.
+    contactNumber?: string;
+    email?: string;
 };
 
 export default function EmployeeForm({
@@ -138,6 +141,30 @@ export default function EmployeeForm({
                             <option value="Male">Male</option>
                             <option value="Female">Female</option>
                         </select>
+                    </Field>
+                    <Field label="Contact Number">
+                        <input
+                            name="contactNumber"
+                            type="tel"
+                            defaultValue={v.contactNumber}
+                            placeholder="09XXXXXXXXX"
+                            maxLength={20}
+                            inputMode="numeric"
+                            suppressHydrationWarning
+                            className={inputClass}
+                        />
+                    </Field>
+                    <Field label="Email Address">
+                        <input
+                            name="email"
+                            type="email"
+                            defaultValue={v.email}
+                            placeholder="name@example.com"
+                            maxLength={120}
+                            autoComplete="off"
+                            suppressHydrationWarning
+                            className={inputClass}
+                        />
                     </Field>
                 </div>
             </section>

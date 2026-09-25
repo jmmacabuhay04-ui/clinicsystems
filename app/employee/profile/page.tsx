@@ -35,6 +35,9 @@ export default async function EmployeeProfilePage({ searchParams }: Props) {
         { label: "Position", value: employee.position || "—" },
         { label: "Date of Birth", value: formatDate(employee.date_of_birth) },
         { label: "Gender", value: employee.gender || "—" },
+        { label: "Contact Number", value: employee.contact_number || "—" },
+        { label: "Email Address", value: employee.email || "—" },
+
     ];
 
     return (

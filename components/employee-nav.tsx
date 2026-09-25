@@ -24,14 +24,18 @@ export default function EmployeeNav({ fullName, initials }: Props) {
     return (
         <header className="bg-[#15664f] text-white">
             <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4">
-                <div className="flex items-center gap-3">
+                <Link
+                    href="/employee/dashboard"
+                    aria-label="Go to Overview"
+                    className="flex items-center gap-3 rounded-lg transition-opacity hover:opacity-80"
+                >
                     <img
                         src="/bcas.jpg"
                         alt="BCAS"
                         className="h-10 w-10 shrink-0 rounded-full bg-white object-contain p-1"
                     />
                     <span className="text-lg font-semibold">BCAS Clinic</span>
-                </div>
+                </Link>
 
                 <nav className="flex flex-wrap items-center gap-1">
                     {tabs.map((tab) => {

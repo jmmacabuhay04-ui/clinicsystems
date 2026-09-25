@@ -11,9 +11,10 @@ import ConfirmLink from "@/components/confirm-link";
 type CaseRow = {
     case_id: number;
     case_number: string;
-    student_number: string;
-    last_name: string;
-    first_name: string;
+    patient_type: string;
+    id_number: string | null;
+    last_name: string | null;
+    first_name: string | null;
     complaint: string;
     report_date: Date;
     staff_name: string | null;
@@ -48,6 +49,11 @@ function formatDate(date: Date) {
     });
 }
 
+function fullName(c: CaseRow) {
+    if (!c.last_name && !c.first_name) return "—";
+    return `${c.last_name ?? ""}, ${c.first_name ?? ""}`;
+}
+
 export default async function HealthCaseReportsPage({ searchParams }: Props) {
     const session = await getSession();
     if (!session) redirect("/login");
@@ -59,21 +65,29 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
     const q = (params.q ?? "").trim();
     const like = `%${q}%`;
 
+    // LEFT JOIN on both sides: a case report belongs to a student OR an
+    // employee, and the other column is NULL. An INNER JOIN would silently
+    // drop every employee case report from this list.
     const reports = await prisma.$queryRaw<CaseRow[]>`
-    SELECT c.case_id, c.case_number, s.student_number, s.last_name, s.first_name,
-           c.complaint, c.report_date, c.staff_name, c.status
-    FROM health_case_reports c
-    JOIN students s ON s.student_id = c.student_id
-    WHERE c.archived_at IS NULL
-      AND (${status} = '' OR c.status = ${status})
-      AND (${q} = ''
-        OR s.last_name ILIKE ${like}
-        OR s.first_name ILIKE ${like}
-        OR s.student_number ILIKE ${like}
-        OR c.case_number ILIKE ${like}
-        OR c.complaint ILIKE ${like})
-    ORDER BY c.report_date DESC, c.case_id DESC
-  `;
+        SELECT c.case_id, c.case_number,
+               CASE WHEN c.employee_id IS NOT NULL THEN 'employee' ELSE 'student' END AS patient_type,
+               COALESCE(s.student_number, e.employee_number) AS id_number,
+               COALESCE(s.last_name, e.last_name)            AS last_name,
+               COALESCE(s.first_name, e.first_name)          AS first_name,
+               c.complaint, c.report_date, c.staff_name, c.status
+        FROM health_case_reports c
+        LEFT JOIN students  s ON s.student_id  = c.student_id
+        LEFT JOIN employees e ON e.employee_id = c.employee_id
+        WHERE c.archived_at IS NULL
+        AND (${status} = '' OR c.status = ${status})
+        AND (${q} = ''
+            OR COALESCE(s.last_name, e.last_name) ILIKE ${like}
+            OR COALESCE(s.first_name, e.first_name) ILIKE ${like}
+            OR COALESCE(s.student_number, e.employee_number) ILIKE ${like}
+            OR c.case_number ILIKE ${like}
+            OR c.complaint ILIKE ${like})
+        ORDER BY c.report_date DESC, c.case_id DESC
+    `;
 
     const tabHref = (key: string) => {
         const parts: string[] = [];
@@ -88,13 +102,17 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
                 <h1 className="text-3xl font-semibold text-gray-900">Health Case Reports</h1>
 
                 {canEdit ? (
-                    <Link
+                    <ConfirmLink
                         href={`${BASE}/new`}
+                        title="New case report"
+                        message="Create a new health case report? This will be counted in the Weekly Illness Alert Dashboard."
+                        confirmLabel="Continue"
+                        icon={<Plus className="h-5 w-5" />}
                         className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#15664f] px-4 text-sm font-semibold text-white hover:bg-[#10523f]"
                     >
                         <Plus className="h-4 w-4" />
                         New Case Report
-                    </Link>
+                    </ConfirmLink>
                 ) : (
                     <span className="rounded-full bg-gray-200 px-3 py-1 text-xs font-medium text-gray-600">
                         View only
@@ -126,7 +144,7 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
                 <input
                     name="q"
                     defaultValue={q}
-                    placeholder="Search by name, student no., case no., or complaint..."
+                    placeholder="Search by name, ID no., case no., or complaint..."
                     suppressHydrationWarning
                     className="h-11 w-full rounded-lg border border-gray-300 bg-white pl-10 pr-3 text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20"
                 />
@@ -141,8 +159,8 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
                             <thead className="bg-gray-50 text-gray-700">
                                 <tr>
                                     <th className="whitespace-nowrap px-4 py-3 font-medium">Case No.</th>
-                                    <th className="whitespace-nowrap px-4 py-3 font-medium">Student No.</th>
-                                    <th className="px-4 py-3 font-medium">Student</th>
+                                    <th className="whitespace-nowrap px-4 py-3 font-medium">ID No.</th>
+                                    <th className="px-4 py-3 font-medium">Patient</th>
                                     <th className="px-4 py-3 font-medium">Complaint</th>
                                     <th className="whitespace-nowrap px-4 py-3 font-medium">Date</th>
                                     <th className="px-4 py-3 font-medium">Staff</th>
@@ -156,16 +174,25 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
                                         label: c.status,
                                         className: "bg-gray-100 text-gray-700",
                                     };
+                                    const isEmployee = c.patient_type === "employee";
                                     return (
                                         <tr key={c.case_id} className="border-t border-gray-100">
                                             <td className="whitespace-nowrap px-4 py-3 font-semibold text-gray-900">
                                                 {c.case_number}
                                             </td>
                                             <td className="whitespace-nowrap px-4 py-3 text-gray-700">
-                                                {c.student_number}
+                                                {c.id_number ?? "—"}
                                             </td>
                                             <td className="px-4 py-3 text-gray-900">
-                                                {c.last_name}, {c.first_name}
+                                                {fullName(c)}
+                                                <span
+                                                    className={`ml-2 rounded-full px-2 py-0.5 text-xs font-medium ${isEmployee
+                                                        ? "bg-violet-100 text-violet-800"
+                                                        : "bg-gray-100 text-gray-700"
+                                                        }`}
+                                                >
+                                                    {isEmployee ? "Employee" : "Student"}
+                                                </span>
                                             </td>
                                             <td className="px-4 py-3 text-gray-900">{c.complaint}</td>
                                             <td className="whitespace-nowrap px-4 py-3 text-gray-600">
@@ -185,7 +212,7 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
                                                         <ConfirmLink
                                                             href={`${BASE}/edit?case=${c.case_id}`}
                                                             title="Edit case report"
-                                                            message={`Edit case ${c.case_number} (${c.complaint}) of ${c.first_name} ${c.last_name}?`}
+                                                            message={`Edit case ${c.case_number} (${c.complaint}) of ${fullName(c)}?`}
                                                             confirmLabel="Edit"
                                                             className="inline-flex items-center gap-1 font-medium text-[#15664f] hover:underline"
                                                         >

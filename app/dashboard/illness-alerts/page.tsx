@@ -1,10 +1,11 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AlertTriangle, CheckCircle2, ShieldAlert } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import WeekPicker from "./week-picker";
 
-type CaseRow = {
+type VisitRow = {
     record_id: number;
     visit_date: Date;
     complaint: string;
@@ -14,15 +15,47 @@ type CaseRow = {
     first_name: string;
 };
 
+type ReportRow = {
+    case_id: number;
+    case_number: string;
+    report_date: Date;
+    complaint: string;
+    staff_name: string | null;
+    status: string;
+    patient_type: string;
+    id_number: string | null;
+    last_name: string | null;
+    first_name: string | null;
+};
+
+// Both sources are flattened into this shape so the chart, the breakdown
+// and the case log can treat them the same way.
+type Case = {
+    key: string;
+    date: Date;
+    complaint: string;
+    staff: string | null;
+    patient_type: "student" | "employee";
+    id_number: string | null;
+    last_name: string | null;
+    first_name: string | null;
+    source: "visit" | "report";
+    reference: string | null;
+    status: string | null;
+};
+
 type Props = {
     searchParams: Promise<{ week?: string }>;
 };
 
-// Number of sick persons in ONE day
+// Number of sick PERSONS in ONE day
 const WARNING_PER_DAY = 5; // 5–9 persons in a day = Warning
 const OUTBREAK_PER_DAY = 10; // 10+ persons in a day = Outbreak
 
 const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+
+const BASE = "/dashboard/illness-alerts";
+const CASES_BASE = "/dashboard/health-case-reports";
 
 function keyOf(d: Date) {
     return d.toISOString().slice(0, 10);
@@ -74,6 +107,12 @@ const barColor = {
     outbreak: "bg-red-600",
 };
 
+const statusStyles: Record<string, string> = {
+    pending: "bg-yellow-100 text-yellow-800",
+    referred: "bg-red-100 text-red-700",
+    resolved: "bg-green-100 text-green-700",
+};
+
 export default async function IllnessAlertsPage({ searchParams }: Props) {
     const session = await getSession();
     if (!session) redirect("/login");
@@ -93,11 +132,11 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
         return { value: start, label: label(start, addDays(start, 4)) };
     });
 
-    const [studentRows, cases] = await Promise.all([
+    const [studentRows, visits, reports] = await Promise.all([
         prisma.$queryRaw<{ total: bigint }[]>`
       SELECT COUNT(*) AS total FROM students WHERE archived_at IS NULL
     `,
-        prisma.$queryRaw<CaseRow[]>`
+        prisma.$queryRaw<VisitRow[]>`
       SELECT r.record_id, r.visit_date, r.complaint, r.attending_staff,
              s.student_number, s.last_name, s.first_name
       FROM health_records r
@@ -106,9 +145,56 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
         AND r.visit_date BETWEEN CAST(${weekStart} AS DATE) AND CAST(${weekEnd} AS DATE)
       ORDER BY r.visit_date, r.record_id
     `,
+        prisma.$queryRaw<ReportRow[]>`
+      SELECT c.case_id, c.case_number, c.report_date, c.complaint, c.staff_name, c.status,
+             CASE WHEN c.employee_id IS NOT NULL THEN 'employee' ELSE 'student' END AS patient_type,
+             COALESCE(s.student_number, e.employee_number) AS id_number,
+             COALESCE(s.last_name, e.last_name)            AS last_name,
+             COALESCE(s.first_name, e.first_name)          AS first_name
+      FROM health_case_reports c
+      LEFT JOIN students  s ON s.student_id  = c.student_id
+      LEFT JOIN employees e ON e.employee_id = c.employee_id
+      WHERE c.archived_at IS NULL
+        AND c.report_date BETWEEN CAST(${weekStart} AS DATE) AND CAST(${weekEnd} AS DATE)
+      ORDER BY c.report_date, c.case_id
+    `,
+
     ]);
 
     const totalStudents = Number(studentRows[0]?.total ?? 0);
+
+    // Merge both sources into one list, sorted by date.
+    const cases: Case[] = [
+        ...visits.map((v) => ({
+            key: `visit-${v.record_id}`,
+            date: v.visit_date,
+            complaint: v.complaint,
+            staff: v.attending_staff,
+            patient_type: "student" as const,
+            id_number: v.student_number,
+            last_name: v.last_name,
+            first_name: v.first_name,
+            source: "visit" as const,
+            reference: null,
+            status: null,
+        })),
+        ...reports.map((c) => ({
+            key: `report-${c.case_id}`,
+            date: c.report_date,
+            complaint: c.complaint,
+            staff: c.staff_name,
+            patient_type: (c.patient_type === "employee" ? "employee" : "student") as
+                | "student"
+                | "employee",
+            id_number: c.id_number,
+            last_name: c.last_name,
+            first_name: c.first_name,
+            source: "report" as const,
+            reference: c.case_number,
+            status: c.status,
+        })),
+    ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
     const totalCases = cases.length;
 
     const breakdownMap = new Map<string, number>();
@@ -119,9 +205,16 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
         .map(([illness, count]) => ({ illness, count }))
         .sort((a, b) => b.count - a.count);
 
+    // The thresholds count PERSONS, not rows. A student with both a clinic
+    // visit and a case report on the same day is still one sick person.
     const daily = dayNames.map((name, i) => {
         const key = addDays(weekStart, i);
-        const count = cases.filter((c) => keyOf(new Date(c.visit_date)) === key).length;
+        const people = new Set(
+            cases
+                .filter((c) => keyOf(new Date(c.date)) === key)
+                .map((c) => `${c.patient_type}:${c.id_number ?? "?"}`)
+        );
+        const count = people.size;
         return { name, count, level: levelOf(count) };
     });
 
@@ -167,19 +260,25 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
     const Icon = current.icon;
 
     const stats = [
-        { label: "Total Cases This Week", value: String(totalCases) },
         {
-            label: "Highest Cases in a Day",
-            value: peak.count > 0 ? `${peak.count} · ${peak.name}` : "0",
+            label: "Total Cases This Week",
+            value: String(totalCases),
+            hint: `${visits.length} clinic · ${reports.length} reported`,
         },
-        { label: "Top Illness", value: breakdown[0]?.illness ?? "—" },
-        { label: "Recommended Mode", value: current.mode },
+        {
+            label: "Highest Persons in a Day",
+            value: peak.count > 0 ? `${peak.count} · ${peak.name}` : "0",
+            hint: null,
+        },
+        { label: "Top Illness", value: breakdown[0]?.illness ?? "—", hint: null },
+        { label: "Recommended Mode", value: current.mode, hint: null },
     ];
 
     return (
         <main className="space-y-6 p-6 md:p-8">
             <div className="flex flex-wrap items-start justify-between gap-4">
                 <h1 className="text-3xl font-semibold text-gray-900">Weekly Illness Alert Dashboard</h1>
+
                 <WeekPicker weeks={weeks} current={weekStart} />
             </div>
 
@@ -205,6 +304,7 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                     <div key={s.label} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
                         <p className="text-sm text-gray-600">{s.label}</p>
                         <p className="mt-2 break-words text-2xl font-semibold text-gray-900">{s.value}</p>
+                        {s.hint ? <p className="mt-1 text-xs text-gray-500">{s.hint}</p> : null}
                     </div>
                 ))}
             </section>
@@ -318,6 +418,11 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                                 </span>
                             ))}
                         </div>
+
+                        <p className="mt-4 border-t border-gray-100 pt-3 text-xs text-gray-500">
+                            Each bar counts sick persons, not records. A student with both a clinic
+                            visit and a case report on the same day counts once.
+                        </p>
                     </div>
                 </div>
             </section>
@@ -334,25 +439,62 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                             <table className="w-full text-left text-sm">
                                 <thead className="bg-gray-50 text-gray-700">
                                     <tr>
+                                        <th className="whitespace-nowrap px-4 py-3 font-medium">ID Number</th>
+                                        <th className="px-4 py-3 font-medium">Patient</th>
                                         <th className="whitespace-nowrap px-4 py-3 font-medium">Date</th>
                                         <th className="whitespace-nowrap px-4 py-3 font-medium">Student Number</th>
                                         <th className="px-4 py-3 font-medium">Student</th>
                                         <th className="px-4 py-3 font-medium">Illness</th>
+                                        <th className="px-4 py-3 font-medium">Source</th>
                                         <th className="px-4 py-3 font-medium">Attending Staff</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {cases.map((c) => (
-                                        <tr key={c.record_id} className="border-t border-gray-100">
+                                        <tr key={c.key} className="border-t border-gray-100">
                                             <td className="whitespace-nowrap px-4 py-3 text-gray-600">
-                                                {formatDay(c.visit_date)}
+                                                {formatDay(c.date)}
                                             </td>
-                                            <td className="px-4 py-3 font-medium text-gray-900">{c.student_number}</td>
+                                            <td className="px-4 py-3 font-medium text-gray-900">
+                                                {c.id_number ?? "—"}
+                                            </td>
                                             <td className="px-4 py-3 text-gray-900">
                                                 {c.last_name}, {c.first_name}
+                                                <span
+                                                    className={`ml-2 rounded-full px-2 py-0.5 text-xs font-medium ${c.patient_type === "employee"
+                                                        ? "bg-violet-100 text-violet-800"
+                                                        : "bg-gray-100 text-gray-700"
+                                                        }`}
+                                                >
+                                                    {c.patient_type === "employee" ? "Employee" : "Student"}
+                                                </span>
                                             </td>
                                             <td className="px-4 py-3 text-gray-900">{c.complaint}</td>
-                                            <td className="px-4 py-3 text-gray-700">{c.attending_staff ?? "—"}</td>
+                                            <td className="whitespace-nowrap px-4 py-3">
+                                                {c.source === "visit" ? (
+                                                    <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
+                                                        Clinic Visit
+                                                    </span>
+                                                ) : (
+                                                    <span className="flex flex-wrap items-center gap-1.5">
+                                                        <Link
+                                                            href={`${CASES_BASE}?q=${encodeURIComponent(c.reference ?? "")}`}
+                                                            className="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800 hover:bg-blue-200"
+                                                        >
+                                                            {c.reference ?? "Case Report"}
+                                                        </Link>
+                                                        {c.status ? (
+                                                            <span
+                                                                className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusStyles[c.status] ?? "bg-gray-100 text-gray-700"
+                                                                    }`}
+                                                            >
+                                                                {c.status}
+                                                            </span>
+                                                        ) : null}
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-3 text-gray-700">{c.staff ?? "—"}</td>
                                         </tr>
                                     ))}
                                 </tbody>

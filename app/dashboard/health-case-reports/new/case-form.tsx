@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { createCaseReport, type CaseState } from "./actions";
 
 const initialState: CaseState = {};
@@ -28,6 +28,13 @@ export default function CaseForm({ today, staffName, cancelHref }: Props) {
     const [state, formAction, pending] = useActionState(createCaseReport, initialState);
     const v = state.values ?? {};
 
+    // Keep the choice after a failed submit so the nurse does not lose it.
+    const [patientType, setPatientType] = useState<"student" | "employee">(
+        v.patientType === "employee" ? "employee" : "student"
+    );
+
+    const isStudent = patientType === "student";
+
     return (
         <form action={formAction} className="space-y-6">
             {state.error && (
@@ -36,14 +43,43 @@ export default function CaseForm({ today, staffName, cancelHref }: Props) {
                 </p>
             )}
 
+            <input type="hidden" name="patientType" value={patientType} />
+
             <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                 <h2 className="text-lg font-semibold text-gray-900">Case Details</h2>
+
+                <div className="mt-4">
+                    <p className="text-sm font-medium text-gray-700">Patient</p>
+                    <div className="mt-1.5 inline-flex rounded-lg border border-gray-300 bg-white p-1">
+                        <button
+                            type="button"
+                            onClick={() => setPatientType("student")}
+                            className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${isStudent
+                                ? "bg-[#15664f] text-white"
+                                : "text-gray-700 hover:bg-gray-50"
+                                }`}
+                        >
+                            Student
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setPatientType("employee")}
+                            className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${!isStudent
+                                ? "bg-[#15664f] text-white"
+                                : "text-gray-700 hover:bg-gray-50"
+                                }`}
+                        >
+                            Employee
+                        </button>
+                    </div>
+                </div>
+
                 <div className="mt-4 grid gap-4 md:grid-cols-2">
-                    <Field label="Student Number *">
+                    <Field label={isStudent ? "Student Number *" : "Employee Number *"}>
                         <input
-                            name="studentNumber"
-                            defaultValue={v.studentNumber ?? ""}
-                            placeholder="e.g. 2024-00123"
+                            name="patientNumber"
+                            defaultValue={v.patientNumber ?? ""}
+                            placeholder={isStudent ? "e.g. 2024-00123" : "e.g. EMP-001"}
                             required
                             suppressHydrationWarning
                             className={inputClass}

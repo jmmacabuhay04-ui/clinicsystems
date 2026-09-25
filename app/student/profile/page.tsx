@@ -35,6 +35,8 @@ export default async function StudentProfilePage({ searchParams }: Props) {
         { label: "Program", value: show(student.program) },
         { label: "Date of Birth", value: formatDate(student.date_of_birth) },
         { label: "Gender", value: show(student.gender) },
+        { label: "Contact Number", value: student.contact_number || "—" },
+        { label: "Email Address", value: student.email || "—" },
     ];
 
     return (

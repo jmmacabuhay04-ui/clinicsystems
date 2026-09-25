@@ -25,7 +25,11 @@ export default function StudentNav({ fullName, initials }: Props) {
     return (
         <header className="bg-[#15664f] text-white">
             <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4">
-                <div className="flex items-center gap-3">
+                <Link
+                    href="/student/dashboard"
+                    aria-label="Go to Overview"
+                    className="flex items-center gap-3 rounded-lg transition-opacity hover:opacity-80"
+                >
                     <div className="rounded-full bg-white p-0.5">
                         <Image
                             src="/bcas.jpg"
@@ -36,7 +40,7 @@ export default function StudentNav({ fullName, initials }: Props) {
                         />
                     </div>
                     <span className="text-lg font-semibold">BCAS Clinic</span>
-                </div>
+                </Link>
 
                 <nav className="flex flex-wrap items-center gap-1">
                     {tabs.map((tab) => {

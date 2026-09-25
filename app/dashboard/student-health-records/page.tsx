@@ -19,6 +19,8 @@ type StudentRow = {
     program: string | null;
     date_of_birth: Date | null;
     gender: string | null;
+    contact_number: string | null;
+    email: string | null;
 };
 
 type RecordRow = {
@@ -58,7 +60,7 @@ async function searchStudents(q: string) {
     if (!q) {
         return prisma.$queryRaw<StudentRow[]>`
       SELECT student_id, student_number, last_name, first_name, middle_name,
-             grade_level, program, date_of_birth, gender
+             grade_level, program, date_of_birth, gender, contact_number, email
       FROM students
       WHERE archived_at IS NULL
         ORDER BY student_number ASC
@@ -69,7 +71,7 @@ async function searchStudents(q: string) {
     const like = `%${q}%`;
     return prisma.$queryRaw<StudentRow[]>`
     SELECT student_id, student_number, last_name, first_name, middle_name,
-           grade_level, program, date_of_birth, gender
+           grade_level, program, date_of_birth, gender, contact_number, email
     FROM students
     WHERE archived_at IS NULL
       AND (student_number ILIKE ${like}
@@ -100,7 +102,7 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
     if (selectedNumber) {
         const rows = await prisma.$queryRaw<StudentRow[]>`
       SELECT student_id, student_number, last_name, first_name, middle_name,
-             grade_level, program, date_of_birth, gender
+             grade_level, program, date_of_birth, gender, contact_number, email
       FROM students
       WHERE student_number = ${selectedNumber} AND archived_at IS NULL
       LIMIT 1
@@ -173,6 +175,8 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
             { label: "Middle Name", value: show(selected.middle_name) },
             { label: "Date of Birth", value: formatDate(selected.date_of_birth, "long") },
             { label: "Gender", value: show(selected.gender) },
+            { label: "Contact Number", value: show(selected.contact_number) },
+            { label: "Email Address", value: show(selected.email) },
         ]
         : [];
 
@@ -262,6 +266,8 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
                                         <th className="whitespace-nowrap px-4 py-3 font-medium">Last Name</th>
                                         <th className="whitespace-nowrap px-4 py-3 font-medium">First Name</th>
                                         <th className="whitespace-nowrap px-4 py-3 font-medium">Middle Name</th>
+                                        <th className="whitespace-nowrap px-4 py-3 font-medium">Contact Number</th>
+                                        <th className="px-4 py-3 font-medium">Email</th>
                                         <th className="px-4 py-3 font-medium">Actions</th>
                                     </tr>
                                 </thead>
@@ -274,6 +280,10 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
                                             <td className="px-4 py-3 text-gray-900">{s.last_name}</td>
                                             <td className="px-4 py-3 text-gray-900">{s.first_name}</td>
                                             <td className="px-4 py-3 text-gray-900">{show(s.middle_name)}</td>
+                                            <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                                                {show(s.contact_number)}
+                                            </td>
+                                            <td className="px-4 py-3 text-gray-700">{show(s.email)}</td>
                                             <td className="whitespace-nowrap px-4 py-3">
                                                 <div className="flex items-center gap-3">
                                                     <ConfirmLink
