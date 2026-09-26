@@ -19,7 +19,6 @@ function readValues(formData: FormData) {
         visitDate: get("visitDate"),
         procedure: get("procedure"),
         tooth: get("tooth"),
-        dentistName: get("dentistName"),
         status: get("status") === "follow-up" ? "follow-up" : "completed",
         notes: get("notes"),
     };
@@ -57,6 +56,30 @@ async function findPatient(values: Values) {
     return rows[0] ? { studentId: rows[0].id, employeeId: null } : null;
 }
 
+/**
+ * The name of the signed-in clinician, for the Attending Dentist column.
+ *
+ * Falls back through every source so the column is never left blank: the
+ * formatted name, then the raw name from users, then the login name.
+ */
+async function attendingDentist(session: {
+    userId?: unknown;
+    username?: unknown;
+}): Promise<string> {
+    const me = await prisma.$queryRaw<{ full_name: string | null; username: string }[]>`
+    SELECT full_name, username FROM users WHERE user_id = ${session.userId} LIMIT 1
+  `;
+
+    const fallbackLogin = String(session.username ?? "");
+
+    return (
+        examinerName(me[0]?.full_name ?? null, me[0]?.username ?? fallbackLogin) ||
+        me[0]?.full_name ||
+        me[0]?.username ||
+        fallbackLogin
+    );
+}
+
 export async function createDental(
     _prev: DentalState,
     formData: FormData
@@ -72,13 +95,7 @@ export async function createDental(
     if (problem) return { error: problem, values };
 
     try {
-        const me = await prisma.$queryRaw<{ full_name: string | null; username: string }[]>`
-      SELECT full_name, username FROM users WHERE user_id = ${session.userId} LIMIT 1
-    `;
-        const dentistName = examinerName(
-            me[0]?.full_name ?? null,
-            me[0]?.username ?? session.username
-        );
+        const dentistName = await attendingDentist(session);
 
         const patient = await findPatient(values);
         if (!patient) {
@@ -132,6 +149,10 @@ export async function updateDental(
             };
         }
 
+        // dentist_name is deliberately NOT updated. The field is read-only in
+        // the form and is never submitted, so writing it here would overwrite
+        // the real dentist with an empty value on every edit. The dentist who
+        // performed the procedure stays as recorded on creation.
         await prisma.$executeRaw`
       UPDATE dental_records SET
         student_id     = ${patient.studentId},
@@ -139,7 +160,6 @@ export async function updateDental(
         visit_date     = ${values.visitDate}::date,
         procedure_name = ${values.procedure},
         tooth          = ${values.tooth || null},
-               dentist_name   = ${values.dentistName || null},
         status         = ${values.status},
         notes          = ${values.notes || null}
       WHERE dental_id = ${dentalId}

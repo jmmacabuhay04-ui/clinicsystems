@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { Archive, Check } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
-import { canManageRecords } from "@/lib/permissions";
+import { canManageReferrals } from "@/lib/permissions";
 import ConfirmButton from "@/components/confirm-button";
 import ReferralForm, { type StudentOption } from "./referral-form";
 import { archiveSlip, markReceived } from "./actions";
@@ -61,7 +61,7 @@ export default async function ReferralSlipsPage({ searchParams }: Props) {
     const session = await getSession();
     if (!session) redirect("/login");
 
-    const canEdit = canManageRecords(session.role);
+    const canEdit = canManageReferrals(session.role);
 
     const params = await searchParams;
     const tab = tabs.some((t) => t.key === params.tab) ? params.tab! : "teacher";
@@ -76,22 +76,22 @@ export default async function ReferralSlipsPage({ searchParams }: Props) {
 
     const [students, slips] = await Promise.all([
         prisma.$queryRaw<StudentOption[]>`
-      SELECT student_number, last_name, first_name, program, grade_level
-      FROM students
-      WHERE archived_at IS NULL
-      ORDER BY last_name, first_name
-    `,
+        SELECT student_number, last_name, first_name, program, grade_level
+        FROM students
+        WHERE archived_at IS NULL
+        ORDER BY last_name, first_name
+        `,
         prisma.$queryRaw<SlipRow[]>`
-      SELECT r.slip_id, r.slip_type, s.student_number, s.last_name, s.first_name,
-             s.program, s.grade_level, r.section, r.teacher_name, r.reason,
-             r.status, r.slip_date, r.time_issued
-      FROM referral_slips r
-      JOIN students s ON s.student_id = r.student_id
-      WHERE r.archived_at IS NULL
-        AND (${tab} = 'all' OR r.slip_type = ${tab})
-        AND (${tab} = 'all' OR r.slip_date = CAST(${today} AS DATE))
-      ORDER BY r.slip_date DESC, r.time_issued DESC, r.slip_id DESC
-    `,
+        SELECT r.slip_id, r.slip_type, s.student_number, s.last_name, s.first_name,
+                s.program, s.grade_level, r.section, r.teacher_name, r.reason,
+                r.status, r.slip_date, r.time_issued
+        FROM referral_slips r
+        JOIN students s ON s.student_id = r.student_id
+        WHERE r.archived_at IS NULL
+            AND (${tab} = 'all' OR r.slip_type = ${tab})
+            AND (${tab} = 'all' OR r.slip_date = CAST(${today} AS DATE))
+        ORDER BY r.slip_date DESC, r.time_issued DESC, r.slip_id DESC
+        `,
     ]);
 
     const listTitle =

@@ -50,7 +50,6 @@ export default function DentalForm({
         visitDate: record.visitDate,
         procedure: record.procedure,
         tooth: record.tooth,
-        dentistName: record.dentistName,
         status: record.status,
         notes: record.notes,
         ...(state.values ?? {}),
@@ -60,6 +59,11 @@ export default function DentalForm({
         v.patientType === "employee" ? "employee" : "student"
     );
     const isEmployee = patientType === "employee";
+
+    // The dentist is never submitted by this form, so it always comes from
+    // the page, never from a failed submit. Keeping it out of `v` means a
+    // rejected save can no longer blank it out on screen.
+    const dentist = record.dentistName ?? "";
 
     return (
         <form action={formAction} className="space-y-6">
@@ -141,15 +145,20 @@ export default function DentalForm({
                     </Field>
                     <Field label="Attending Dentist">
                         <input
-                            value={v.dentistName}
+                            value={dentist}
                             readOnly
+                            placeholder="Not recorded"
                             suppressHydrationWarning
-                            className={`${inputClass} bg-gray-50`}
+                            className={`${inputClass} bg-gray-50 text-gray-700`}
                         />
-                        <span className="text-xs text-gray-500">
-                            {mode === "create"
-                                ? "Automatic — the account currently logged in."
-                                : "Recorded when this entry was created."}
+                        <span
+                            className={`text-xs ${dentist ? "text-gray-500" : "text-amber-700"}`}
+                        >
+                            {dentist
+                                ? mode === "create"
+                                    ? "Automatic — the account currently logged in."
+                                    : "Recorded when this entry was created."
+                                : "No dentist on record. Saving this form will not change it."}
                         </span>
                     </Field>
                     <Field label="Status">

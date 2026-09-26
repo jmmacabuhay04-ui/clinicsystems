@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getStudentSession } from "@/lib/student-session";
 import StudentNav from "@/components/student-nav";
+import CaseReportTable from "@/components/case-report-table";
 import {
     getStudent,
     getVisits,
@@ -117,6 +118,7 @@ export default async function StudentDashboardPage() {
                         </div>
                     )}
                 </section>
+                <CaseReportTable patientType="student" patientId={student.student_id} />
 
                 <p className="text-center text-xs text-gray-500">
                     Your records are private and only visible to you and authorized clinic staff.

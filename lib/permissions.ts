@@ -42,3 +42,13 @@ export function canViewClinicData(role: string) {
 export const canCreateAccounts = (role: string) => role === "admin" || role === "ittech";
 
 export const canViewStaff = (role: string) => role === "admin" || role === "nurse";
+/**
+ * Nurses, doctors and dentists issue referral slips.
+ *
+ * Kept separate from canManageRecords on purpose: a dentist needs to
+ * refer a patient out, but should not be able to open or edit clinic
+ * visit records and health case reports.
+ */
+export function canManageReferrals(role: string) {
+    return role === "nurse" || role === "doctor" || role === "dentist";
+}

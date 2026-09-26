@@ -439,11 +439,9 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                             <table className="w-full text-left text-sm">
                                 <thead className="bg-gray-50 text-gray-700">
                                     <tr>
+                                        <th className="whitespace-nowrap px-4 py-3 font-medium">Date</th>
                                         <th className="whitespace-nowrap px-4 py-3 font-medium">ID Number</th>
                                         <th className="px-4 py-3 font-medium">Patient</th>
-                                        <th className="whitespace-nowrap px-4 py-3 font-medium">Date</th>
-                                        <th className="whitespace-nowrap px-4 py-3 font-medium">Student Number</th>
-                                        <th className="px-4 py-3 font-medium">Student</th>
                                         <th className="px-4 py-3 font-medium">Illness</th>
                                         <th className="px-4 py-3 font-medium">Source</th>
                                         <th className="px-4 py-3 font-medium">Attending Staff</th>

@@ -28,8 +28,20 @@ const TYPE_LABELS: Record<string, string> = {
     health_declaration: "Health Declaration",
     referral_slip: "Referral Slip",
     clinic_staff: "Clinic Staff",
+    health_case_report: "Health Case Report",
 };
 
+// Only these types point at a student or employee row, so only they can
+// be reported as deleted when the join comes back empty. A case report
+// stores its own case_id, which will never match a student id.
+const PERSON_TYPES = new Set([
+    "student_health_record",
+    "employee_health_record",
+    "visit",
+    "vitals",
+    "health_declaration",
+    "referral_slip",
+]);
 function formatWhen(value: Date | string) {
     const date = new Date(value);
     return date.toLocaleString("en-PH", {
@@ -156,7 +168,8 @@ export default async function AccessLogsPage() {
                                                     </span>
                                                 ) : log.record_id ? (
                                                     <span className="block text-xs text-gray-400">
-                                                        #{log.record_id} (deleted)
+                                                        #{log.record_id}
+                                                        {PERSON_TYPES.has(log.record_type) ? " (deleted)" : ""}
                                                     </span>
                                                 ) : null}
                                             </td>

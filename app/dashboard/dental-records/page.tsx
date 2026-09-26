@@ -34,6 +34,9 @@ function fmt(date: Date) {
         timeZone: "UTC",
     });
 }
+function orDash(value: string | null | undefined) {
+    return value === null || value === undefined || value.trim() === "" ? "—" : value;
+}
 
 function RecordTable({
     title,
@@ -85,8 +88,8 @@ function RecordTable({
                                             {d.last_name}, {d.first_name}
                                         </td>
                                         <td className="px-4 py-3 text-gray-900">{d.procedure_name}</td>
-                                        <td className="px-4 py-3 text-gray-700">{d.tooth ?? "—"}</td>
-                                        <td className="px-4 py-3 text-gray-700">{d.dentist_name ?? "—"}</td>
+                                        <td className="px-4 py-3 text-gray-700">{orDash(d.tooth)}</td>
+                                        <td className="px-4 py-3 text-gray-700">{orDash(d.dentist_name)}</td>
                                         <td className="px-4 py-3">
                                             <span
                                                 className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${d.status === "follow-up"

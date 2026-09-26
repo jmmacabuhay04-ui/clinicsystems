@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 export type RecordType =
     | "student_health_record"
     | "employee_health_record"
+    | "health_case_report"
     | "dental_record"
     | "visit"
     | "vitals"
@@ -106,4 +107,5 @@ export async function getAccessLogs(limit = 200): Promise<AccessLogRow[]> {
         ORDER BY l.created_at DESC
         LIMIT ${limit}
     `;
+
 }

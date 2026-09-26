@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getEmployeeSession } from "@/lib/employee-session";
+import CaseReportTable from "@/components/case-report-table";
 import {
     getEmployee,
     getEmployeeVisits,
@@ -90,6 +91,7 @@ export default async function EmployeeDashboardPage() {
                         </div>
                     )}
                 </section>
+                <CaseReportTable patientType="employee" patientId={employee.employee_id} />
 
                 {/* Recent Dental Visits */}
                 <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">

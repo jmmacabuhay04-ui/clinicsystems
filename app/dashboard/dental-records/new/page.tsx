@@ -17,12 +17,18 @@ export default async function NewDentalRecordPage() {
     const me = await prisma.$queryRaw<{ full_name: string | null; username: string }[]>`
     SELECT full_name, username FROM users WHERE user_id = ${session.userId} LIMIT 1
   `;
-    const onDuty = examinerName(me[0]?.full_name ?? null, me[0]?.username ?? session.username);
+    // Fall back through every source so the field is never blank: the
+    // formatted name, then the raw name, then the login name.
+    const onDuty =
+        examinerName(me[0]?.full_name ?? null, me[0]?.username ?? session.username) ||
+        me[0]?.full_name ||
+        me[0]?.username ||
+        String(session.username ?? "");
 
     const empty: DentalValues = {
         patientType: "student",
         patientNumber: "",
-        visitDate: new Date().toISOString().slice(0, 10),
+        visitDate: new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date()),
         procedure: "",
         tooth: "",
         dentistName: onDuty,

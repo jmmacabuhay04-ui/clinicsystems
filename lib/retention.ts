@@ -7,7 +7,7 @@
 //
 // Change the number here and the whole system follows.
 
-export const RETENTION_YEARS = 10;
+export const RETENTION_YEARS = 5;
 
 export const RETENTION_TEXT = `Archived records can only be permanently deleted after ${RETENTION_YEARS} years.`;
 
