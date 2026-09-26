@@ -4,26 +4,46 @@ export type SessionPayload = {
     userId: number;
     username: string;
     role: string;
-    mustChangePassword?: boolean;     // ← idagdag ito
+    mustChangePassword?: boolean;
 };
 
+// Only ever used by `next dev`. Never a fallback anywhere else: it is
+// committed to the repository, so anyone who can read the code could
+// forge a session signed with it.
 const DEV_FALLBACK_SECRET = "bcas-clinic-dev-only-secret-change-this-before-deploying";
 
-function getKey() {
-    let secret = process.env.SESSION_SECRET?.trim();
+// HS256 keys shorter than this are brute-forceable.
+const MIN_SECRET_LENGTH = 32;
 
-    if (!secret) {
-        if (process.env.NODE_ENV === "production") {
-            throw new Error("SESSION_SECRET is missing. Add it to your environment variables.");
+function getKey() {
+    const secret = process.env.SESSION_SECRET?.trim();
+
+    if (secret) {
+        if (secret.length < MIN_SECRET_LENGTH) {
+            throw new Error(
+                `SESSION_SECRET is too short (${secret.length} characters). ` +
+                `Use at least ${MIN_SECRET_LENGTH}.`,
+            );
         }
-        console.warn("WARNING: SESSION_SECRET not found in .env, using a temporary development key.");
-        secret = DEV_FALLBACK_SECRET;
+        return new TextEncoder().encode(secret);
     }
 
-    return new TextEncoder().encode(secret);
+    // No secret set. The development key is allowed ONLY while running
+    // `next dev`. An unset or unexpected NODE_ENV refuses to start, because
+    // that is exactly the case where a real deployment would silently fall
+    // back to a key that is public.
+    if (process.env.NODE_ENV !== "development") {
+        throw new Error(
+            "SESSION_SECRET is missing. Add it to your environment variables. " +
+            "The development key is only available when running next dev.",
+        );
+    }
+
+    console.warn("WARNING: SESSION_SECRET not found in .env, using a temporary development key.");
+    return new TextEncoder().encode(DEV_FALLBACK_SECRET);
 }
 
-export async function signToken(payload: SessionPayload, minutes = 480) {
+export async function signToken(payload: SessionPayload, minutes = 30) {
     return new SignJWT(payload)
         .setProtectedHeader({ alg: "HS256" })
         .setIssuedAt()
