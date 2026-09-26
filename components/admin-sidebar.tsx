@@ -140,8 +140,10 @@ export default function AdminSidebar({ username, role }: Props) {
                 </button>
 
                 {/* Desktop: collapse/expand */}
+                {/* Desktop: collapse/expand */}
                 <button
                     type="button"
+                    suppressHydrationWarning
                     onClick={toggleCollapsed}
                     aria-label={collapsed ? "Expand menu" : "Collapse menu"}
                     title={collapsed ? "Expand menu" : "Collapse menu"}

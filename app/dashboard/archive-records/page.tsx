@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Lock, RotateCcw, Search, Trash2, X } from "lucide-react";
+import { Lock, RotateCcw, Search, ShieldCheck, Trash2, X } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { canManageDental, canManageRecords, canManageStaff } from "@/lib/permissions";
+
 import ConfirmButton from "@/components/confirm-button";
 import { deleteRecord, restoreRecord } from "../student-health-records/record-actions";
 import { deleteStudent, restoreStudent } from "../student-health-records/student-actions";
@@ -11,7 +12,20 @@ import { deleteCase, restoreCase } from "../health-case-reports/case-actions";
 import { deleteDental, restoreDental } from "../dental-records/actions";
 import { deleteSlip, restoreSlip } from "../referral-slips/actions";
 import { deleteStaff, restoreStaff } from "../clinic-staff/actions";
-import { canDeleteYet, formatDeletableOn, RETENTION_TEXT } from "@/lib/retention";
+import { deleteEmployee, restoreEmployee } from "../employee-health-records/employee-actions";
+import {
+    deleteEmployeeRecord,
+    restoreEmployeeRecord,
+} from "../employee-health-records/record-actions";
+import {
+    canDeleteYet,
+    formatDeletableOn,
+    retentionText,
+    RETENTION_TEXT,
+    RETENTION_YEARS,
+    type RecordKind,
+} from "@/lib/retention";
+
 type ArchivedStudent = {
     student_id: number;
     student_number: string;
@@ -19,6 +33,17 @@ type ArchivedStudent = {
     first_name: string;
     grade_level: string | null;
     program: string | null;
+    archived_at: Date;
+    visit_count: bigint;
+};
+
+type ArchivedEmployee = {
+    employee_id: number;
+    employee_number: string;
+    last_name: string;
+    first_name: string;
+    department: string | null;
+    position: string | null;
     archived_at: Date;
     visit_count: bigint;
 };
@@ -33,10 +58,19 @@ type ArchivedRecord = {
     archived_at: Date;
 };
 
+type ArchivedEmployeeRecord = {
+    record_id: number;
+    employee_number: string;
+    last_name: string;
+    first_name: string;
+    visit_date: Date;
+    complaint: string;
+    archived_at: Date;
+};
+
 type ArchivedCase = {
     case_id: number;
     case_number: string;
-    patient_type: string;
     id_number: string | null;
     last_name: string | null;
     first_name: string | null;
@@ -95,6 +129,31 @@ function formatDate(date: Date | null) {
     });
 }
 
+/**
+ * Health records are kept for the full retention period. Until then the
+ * Delete button is replaced by the date it becomes available.
+ */
+function RetentionGate({
+    archivedAt,
+    kind = "visit",
+    children,
+}: {
+    archivedAt: Date;
+    kind?: RecordKind;
+    children: React.ReactNode;
+}) {
+    if (canDeleteYet(archivedAt, kind)) return <>{children}</>;
+
+    return (
+        <span
+            title={retentionText(kind)}
+            className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-medium text-gray-400"
+        >
+            <Lock className="h-3.5 w-3.5" />
+            Deletable on {formatDeletableOn(archivedAt, kind)}
+        </span>
+    );
+}
 export default async function ArchiveRecordsPage({ searchParams }: Props) {
     const session = await getSession();
     if (!session) redirect("/login");
@@ -104,8 +163,9 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
     const canEdit = canManageRecords(session.role) || canManageDental(session.role);
     const canEditStaff = canManageStaff(session.role);
 
-    const [students, records, cases, dental, slips, staff] = await Promise.all([
-        prisma.$queryRaw<ArchivedStudent[]>`
+    const [students, employees, records, employeeRecords, cases, dental, slips, staff] =
+        await Promise.all([
+            prisma.$queryRaw<ArchivedStudent[]>`
       SELECT s.student_id, s.student_number, s.last_name, s.first_name,
              s.grade_level, s.program, s.archived_at,
              (SELECT COUNT(*) FROM health_records h WHERE h.student_id = s.student_id) AS visit_count
@@ -115,7 +175,18 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
              OR s.last_name ILIKE ${like} OR s.first_name ILIKE ${like})
       ORDER BY s.archived_at DESC
     `,
-        prisma.$queryRaw<ArchivedRecord[]>`
+            prisma.$queryRaw<ArchivedEmployee[]>`
+      SELECT e.employee_id, e.employee_number, e.last_name, e.first_name,
+             e.department, e.position, e.archived_at,
+             (SELECT COUNT(*) FROM employee_health_records h
+              WHERE h.employee_id = e.employee_id) AS visit_count
+      FROM employees e
+      WHERE e.archived_at IS NOT NULL
+        AND (${q}::text = '' OR e.employee_number ILIKE ${like}
+             OR e.last_name ILIKE ${like} OR e.first_name ILIKE ${like})
+      ORDER BY e.archived_at DESC
+    `,
+            prisma.$queryRaw<ArchivedRecord[]>`
       SELECT r.record_id, s.student_number, s.last_name, s.first_name,
              r.visit_date, r.complaint, r.archived_at
       FROM health_records r
@@ -125,9 +196,21 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
              OR s.last_name ILIKE ${like} OR s.first_name ILIKE ${like})
       ORDER BY r.archived_at DESC
     `,
-        prisma.$queryRaw<ArchivedCase[]>`
+            prisma.$queryRaw<ArchivedEmployeeRecord[]>`
+      SELECT r.record_id, e.employee_number, e.last_name, e.first_name,
+             r.visit_date, r.complaint, r.archived_at
+      FROM employee_health_records r
+      JOIN employees e ON e.employee_id = r.employee_id
+      WHERE r.archived_at IS NOT NULL
+        AND (${q}::text = '' OR e.employee_number ILIKE ${like}
+             OR e.last_name ILIKE ${like} OR e.first_name ILIKE ${like})
+      ORDER BY r.archived_at DESC
+    `,
+            // LEFT JOIN on both sides: a case report belongs to a student OR an
+            // employee. The old INNER JOIN on students made every archived
+            // employee case report invisible here, with no way to restore it.
+            prisma.$queryRaw<ArchivedCase[]>`
       SELECT c.case_id, c.case_number,
-             CASE WHEN c.employee_id IS NOT NULL THEN 'employee' ELSE 'student' END AS patient_type,
              COALESCE(s.student_number, e.employee_number) AS id_number,
              COALESCE(s.last_name, e.last_name)            AS last_name,
              COALESCE(s.first_name, e.first_name)          AS first_name,
@@ -143,7 +226,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
              OR c.case_number ILIKE ${like})
       ORDER BY c.archived_at DESC
     `,
-        prisma.$queryRaw<ArchivedDental[]>`
+            prisma.$queryRaw<ArchivedDental[]>`
       SELECT d.dental_id,
              COALESCE(s.student_number, e.employee_number) AS student_number,
              COALESCE(s.last_name, e.last_name) AS last_name,
@@ -159,7 +242,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
              OR COALESCE(s.first_name, e.first_name) ILIKE ${like})
       ORDER BY d.archived_at DESC
     `,
-        prisma.$queryRaw<ArchivedSlip[]>`
+            prisma.$queryRaw<ArchivedSlip[]>`
       SELECT f.slip_id, f.slip_type, s.student_number, s.last_name, s.first_name,
              f.section, f.teacher_name, f.subject, f.reason, f.slip_date,
              f.status, f.archived_at
@@ -170,7 +253,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
              OR s.last_name ILIKE ${like} OR s.first_name ILIKE ${like})
       ORDER BY f.archived_at DESC
     `,
-        prisma.$queryRaw<ArchivedStaff[]>`
+            prisma.$queryRaw<ArchivedStaff[]>`
       SELECT staff_id, full_name, position, email, license_no, archived_at
       FROM clinic_staff
       WHERE archived_at IS NOT NULL
@@ -178,10 +261,17 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
              OR position ILIKE ${like} OR COALESCE(email, '') ILIKE ${like})
       ORDER BY archived_at DESC
     `,
-    ]);
+        ]);
 
     const total =
-        students.length + records.length + cases.length + dental.length + slips.length + staff.length;
+        students.length +
+        employees.length +
+        records.length +
+        employeeRecords.length +
+        cases.length +
+        dental.length +
+        slips.length +
+        staff.length;
 
     return (
         <main className="space-y-8 p-6 md:p-8">
@@ -196,22 +286,25 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                     </span>
                 )}
             </div>
-            {notice === "retention" && (
-                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-                    <p className="font-medium">This record cannot be deleted yet.</p>
-                    <p className="mt-1">{RETENTION_TEXT} It becomes deletable on {until}.</p>
-                </div>
-            )}
+
+
 
             {notice === "deleted" && (
-                <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800">
-                    <p className="font-medium">Record permanently deleted.</p>
+                <div className="flex items-start gap-3 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800">
+                    <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-green-600" />
+                    <p className="font-semibold">Record permanently deleted and logged.</p>
                 </div>
             )}
 
-            <p className="rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-600">
-                {RETENTION_TEXT}
-            </p>
+            <div className="flex items-start gap-3 rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-600">
+                <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-[#15664f]" />
+                <div>
+                    <p className="font-semibold text-gray-900">
+                        Data retention policy: {RETENTION_YEARS} years
+                    </p>
+
+                </div>
+            </div>
 
             <form method="get" className="flex flex-wrap items-center gap-3">
                 <div className="relative max-w-md flex-1">
@@ -219,7 +312,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                     <input
                         name="q"
                         defaultValue={q}
-                        placeholder="Search by student number, last name, or first name..."
+                        placeholder="Search by ID number, last name, or first name..."
                         suppressHydrationWarning
                         className="h-10 w-full rounded-lg border border-gray-300 bg-white pl-9 pr-3 text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20"
                     />
@@ -280,7 +373,6 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                                             <td className="whitespace-nowrap px-4 py-3 text-gray-500">
                                                 {formatDate(s.archived_at)}
                                             </td>
-
                                             {canEdit && (
                                                 <td className="whitespace-nowrap px-4 py-3">
                                                     <div className="flex items-center gap-3">
@@ -294,29 +386,101 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                                                                 Restore
                                                             </button>
                                                         </form>
-                                                        {canDeleteYet(s.archived_at) ? (
+                                                        <RetentionGate archivedAt={s.archived_at} kind="student">
                                                             <form action={deleteStudent}>
                                                                 <input type="hidden" name="studentId" value={s.student_id} />
                                                                 <ConfirmButton
                                                                     title="Delete student"
                                                                     confirmLabel="Delete permanently"
                                                                     danger
-                                                                    message={`Permanently delete ${s.last_name}, ${s.first_name} (${s.student_number})? This also deletes ${Number(s.visit_count)} health record(s) and their student portal account. This cannot be undone.`}
+                                                                    message={`Permanently delete ${s.last_name}, ${s.first_name} (${s.student_number
+                                                                        })? This also deletes ${Number(
+                                                                            s.visit_count
+                                                                        )} health record(s) and their student portal account. This cannot be undone.`}
                                                                     className="inline-flex items-center gap-1 font-medium text-red-600 hover:underline"
                                                                 >
                                                                     <Trash2 className="h-3.5 w-3.5" />
                                                                     Delete
                                                                 </ConfirmButton>
                                                             </form>
-                                                        ) : (
-                                                            <span
-                                                                title={RETENTION_TEXT}
-                                                                className="inline-flex items-center gap-1 text-xs text-gray-500"
+                                                        </RetentionGate>
+                                                    </div>
+                                                </td>
+                                            )}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+            </section>
+
+            <section>
+                <h2 className="mb-3 text-lg font-semibold text-gray-900">
+                    Archived Employees ({employees.length})
+                </h2>
+                <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                    {employees.length === 0 ? (
+                        <p className="p-8 text-center text-sm text-gray-500">No archived employees.</p>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left text-sm">
+                                <thead className="bg-gray-50 text-gray-700">
+                                    <tr>
+                                        <th className="whitespace-nowrap px-4 py-3 font-medium">Employee Number</th>
+                                        <th className="px-4 py-3 font-medium">Name</th>
+                                        <th className="px-4 py-3 font-medium">Department</th>
+                                        <th className="px-4 py-3 font-medium">Position</th>
+                                        <th className="whitespace-nowrap px-4 py-3 font-medium">Archived On</th>
+                                        {canEdit && <th className="px-4 py-3 font-medium">Actions</th>}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {employees.map((e) => (
+                                        <tr key={e.employee_id} className="border-t border-gray-100">
+                                            <td className="px-4 py-3 font-medium text-gray-900">
+                                                {e.employee_number}
+                                            </td>
+                                            <td className="px-4 py-3 text-gray-900">
+                                                {e.last_name}, {e.first_name}
+                                            </td>
+                                            <td className="px-4 py-3 text-gray-600">{e.department ?? "—"}</td>
+                                            <td className="px-4 py-3 text-gray-600">{e.position ?? "—"}</td>
+                                            <td className="whitespace-nowrap px-4 py-3 text-gray-500">
+                                                {formatDate(e.archived_at)}
+                                            </td>
+                                            {canEdit && (
+                                                <td className="whitespace-nowrap px-4 py-3">
+                                                    <div className="flex items-center gap-3">
+                                                        <form action={restoreEmployee}>
+                                                            <input type="hidden" name="employeeId" value={e.employee_id} />
+                                                            <button
+                                                                type="submit"
+                                                                className="inline-flex items-center gap-1 font-medium text-[#15664f] hover:underline"
                                                             >
-                                                                <Lock className="h-3.5 w-3.5" />
-                                                                Deletable on {formatDeletableOn(s.archived_at)}
-                                                            </span>
-                                                        )}
+                                                                <RotateCcw className="h-3.5 w-3.5" />
+                                                                Restore
+                                                            </button>
+                                                        </form>
+                                                        <RetentionGate archivedAt={e.archived_at} kind="employee">
+                                                            <form action={deleteEmployee}>
+                                                                <input type="hidden" name="employeeId" value={e.employee_id} />
+                                                                <ConfirmButton
+                                                                    title="Delete employee"
+                                                                    confirmLabel="Delete permanently"
+                                                                    danger
+                                                                    message={`Permanently delete ${e.last_name}, ${e.first_name} (${e.employee_number
+                                                                        })? This also deletes ${Number(
+                                                                            e.visit_count
+                                                                        )} health record(s) and their employee portal account. This cannot be undone.`}
+                                                                    className="inline-flex items-center gap-1 font-medium text-red-600 hover:underline"
+                                                                >
+                                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                                    Delete
+                                                                </ConfirmButton>
+                                                            </form>
+                                                        </RetentionGate>
                                                     </div>
                                                 </td>
                                             )}
@@ -342,7 +506,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                                 <thead className="bg-gray-50 text-gray-700">
                                     <tr>
                                         <th className="whitespace-nowrap px-4 py-3 font-medium">Case No.</th>
-                                        <th className="px-4 py-3 font-medium">Student</th>
+                                        <th className="px-4 py-3 font-medium">Patient</th>
                                         <th className="px-4 py-3 font-medium">Complaint</th>
                                         <th className="whitespace-nowrap px-4 py-3 font-medium">Date</th>
                                         <th className="whitespace-nowrap px-4 py-3 font-medium">Archived On</th>
@@ -357,14 +521,9 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                                             </td>
                                             <td className="px-4 py-3 text-gray-900">
                                                 {c.last_name}, {c.first_name}
-                                                <span
-                                                    className={`ml-2 rounded-full px-2 py-0.5 text-xs font-medium ${c.patient_type === "employee"
-                                                        ? "bg-violet-100 text-violet-800"
-                                                        : "bg-gray-100 text-gray-700"
-                                                        }`}
-                                                >
-                                                    {c.patient_type === "employee" ? "Employee" : "Student"}
-                                                </span>
+                                                {c.id_number && (
+                                                    <span className="block text-xs text-gray-500">{c.id_number}</span>
+                                                )}
                                             </td>
                                             <td className="px-4 py-3 text-gray-900">{c.complaint}</td>
                                             <td className="whitespace-nowrap px-4 py-3 text-gray-600">
@@ -386,19 +545,21 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                                                                 Restore
                                                             </button>
                                                         </form>
-                                                        <form action={deleteCase}>
-                                                            <input type="hidden" name="caseId" value={c.case_id} />
-                                                            <ConfirmButton
-                                                                title="Delete case report"
-                                                                confirmLabel="Delete permanently"
-                                                                danger
-                                                                message={`Permanently delete case ${c.case_number} (${c.complaint})? This cannot be undone.`}
-                                                                className="inline-flex items-center gap-1 font-medium text-red-600 hover:underline"
-                                                            >
-                                                                <Trash2 className="h-3.5 w-3.5" />
-                                                                Delete
-                                                            </ConfirmButton>
-                                                        </form>
+                                                        <RetentionGate archivedAt={c.archived_at}>
+                                                            <form action={deleteCase}>
+                                                                <input type="hidden" name="caseId" value={c.case_id} />
+                                                                <ConfirmButton
+                                                                    title="Delete case report"
+                                                                    confirmLabel="Delete permanently"
+                                                                    danger
+                                                                    message={`Permanently delete case ${c.case_number} (${c.complaint})? This cannot be undone.`}
+                                                                    className="inline-flex items-center gap-1 font-medium text-red-600 hover:underline"
+                                                                >
+                                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                                    Delete
+                                                                </ConfirmButton>
+                                                            </form>
+                                                        </RetentionGate>
                                                     </div>
                                                 </td>
                                             )}
@@ -413,7 +574,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
 
             <section>
                 <h2 className="mb-3 text-lg font-semibold text-gray-900">
-                    Archived Visit Records ({records.length})
+                    Archived Visit Records — Students ({records.length})
                 </h2>
                 <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                     {records.length === 0 ? (
@@ -458,20 +619,101 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                                                                 Restore
                                                             </button>
                                                         </form>
-                                                        <form action={deleteRecord}>
+                                                        <RetentionGate archivedAt={r.archived_at}>
+                                                            <form action={deleteRecord}>
+                                                                <input type="hidden" name="recordId" value={r.record_id} />
+                                                                <ConfirmButton
+                                                                    title="Delete visit record"
+                                                                    confirmLabel="Delete permanently"
+                                                                    danger
+                                                                    message={`Permanently delete this visit? ${r.last_name}, ${r.first_name
+                                                                        } · ${formatDate(r.visit_date)} · ${r.complaint}. This cannot be undone.`}
+                                                                    className="inline-flex items-center gap-1 font-medium text-red-600 hover:underline"
+                                                                >
+                                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                                    Delete
+                                                                </ConfirmButton>
+                                                            </form>
+                                                        </RetentionGate>
+                                                    </div>
+                                                </td>
+                                            )}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+            </section>
+
+            <section>
+                <h2 className="mb-3 text-lg font-semibold text-gray-900">
+                    Archived Visit Records — Employees ({employeeRecords.length})
+                </h2>
+                <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                    {employeeRecords.length === 0 ? (
+                        <p className="p-8 text-center text-sm text-gray-500">
+                            No archived employee visit records.
+                        </p>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left text-sm">
+                                <thead className="bg-gray-50 text-gray-700">
+                                    <tr>
+                                        <th className="whitespace-nowrap px-4 py-3 font-medium">Employee Number</th>
+                                        <th className="px-4 py-3 font-medium">Name</th>
+                                        <th className="whitespace-nowrap px-4 py-3 font-medium">Visit Date</th>
+                                        <th className="px-4 py-3 font-medium">Complaint</th>
+                                        <th className="whitespace-nowrap px-4 py-3 font-medium">Archived On</th>
+                                        {canEdit && <th className="px-4 py-3 font-medium">Actions</th>}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {employeeRecords.map((r) => (
+                                        <tr key={r.record_id} className="border-t border-gray-100">
+                                            <td className="px-4 py-3 font-medium text-gray-900">
+                                                {r.employee_number}
+                                            </td>
+                                            <td className="px-4 py-3 text-gray-900">
+                                                {r.last_name}, {r.first_name}
+                                            </td>
+                                            <td className="whitespace-nowrap px-4 py-3 text-gray-900">
+                                                {formatDate(r.visit_date)}
+                                            </td>
+                                            <td className="px-4 py-3 text-gray-900">{r.complaint}</td>
+                                            <td className="whitespace-nowrap px-4 py-3 text-gray-500">
+                                                {formatDate(r.archived_at)}
+                                            </td>
+                                            {canEdit && (
+                                                <td className="whitespace-nowrap px-4 py-3">
+                                                    <div className="flex items-center gap-3">
+                                                        <form action={restoreEmployeeRecord}>
                                                             <input type="hidden" name="recordId" value={r.record_id} />
-                                                            <ConfirmButton
-                                                                title="Delete visit record"
-                                                                confirmLabel="Delete permanently"
-                                                                danger
-                                                                message={`Permanently delete this visit? ${r.last_name}, ${r.first_name
-                                                                    } · ${formatDate(r.visit_date)} · ${r.complaint}. This cannot be undone.`}
-                                                                className="inline-flex items-center gap-1 font-medium text-red-600 hover:underline"
+                                                            <button
+                                                                type="submit"
+                                                                className="inline-flex items-center gap-1 font-medium text-[#15664f] hover:underline"
                                                             >
-                                                                <Trash2 className="h-3.5 w-3.5" />
-                                                                Delete
-                                                            </ConfirmButton>
+                                                                <RotateCcw className="h-3.5 w-3.5" />
+                                                                Restore
+                                                            </button>
                                                         </form>
+                                                        <RetentionGate archivedAt={r.archived_at}>
+                                                            <form action={deleteEmployeeRecord}>
+                                                                <input type="hidden" name="recordId" value={r.record_id} />
+                                                                <ConfirmButton
+                                                                    title="Delete visit record"
+                                                                    confirmLabel="Delete permanently"
+                                                                    danger
+                                                                    message={`Permanently delete this visit? ${r.last_name}, ${r.first_name
+                                                                        } · ${formatDate(r.visit_date)} · ${r.complaint}. This cannot be undone.`}
+                                                                    className="inline-flex items-center gap-1 font-medium text-red-600 hover:underline"
+                                                                >
+                                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                                    Delete
+                                                                </ConfirmButton>
+                                                            </form>
+                                                        </RetentionGate>
                                                     </div>
                                                 </td>
                                             )}
@@ -496,7 +738,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                             <table className="w-full text-left text-sm">
                                 <thead className="bg-gray-50 text-gray-700">
                                     <tr>
-                                        <th className="whitespace-nowrap px-4 py-3 font-medium">Student Number</th>
+                                        <th className="whitespace-nowrap px-4 py-3 font-medium">ID Number</th>
                                         <th className="px-4 py-3 font-medium">Name</th>
                                         <th className="px-4 py-3 font-medium">Procedure</th>
                                         <th className="px-4 py-3 font-medium">Tooth</th>
@@ -533,19 +775,21 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                                                                 Restore
                                                             </button>
                                                         </form>
-                                                        <form action={deleteDental}>
-                                                            <input type="hidden" name="dentalId" value={d.dental_id} />
-                                                            <ConfirmButton
-                                                                title="Delete dental record"
-                                                                confirmLabel="Delete permanently"
-                                                                danger
-                                                                message={`Permanently delete this dental record (${d.procedure_name})? This cannot be undone.`}
-                                                                className="inline-flex items-center gap-1 font-medium text-red-600 hover:underline"
-                                                            >
-                                                                <Trash2 className="h-3.5 w-3.5" />
-                                                                Delete
-                                                            </ConfirmButton>
-                                                        </form>
+                                                        <RetentionGate archivedAt={d.archived_at}>
+                                                            <form action={deleteDental}>
+                                                                <input type="hidden" name="dentalId" value={d.dental_id} />
+                                                                <ConfirmButton
+                                                                    title="Delete dental record"
+                                                                    confirmLabel="Delete permanently"
+                                                                    danger
+                                                                    message={`Permanently delete this dental record (${d.procedure_name})? This cannot be undone.`}
+                                                                    className="inline-flex items-center gap-1 font-medium text-red-600 hover:underline"
+                                                                >
+                                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                                    Delete
+                                                                </ConfirmButton>
+                                                            </form>
+                                                        </RetentionGate>
                                                     </div>
                                                 </td>
                                             )}
@@ -611,19 +855,21 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                                                                 Restore
                                                             </button>
                                                         </form>
-                                                        <form action={deleteSlip}>
-                                                            <input type="hidden" name="slipId" value={f.slip_id} />
-                                                            <ConfirmButton
-                                                                title="Delete referral slip"
-                                                                confirmLabel="Delete permanently"
-                                                                danger
-                                                                message={`Permanently delete this referral slip for ${f.last_name}, ${f.first_name} (${f.reason})? This cannot be undone.`}
-                                                                className="inline-flex items-center gap-1 font-medium text-red-600 hover:underline"
-                                                            >
-                                                                <Trash2 className="h-3.5 w-3.5" />
-                                                                Delete
-                                                            </ConfirmButton>
-                                                        </form>
+                                                        <RetentionGate archivedAt={f.archived_at}>
+                                                            <form action={deleteSlip}>
+                                                                <input type="hidden" name="slipId" value={f.slip_id} />
+                                                                <ConfirmButton
+                                                                    title="Delete referral slip"
+                                                                    confirmLabel="Delete permanently"
+                                                                    danger
+                                                                    message={`Permanently delete this referral slip for ${f.last_name}, ${f.first_name} (${f.reason})? This cannot be undone.`}
+                                                                    className="inline-flex items-center gap-1 font-medium text-red-600 hover:underline"
+                                                                >
+                                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                                    Delete
+                                                                </ConfirmButton>
+                                                            </form>
+                                                        </RetentionGate>
                                                     </div>
                                                 </td>
                                             )}
@@ -640,6 +886,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                 <h2 className="mb-3 text-lg font-semibold text-gray-900">
                     Archived Clinic Staff ({staff.length})
                 </h2>
+
                 <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                     {staff.length === 0 ? (
                         <p className="p-8 text-center text-sm text-gray-500">No archived clinic staff.</p>

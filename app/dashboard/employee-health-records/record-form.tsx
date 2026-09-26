@@ -52,6 +52,8 @@ export default function RecordForm({
     const { recordId, employeeName, ...rest } = record;
     const v: Record<string, string> = { ...rest, ...(state.values ?? {}) };
 
+    const isCreate = mode === "create";
+
     return (
         <form action={formAction} className="space-y-6">
             {state.error && (
@@ -61,13 +63,61 @@ export default function RecordForm({
             )}
 
             {mode === "edit" && <input type="hidden" name="recordId" value={recordId} />}
-            <input type="hidden" name="employeeNumber" value={v.employeeNumber} />
+
+            {/* On create the number is typed. On edit it stays fixed: the
+                patient a recorded visit belongs to should not be swapped. */}
+            {!isCreate && <input type="hidden" name="employeeNumber" value={v.employeeNumber} />}
+
+            {isCreate && (
+                <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                    <h2 className="text-lg font-semibold text-gray-900">Employee</h2>
+                    <div className="mt-4 grid gap-4 md:grid-cols-3">
+                        <Field label="Employee Number *">
+                            <input
+                                name="employeeNumber"
+                                defaultValue={v.employeeNumber}
+                                placeholder="e.g. 2001-001"
+                                maxLength={20}
+                                required
+                                suppressHydrationWarning
+                                className={inputClass}
+                            />
+                        </Field>
+                        <Field label="Date of Birth (optional)">
+                            <input
+                                name="dateOfBirth"
+                                type="date"
+                                defaultValue={v.dateOfBirth ?? ""}
+                                suppressHydrationWarning
+                                className={inputClass}
+                            />
+                        </Field>
+                        <Field label="Gender (optional)">
+                            <select
+                                name="gender"
+                                defaultValue={v.gender ?? ""}
+                                suppressHydrationWarning
+                                className={inputClass}
+                            >
+                                <option value="">Keep current</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                            </select>
+                        </Field>
+                    </div>
+                    <p className="mt-3 text-sm text-gray-500">
+                        Leave date of birth and gender blank to keep the employee&apos;s current details.
+                    </p>
+                </section>
+            )}
 
             <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                 <h2 className="text-lg font-semibold text-gray-900">Visit Details</h2>
-                <p className="mt-1 text-sm text-gray-600">
-                    {employeeName} · {v.employeeNumber}
-                </p>
+                {!isCreate && (
+                    <p className="mt-1 text-sm text-gray-600">
+                        {employeeName} · {v.employeeNumber}
+                    </p>
+                )}
                 <div className="mt-4 grid gap-4 md:grid-cols-2">
                     <Field label="Visit Date *">
                         <input

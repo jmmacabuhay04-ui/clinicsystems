@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { canManageRecords } from "@/lib/permissions";
 
+
 const BASE = "/dashboard/employee-health-records";
 
 export type RecordState = { error?: string; values?: Record<string, string> };
@@ -21,6 +22,8 @@ function readValues(formData: FormData) {
     const get = (key: string) => String(formData.get(key) ?? "").trim();
     return {
         employeeNumber: get("employeeNumber"),
+        dateOfBirth: get("dateOfBirth"),
+        gender: get("gender"),
         visitDate: get("visitDate"),
         complaint: get("complaint"),
         actionTaken: get("actionTaken"),
@@ -55,8 +58,16 @@ export async function createEmployeeRecord(
       LIMIT 1
     `;
         const employeeId = rows[0]?.employee_id;
-        if (!employeeId) {
-            return { error: `No active employee found with number ${values.employeeNumber}.`, values };
+        // Optional refresh of the employee's own details. COALESCE keeps the
+        // current value whenever the field was left blank, so adding a visit
+        // never erases what is already on the master record.
+        if (values.dateOfBirth || values.gender) {
+            await prisma.$executeRaw`
+        UPDATE employees SET
+          date_of_birth = COALESCE(${values.dateOfBirth || null}::date, date_of_birth),
+          gender        = COALESCE(${values.gender || null}, gender)
+        WHERE employee_id = ${employeeId}
+      `;
         }
 
         await prisma.$executeRaw`
@@ -159,6 +170,8 @@ export async function deleteEmployeeRecord(formData: FormData) {
     const recordId = Number(formData.get("recordId"));
     if (!recordId) return;
 
+    // No retention period on a single visit entry. The archived_at check is
+    // what matters: only an archived record can be deleted, never a live one.
     await prisma.$executeRaw`
     DELETE FROM employee_health_records
     WHERE record_id = ${recordId} AND archived_at IS NOT NULL

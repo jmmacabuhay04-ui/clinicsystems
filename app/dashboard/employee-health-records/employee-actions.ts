@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { canManageStudents } from "@/lib/permissions";
 import { validatePasswordStrength } from "@/lib/password-policy";
+import { canDeleteYet, formatDeletableOn, RETENTION_YEARS } from "@/lib/retention";
 
 const BASE = "/dashboard/employee-health-records";
 
@@ -267,8 +268,28 @@ export async function deleteEmployee(formData: FormData) {
     const employeeId = Number(formData.get("employeeId"));
     if (!employeeId) return;
 
+    // Retention is enforced here as well as in the page. The page only hides
+    // the button; a form post straight to this action would otherwise bypass
+    // the policy entirely.
+    const rows = await prisma.$queryRaw<{ archived_at: Date | null }[]>`
+    SELECT archived_at FROM employees WHERE employee_id = ${employeeId} LIMIT 1
+  `;
+    const target = rows[0];
+    if (!target?.archived_at) return;
+
+    if (!canDeleteYet(target.archived_at)) {
+        redirect(
+            `/dashboard/archive-records?notice=retention&until=${encodeURIComponent(
+                formatDeletableOn(target.archived_at)
+            )}`
+        );
+    }
+
     await prisma.$executeRaw`
-    DELETE FROM employees WHERE employee_id = ${employeeId} AND archived_at IS NOT NULL
+    DELETE FROM employees
+    WHERE employee_id = ${employeeId}
+      AND archived_at IS NOT NULL
+      AND archived_at < NOW() - (${RETENTION_YEARS} || ' years')::interval
   `;
 
     revalidatePath(BASE);
