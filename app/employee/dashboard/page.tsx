@@ -91,7 +91,7 @@ export default async function EmployeeDashboardPage() {
                         </div>
                     )}
                 </section>
-                <CaseReportTable patientType="employee" patientId={employee.employee_id} />
+
 
                 {/* Recent Dental Visits */}
                 <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -119,7 +119,7 @@ export default async function EmployeeDashboardPage() {
                         </div>
                     )}
                 </section>
-
+                <CaseReportTable patientType="employee" patientId={employee.employee_id} />
                 <p className="text-center text-xs text-gray-500">
                     Your records are private and only visible to you and authorized clinic staff.
                 </p>
