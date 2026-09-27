@@ -1,13 +1,12 @@
 // lib/password-policy.ts
 // Password complexity policy para sa buong system.
-// Gamitin ito sa LAHAT ng lugar na may bagong password:
+// Use this everywhere a new password is set: student form, employee form,
 // student form, employee form, user management, password requests.
 
 export const PASSWORD_MIN_LENGTH = 8;
 
 export const PASSWORD_RULES_TEXT =
-    "Kailangan ay hindi bababa sa 8 characters, may kahit isang letra at isang numero.";
-
+    "At least 8 characters, with at least one letter and one number.";
 // Mga password na bawal kahit pumasa sa haba.
 const BLOCKED_PASSWORDS = new Set([
     "password",
@@ -34,7 +33,7 @@ const BLOCKED_PASSWORDS = new Set([
  * Nagbabalik ng error message (string) kapag mali, o null kapag okay.
  */
 export function validatePasswordStrength(password: string): string | null {
-    if (!password) return "Kailangan ang password.";
+    if (!password) return "Password is required.";
 
     const value = password.trim();
 
@@ -48,15 +47,15 @@ export function validatePasswordStrength(password: string): string | null {
     }
 
     if (!/[A-Za-z]/.test(value)) {
-        return `Kailangan ng kahit isang letra. ${PASSWORD_RULES_TEXT}`;
+        return `Password needs at least one letter. ${PASSWORD_RULES_TEXT}`;
     }
 
     if (!/[0-9]/.test(value)) {
-        return `Kailangan ng kahit isang numero. ${PASSWORD_RULES_TEXT}`;
+        return `Password needs at least one number. ${PASSWORD_RULES_TEXT}`;
     }
 
     if (/\s/.test(value)) {
-        return "Hindi pwedeng may space ang password.";
+        return "Password cannot contain spaces.";
     }
 
     if (BLOCKED_PASSWORDS.has(value.toLowerCase())) {
@@ -83,7 +82,7 @@ export function validatePasswordPair(
     if (strength) return strength;
 
     if (password !== confirm) {
-        return "Hindi tugma ang Password at Confirm Password.";
+        return "Password and Confirm Password do not match.";
     }
 
     return null;
