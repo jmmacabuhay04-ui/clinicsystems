@@ -8,6 +8,7 @@ import { LEGEND, OCCLUSION, PERIODONTAL, TREATMENT } from "./chart-data";
 import ToothGrid, { type ChartMap } from "./tooth-grid";
 import PrintButton from "./print-button";
 import ConfirmLink from "@/components/confirm-link";
+import PrintHeader from "@/components/print-header";
 
 const BASE = "/dashboard/dental-health-form";
 
@@ -237,6 +238,7 @@ export default async function DentalHealthFormPage({ searchParams }: Props) {
 
                     {selected && (
                         <>
+                            <PrintHeader />
                             <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                                 <h2 className="text-center text-lg font-bold uppercase tracking-wide text-gray-900">
                                     Student&apos;s Dental Health Record

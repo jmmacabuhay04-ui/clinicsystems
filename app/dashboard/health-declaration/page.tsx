@@ -7,6 +7,7 @@ import { canManageRecords } from "@/lib/permissions";
 import { GOING_HOME, SYMPTOMS } from "./form-data";
 import PrintButton from "./print-button";
 import ConfirmLink from "@/components/confirm-link";
+import PrintHeader from "@/components/print-header";
 
 const BASE = "/dashboard/health-declaration";
 
@@ -229,6 +230,7 @@ export default async function HealthDeclarationPage({ searchParams }: Props) {
 
                     {selected && form && (
                         <>
+                            <PrintHeader />
                             <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                                 <h2 className="text-center text-lg font-bold uppercase tracking-wide text-gray-900">
                                     Student Information and Health Status Declaration

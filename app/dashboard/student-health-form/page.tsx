@@ -12,6 +12,7 @@ import {
 } from "./form-data";
 import PrintButton from "./print-button";
 import ConfirmLink from "@/components/confirm-link";
+import PrintHeader from "@/components/print-header";
 
 const BASE = "/dashboard/student-health-form";
 
@@ -257,6 +258,7 @@ export default async function StudentHealthFormPage({ searchParams }: Props) {
 
                     {selected && form && (
                         <>
+                            <PrintHeader />
                             <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                                 <h2 className="text-center text-lg font-bold uppercase tracking-wide text-gray-900">
                                     Student&apos;s Health Record

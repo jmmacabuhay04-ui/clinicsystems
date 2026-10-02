@@ -97,13 +97,23 @@ export async function getAccessLogs(limit = 200): Promise<AccessLogRow[]> {
                    ELSE NULL
                END AS subject_name
         FROM record_access_logs l
+        LEFT JOIN health_case_reports c
+               ON c.case_id = l.record_id
+              AND l.record_type = 'health_case_report'
         LEFT JOIN students s
-               ON s.student_id = l.record_id
+               ON s.student_id = CASE
+                                    WHEN l.record_type = 'health_case_report' THEN c.student_id
+                                    ELSE l.record_id
+                                END
               AND l.record_type IN ('student_health_record', 'visit', 'vitals',
-                                    'health_declaration', 'referral_slip')
+                                    'health_declaration', 'referral_slip',
+                                    'health_case_report')
         LEFT JOIN employees e
-               ON e.employee_id = l.record_id
-              AND l.record_type = 'employee_health_record'
+               ON e.employee_id = CASE
+                                      WHEN l.record_type = 'health_case_report' THEN c.employee_id
+                                      ELSE l.record_id
+                                  END
+              AND l.record_type IN ('employee_health_record', 'health_case_report')
         ORDER BY l.created_at DESC
         LIMIT ${limit}
     `;

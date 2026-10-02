@@ -8,8 +8,17 @@ import { getSession } from "@/lib/session";
 import { canManageStudents } from "@/lib/permissions";
 import { validatePasswordStrength } from "@/lib/password-policy";
 import { canDeleteYet, formatDeletableOn, RETENTION_YEARS } from "@/lib/retention";
+import { logAccess } from "@/lib/access-log";
 
 const BASE = "/dashboard/employee-health-records";
+
+function actorOf(session: { userId: unknown; role: string; username?: unknown }) {
+    return {
+        userId: Number(session.userId),
+        role: session.role,
+        name: String(session.username ?? ""),
+    };
+}
 
 export type EmployeeState = { error?: string; values?: Record<string, string> };
 
@@ -108,7 +117,7 @@ export async function createEmployee(
         // must_change_password = TRUE because the nurse chose this password
         // and therefore knows it. The employee replaces it at first login.
         // Change TRUE to FALSE below to turn this off.
-        await prisma.$executeRaw`
+        const created = await prisma.$queryRaw<{ employee_id: number }[]>`
       INSERT INTO employees
         (employee_number, last_name, first_name, middle_name, department,
          position, date_of_birth, gender, contact_number, email,
@@ -119,7 +128,16 @@ export async function createEmployee(
          ${values.position || null}, ${values.dateOfBirth || null}::date,
          ${values.gender || null}, ${values.contactNumber || null},
          ${values.email || null}, ${hash}, TRUE)
+      RETURNING employee_id
     `;
+
+        await logAccess(
+            actorOf(session),
+            "employee_health_record",
+            created[0]?.employee_id ?? null,
+            "create",
+            `Employee account created (${values.employeeNumber}).`,
+        );
     } catch (err) {
         console.error("Create employee error:", err);
         return { error: "Could not save the employee. Please try again.", values };
@@ -219,6 +237,16 @@ export async function updateEmployee(
         WHERE employee_id = ${employeeId}
       `;
         }
+
+        await logAccess(
+            actorOf(session),
+            "employee_health_record",
+            employeeId,
+            "update",
+            password
+                ? `Employee details updated and password reset (${values.employeeNumber}).`
+                : `Employee details updated (${values.employeeNumber}).`,
+        );
     } catch (err) {
         console.error("Update employee error:", err);
         return { error: "Could not save the changes. Please try again.", values };
@@ -241,6 +269,8 @@ export async function archiveEmployee(formData: FormData) {
     WHERE employee_id = ${employeeId} AND archived_at IS NULL
   `;
 
+    await logAccess(actorOf(session), "employee_health_record", employeeId, "update", "Employee archived.");
+
     revalidatePath(BASE);
     redirect(BASE);
 }
@@ -257,6 +287,14 @@ export async function restoreEmployee(formData: FormData) {
     WHERE employee_id = ${employeeId}
   `;
 
+    await logAccess(
+        actorOf(session),
+        "employee_health_record",
+        employeeId,
+        "update",
+        "Employee restored from archive.",
+    );
+
     revalidatePath(BASE);
     revalidatePath("/dashboard/archive-records");
 }
@@ -271,8 +309,8 @@ export async function deleteEmployee(formData: FormData) {
     // Retention is enforced here as well as in the page. The page only hides
     // the button; a form post straight to this action would otherwise bypass
     // the policy entirely.
-    const rows = await prisma.$queryRaw<{ archived_at: Date | null }[]>`
-    SELECT archived_at FROM employees WHERE employee_id = ${employeeId} LIMIT 1
+    const rows = await prisma.$queryRaw<{ archived_at: Date | null; employee_number: string }[]>`
+    SELECT archived_at, employee_number FROM employees WHERE employee_id = ${employeeId} LIMIT 1
   `;
     const target = rows[0];
     if (!target?.archived_at) return;
@@ -291,6 +329,14 @@ export async function deleteEmployee(formData: FormData) {
       AND archived_at IS NOT NULL
       AND archived_at < NOW() - (${RETENTION_YEARS} || ' years')::interval
   `;
+
+    await logAccess(
+        actorOf(session),
+        "employee_health_record",
+        employeeId,
+        "delete",
+        `Permanently deleted after the ${RETENTION_YEARS}-year retention period (${target.employee_number}).`,
+    );
 
     revalidatePath(BASE);
     revalidatePath("/dashboard/archive-records");

@@ -14,6 +14,7 @@ import {
 import { addLabExam, addPhysicalExam, deleteLabExam, deletePhysicalExam } from "./actions";
 import PrintButton from "./print-button";
 import ConfirmLink from "@/components/confirm-link";
+import PrintHeader from "@/components/print-header";
 
 const BASE = "/dashboard/employee-health-form";
 
@@ -277,6 +278,7 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
 
                     {selected && (
                         <>
+                            <PrintHeader />
                             <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                                 <h2 className="text-center text-lg font-bold uppercase tracking-wide text-gray-900">
                                     Employee&apos;s Health Record

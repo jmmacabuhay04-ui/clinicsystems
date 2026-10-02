@@ -8,6 +8,7 @@ import ConfirmButton from "@/components/confirm-button";
 import { archiveEmployee } from "./employee-actions";
 import { archiveEmployeeRecord } from "./record-actions";
 import ConfirmLink from "@/components/confirm-link";
+import { logAccess } from "@/lib/access-log";
 
 const BASE = "/dashboard/employee-health-records";
 
@@ -38,8 +39,41 @@ type RecordRow = {
     temperature: number | null;
 };
 
+type CaseRow = {
+    case_id: number;
+    case_number: string;
+    complaint: string;
+    report_date: Date;
+    staff_name: string | null;
+    status: string;
+    notes: string | null;
+};
+
+// One row of the merged Visit History table. A clinic visit and a health
+// case report are stored in different tables, so they are normalised here
+// into a single shape before being sorted together by date.
+type VisitItem = {
+    key: string;
+    kind: "visit" | "case";
+    id: number;
+    date: Date;
+    complaint: string;
+    detail: string | null;
+    staff: string | null;
+    caseNumber: string | null;
+    status: string | null;
+};
+
 type Props = {
     searchParams: Promise<{ q?: string; employee?: string }>;
+};
+
+const CASES = "/dashboard/health-case-reports";
+
+const STATUS_STYLES: Record<string, string> = {
+    pending: "bg-yellow-100 text-yellow-800",
+    referred: "bg-red-100 text-red-700",
+    resolved: "bg-green-100 text-green-700",
 };
 
 function fmt(date: Date | null, month: "short" | "long" = "short") {
@@ -86,6 +120,20 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
         selected = rows[0];
     }
 
+    if (selected) {
+        await logAccess(
+            {
+                userId: Number(session.userId),
+                role: session.role,
+                name: String(session.username ?? ""),
+            },
+            "employee_health_record",
+            selected.employee_id,
+            "view",
+            `${selected.last_name}, ${selected.first_name} (${selected.employee_number})`
+        );
+    }
+
     const employees = selected
         ? []
         : await prisma.$queryRaw<EmployeeRow[]>`
@@ -113,6 +161,42 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
       ORDER BY visit_date DESC, record_id DESC
     `;
     }
+
+    let cases: CaseRow[] = [];
+    if (selected) {
+        cases = await prisma.$queryRaw<CaseRow[]>`
+      SELECT case_id, case_number, complaint, report_date, staff_name, status, notes
+      FROM health_case_reports
+      WHERE employee_id = ${selected.employee_id} AND archived_at IS NULL
+      ORDER BY report_date DESC, case_id DESC
+    `;
+    }
+
+    // Clinic visits and case reports shown as one timeline, newest first.
+    const visits: VisitItem[] = [
+        ...records.map((r) => ({
+            key: `visit-${r.record_id}`,
+            kind: "visit" as const,
+            id: r.record_id,
+            date: r.visit_date,
+            complaint: r.complaint,
+            detail: r.action_taken,
+            staff: r.attending_staff,
+            caseNumber: null,
+            status: null,
+        })),
+        ...cases.map((c) => ({
+            key: `case-${c.case_id}`,
+            kind: "case" as const,
+            id: c.case_id,
+            date: c.report_date,
+            complaint: c.complaint,
+            detail: c.notes,
+            staff: c.staff_name,
+            caseNumber: c.case_number,
+            status: c.status,
+        })),
+    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     const latest = records.find(
         (r) =>
@@ -314,56 +398,99 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
                     </section>
 
                     <section>
-                        <h2 className="mb-3 text-lg font-semibold text-gray-900">Visit History</h2>
+                        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                            <h2 className="text-lg font-semibold text-gray-900">Visit History</h2>
+                            <p className="text-sm text-gray-500">
+                                Clinic visits and health case reports combined, newest first.
+                            </p>
+                        </div>
                         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                            {records.length === 0 ? (
-                                <p className="p-8 text-center text-sm text-gray-500">No visit records yet.</p>
+                            {visits.length === 0 ? (
+                                <p className="p-8 text-center text-sm text-gray-500">
+                                    No clinic visits or case reports recorded yet.
+                                </p>
                             ) : (
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left text-sm">
                                         <thead className="bg-gray-50 text-gray-700">
                                             <tr>
                                                 <th className="whitespace-nowrap px-4 py-3 font-medium">Date</th>
+                                                <th className="whitespace-nowrap px-4 py-3 font-medium">Type</th>
                                                 <th className="px-4 py-3 font-medium">Complaint</th>
-                                                <th className="px-4 py-3 font-medium">Action Taken</th>
-                                                <th className="whitespace-nowrap px-4 py-3 font-medium">Attending Staff</th>
+                                                <th className="px-4 py-3 font-medium">Action Taken / Notes</th>
+                                                <th className="px-4 py-3 font-medium">Attending Staff</th>
                                                 {canEditRecords && <th className="px-4 py-3 font-medium">Actions</th>}
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {records.map((r) => (
-                                                <tr key={r.record_id} className="border-t border-gray-100">
+                                            {visits.map((v) => (
+                                                <tr key={v.key} className="border-t border-gray-100">
                                                     <td className="whitespace-nowrap px-4 py-3 text-gray-900">
-                                                        {fmt(r.visit_date)}
+                                                        {fmt(v.date)}
                                                     </td>
-                                                    <td className="px-4 py-3 text-gray-900">{r.complaint}</td>
-                                                    <td className="px-4 py-3 text-gray-900">{r.action_taken || "—"}</td>
-                                                    <td className="px-4 py-3 text-gray-900">{r.attending_staff || "—"}</td>
+                                                    <td className="whitespace-nowrap px-4 py-3">
+                                                        {v.kind === "visit" ? (
+                                                            <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
+                                                                Clinic Visit
+                                                            </span>
+                                                        ) : (
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="rounded-full bg-[#eef6f2] px-2.5 py-0.5 text-xs font-medium text-[#15664f]">
+                                                                    Case {v.caseNumber}
+                                                                </span>
+                                                                <span
+                                                                    className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLES[v.status ?? ""] ??
+                                                                        "bg-gray-100 text-gray-700"
+                                                                        }`}
+                                                                >
+                                                                    {v.status}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-gray-900">{v.complaint}</td>
+                                                    <td className="px-4 py-3 text-gray-900">{v.detail || "—"}</td>
+                                                    <td className="px-4 py-3 text-gray-900">{v.staff || "—"}</td>
                                                     {canEditRecords && (
                                                         <td className="whitespace-nowrap px-4 py-3">
                                                             <div className="flex items-center gap-3">
-                                                                <ConfirmLink
-                                                                    href={`${BASE}/records/edit?record=${r.record_id}`}
-                                                                    title="Edit visit record"
-                                                                    message={`Edit this visit (${fmt(r.visit_date)} - ${r.complaint})?`}
-                                                                    confirmLabel="Edit"
-                                                                    className="inline-flex items-center gap-1 font-medium text-[#15664f] hover:underline"
-                                                                >
-                                                                    <Pencil className="h-3.5 w-3.5" />
-                                                                    Edit
-                                                                </ConfirmLink>
-                                                                <form action={archiveEmployeeRecord}>
-                                                                    <input type="hidden" name="recordId" value={r.record_id} />
-                                                                    <ConfirmButton
-                                                                        title="Archive record"
-                                                                        confirmLabel="Archive"
-                                                                        message={`Archive this visit? ${fmt(r.visit_date)} · ${r.complaint}`}
-                                                                        className="inline-flex items-center gap-1 font-medium text-amber-700 hover:underline"
+                                                                {v.kind === "visit" ? (
+                                                                    <>
+                                                                        <ConfirmLink
+                                                                            href={`${BASE}/records/edit?record=${v.id}`}
+                                                                            title="Edit visit record"
+                                                                            message={`Edit this visit (${fmt(v.date)} - ${v.complaint})?`}
+                                                                            confirmLabel="Edit"
+                                                                            className="inline-flex items-center gap-1 font-medium text-[#15664f] hover:underline"
+                                                                        >
+                                                                            <Pencil className="h-3.5 w-3.5" />
+                                                                            Edit
+                                                                        </ConfirmLink>
+                                                                        <form action={archiveEmployeeRecord}>
+                                                                            <input type="hidden" name="recordId" value={v.id} />
+                                                                            <ConfirmButton
+                                                                                title="Archive record"
+                                                                                confirmLabel="Archive"
+                                                                                message={`Archive this visit? ${fmt(v.date)} · ${v.complaint}`}
+                                                                                className="inline-flex items-center gap-1 font-medium text-amber-700 hover:underline"
+                                                                            >
+                                                                                <Archive className="h-3.5 w-3.5" />
+                                                                                Archive
+                                                                            </ConfirmButton>
+                                                                        </form>
+                                                                    </>
+                                                                ) : (
+                                                                    <ConfirmLink
+                                                                        href={`${CASES}/edit?case=${v.id}`}
+                                                                        title="Open case report"
+                                                                        message={`Open case ${v.caseNumber} (${v.complaint})? You will be taken to Health Case Reports.`}
+                                                                        confirmLabel="Open"
+                                                                        className="inline-flex items-center gap-1 font-medium text-[#15664f] hover:underline"
                                                                     >
-                                                                        <Archive className="h-3.5 w-3.5" />
-                                                                        Archive
-                                                                    </ConfirmButton>
-                                                                </form>
+                                                                        <Pencil className="h-3.5 w-3.5" />
+                                                                        Open case
+                                                                    </ConfirmLink>
+                                                                )}
                                                             </div>
                                                         </td>
                                                     )}
