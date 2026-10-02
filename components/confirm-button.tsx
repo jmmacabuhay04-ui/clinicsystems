@@ -8,6 +8,7 @@ type Props = {
     title?: string;
     confirmLabel?: string;
     danger?: boolean;
+    disabled?: boolean;
     className?: string;
     children: React.ReactNode;
 };
@@ -17,6 +18,7 @@ export default function ConfirmButton({
     title = "Please confirm",
     confirmLabel = "Confirm",
     danger = false,
+    disabled = false,
     className,
     children,
 }: Props) {
@@ -40,6 +42,7 @@ export default function ConfirmButton({
                 ref={anchorRef}
                 type="button"
                 onClick={() => setOpen(true)}
+                disabled={disabled}
                 className={className}
                 suppressHydrationWarning
             >

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { updateHealthRecord, type EditState } from "./actions";
+import ConfirmButton from "@/components/confirm-button";
 
 const initialState: EditState = {};
 
@@ -91,14 +92,15 @@ export default function EditForm({ record, cancelHref }: { record: RecordValues;
                 >
                     Cancel
                 </Link>
-                <button
-                    type="submit"
+                <ConfirmButton
+                    title="Save changes?"
+                    message="Save your changes to this health record? The existing information will be replaced."
+                    confirmLabel="Save"
                     disabled={pending}
-                    suppressHydrationWarning
                     className="h-10 rounded-lg bg-[#15664f] px-5 text-sm font-semibold text-white hover:bg-[#10523f] disabled:opacity-60"
                 >
-                    {pending ? "Saving..." : "Save Changes"}
-                </button>
+                    Save Changes
+                </ConfirmButton>
             </div>
         </form>
     );
