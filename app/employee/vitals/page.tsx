@@ -1,17 +1,31 @@
+
 import { redirect } from "next/navigation";
 import { getEmployeeSession } from "@/lib/employee-session";
-import { getEmployeeVisits, formatDate, show } from "@/lib/employee-data";
+import {
+    getEmployee,
+    getEmployeeVisits,
+    formatDate,
+    initialsOf,
+    show,
+} from "@/lib/employee-data";
 import EmployeeNav from "@/components/employee-nav";
 
 export default async function EmployeeVitalsPage() {
     const session = await getEmployeeSession();
     if (!session) redirect("/employee/login");
 
+    const employee = await getEmployee(Number(session.employeeId));
+    if (!employee) redirect("/employee/login");
+
     const visits = await getEmployeeVisits(session.employeeId);
+    const fullName = `${employee.first_name} ${employee.last_name}`;
 
     return (
         <div className="min-h-screen bg-gray-50">
-            <EmployeeNav />
+            <EmployeeNav
+                fullName={fullName}
+                initials={initialsOf(employee.first_name, employee.last_name)}
+            />
 
             <main className="mx-auto max-w-5xl space-y-6 p-6">
                 <h1 className="text-2xl font-semibold text-gray-900">Vitals History</h1>

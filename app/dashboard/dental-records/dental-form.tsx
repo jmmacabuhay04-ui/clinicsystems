@@ -5,6 +5,7 @@ import { useActionState, useState } from "react";
 import { Save } from "lucide-react";
 import ConfirmSubmit from "@/components/confirm-submit";
 import { createDental, updateDental, type DentalState } from "./actions";
+import DentalModel from "./dental-model";
 
 const initialState: DentalState = {};
 
@@ -184,6 +185,16 @@ export default function DentalForm({
                             />
                         </Field>
                     </div>
+                </div>
+            </section>
+
+            <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                <h2 className="text-lg font-semibold text-gray-900">Dental Model</h2>
+                <p className="mt-1 text-xs text-gray-500">
+                    Click a tooth, then add it to the Tooth field above. Teeth outlined in green are already listed there.
+                </p>
+                <div className="mt-5">
+                    <DentalModel initialValue={v.tooth} />
                 </div>
             </section>
 

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState, useState } from "react";
 import { updateCaseReport, type EditCaseState } from "./actions";
+import ConfirmButton from "@/components/confirm-button";
 
 const initialState: EditCaseState = {};
 
@@ -164,14 +165,15 @@ export default function EditCaseForm(props: Props) {
                 >
                     Cancel
                 </Link>
-                <button
-                    type="submit"
+                <ConfirmButton
+                    title="Save changes?"
+                    message="Save your changes to this health case report? The existing information will be replaced."
+                    confirmLabel="Save"
                     disabled={pending}
-                    suppressHydrationWarning
                     className="h-10 rounded-lg bg-[#15664f] px-5 text-sm font-semibold text-white hover:bg-[#10523f] disabled:opacity-60"
                 >
                     {pending ? "Saving..." : "Save Changes"}
-                </button>
+                </ConfirmButton>
             </div>
         </form>
     );

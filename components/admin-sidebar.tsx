@@ -156,16 +156,6 @@ export default function AdminSidebar({ username, role }: Props) {
 
             {/* Body: hidden on phone until menu is opened */}
             <div className={`${mobileOpen ? "flex" : "hidden"} min-h-0 flex-1 flex-col md:flex`}>
-                {/* Profile */}
-                <div className={`border-b border-white/10 px-5 py-5 ${collapsed ? "md:hidden" : ""}`}>
-                    <p className="truncate text-xl font-semibold" title={username}>
-                        {displayName}
-                    </p>
-                    <span className="mt-2 inline-block rounded bg-white/20 px-2.5 py-0.5 text-sm font-medium">
-                        {roleLabels[role] ?? role}
-                    </span>
-                </div>
-
                 {/* Menu */}
                 <nav className="no-scrollbar flex-1 overflow-y-auto py-3">
                     {visibleItems.map((item) => {
@@ -190,20 +180,39 @@ export default function AdminSidebar({ username, role }: Props) {
                     })}
                 </nav>
 
-                {/* Sign out */}
-                <div className={`border-t border-white/10 px-4 py-4 ${collapsed ? "md:px-2" : ""}`}>
-                    <form action={logout}>
-                        <ConfirmSubmit
-                            title="Sign out"
-                            message="Are you sure you want to sign out?"
-                            confirmLabel="Sign out"
-                            className={`flex w-full items-center gap-3.5 rounded-lg px-3 py-2.5 text-[0.95rem] font-medium text-white/90 hover:bg-white/10 ${collapsed ? "md:justify-center md:px-0" : ""
-                                }`}
+                <div className={`border-t border-white/10 px-5 py-4 ${collapsed ? "md:px-2" : ""}`}>
+                    <div
+                        className={`flex items-center gap-3 ${collapsed ? "md:flex-col md:justify-center" : ""
+                            }`}
+                    >
+                        <div
+                            aria-hidden="true"
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20 text-base font-semibold"
                         >
-                            <LogOut className="h-5 w-5 shrink-0" strokeWidth={1.8} />
-                            <span className={collapsed ? "md:hidden" : ""}>Sign out</span>
-                        </ConfirmSubmit>
-                    </form>
+                            {username.charAt(0).toUpperCase()}
+                        </div>
+
+                        <div className={`min-w-0 flex-1 ${collapsed ? "md:hidden" : ""}`}>
+                            <p className="truncate text-base font-semibold" title={username}>
+                                {displayName}
+                            </p>
+                            <span className="mt-1 inline-block rounded bg-white/20 px-2 py-0.5 text-xs font-medium">
+                                {roleLabels[role] ?? role}
+                            </span>
+                        </div>
+
+                        <form action={logout} className="shrink-0" title="Sign out">
+                            <ConfirmSubmit
+                                title="Sign out"
+                                message="Are you sure you want to sign out?"
+                                confirmLabel="Sign out"
+                                className="flex h-10 w-10 items-center justify-center rounded-lg text-white/90 hover:bg-white/10"
+                            >
+                                <LogOut className="h-5 w-5" strokeWidth={1.8} />
+                                <span className="sr-only">Sign out</span>
+                            </ConfirmSubmit>
+                        </form>
+                    </div>
                 </div>
             </div>
         </aside>

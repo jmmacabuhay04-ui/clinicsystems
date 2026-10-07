@@ -1,4 +1,3 @@
-
 import Image from "next/image";
 
 /** School header — hidden on screen, shown only when printing. */
