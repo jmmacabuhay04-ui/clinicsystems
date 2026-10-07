@@ -225,7 +225,7 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
                             Add Employee
                         </ConfirmLink>
                     )}
-                    {canEditRecords && (
+                    {canEditRecords ? (
                         <ConfirmLink
                             href={
                                 selected
@@ -244,6 +244,10 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
                             <Plus className="h-4 w-4" />
                             Add Record
                         </ConfirmLink>
+                    ) : (
+                        <span className="rounded-full bg-gray-200 px-3 py-1 text-xs font-medium text-gray-600">
+                            View only
+                        </span>
                     )}
                 </div>
             </div>

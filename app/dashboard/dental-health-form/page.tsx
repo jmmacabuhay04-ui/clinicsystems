@@ -162,11 +162,15 @@ export default async function DentalHealthFormPage({ searchParams }: Props) {
                     <p className="mt-1 text-gray-600">
                         Student&apos;s Dental Health Record — tooth chart, findings, and treatment needed.
                     </p>
+
                 </div>
+
                 {selected && (
                     <div className="flex gap-3">
+
                         <PrintButton />
                         {canEdit && (
+
                             <ConfirmLink
                                 href={`${BASE}/edit?student=${encodeURIComponent(selected.student_number)}`}
                                 title={form ? "Edit form" : "Fill out form"}
@@ -177,6 +181,7 @@ export default async function DentalHealthFormPage({ searchParams }: Props) {
                                 <Pencil className="h-4 w-4" />
                                 {form ? "Edit Form" : "Fill Out Form"}
                             </ConfirmLink>
+
                         )}
                     </div>
                 )}
@@ -185,6 +190,10 @@ export default async function DentalHealthFormPage({ searchParams }: Props) {
             {saved === "1" && (
                 <p className="no-print rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800">
                     Dental health record saved.
+                </p>
+            )}{!canEdit && (
+                <p className="no-print rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                    View only. You can view this form but cannot edit or print it.
                 </p>
             )}
 
