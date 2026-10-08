@@ -104,7 +104,7 @@ export default function AdminSidebar({ username, role }: Props) {
 
     return (
         <aside
-            className={`flex w-full shrink-0 flex-col bg-[#15664f] text-white transition-[width] duration-200 md:sticky md:top-0 md:h-screen ${collapsed ? "md:w-20" : "md:w-72"
+            className={`flex w-full shrink-0 flex-col bg-[#14532D] text-white transition-[width] duration-200 md:sticky md:top-0 md:h-screen ${collapsed ? "md:w-20" : "md:w-72"
                 }`}
         >
             {/* Header: logo + menu button */}
@@ -147,7 +147,7 @@ export default function AdminSidebar({ username, role }: Props) {
                     onClick={toggleCollapsed}
                     aria-label={collapsed ? "Expand menu" : "Collapse menu"}
                     title={collapsed ? "Expand menu" : "Collapse menu"}
-                    className={`hidden rounded-lg p-2 hover:bg-white/10 md:inline-flex ${collapsed ? "" : "md:absolute md:right-3 md:top-3"
+                    className={`hidden rounded-lg p-2  hover:bg-amber-500  md:inline-flex ${collapsed ? "" : "md:absolute md:right-3 md:top-3"
                         }`}
                 >
                     <Menu className="h-6 w-6" />
@@ -167,10 +167,10 @@ export default function AdminSidebar({ username, role }: Props) {
                                 href={item.href}
                                 title={item.label}
                                 onClick={() => setMobileOpen(false)}
-                                className={`flex items-center gap-3.5 border-r-4 px-5 py-3 text-[0.95rem] transition-colors ${collapsed ? "md:justify-center md:px-0" : ""
+                                className={`flex items-center gap-3.5 border-r-4 border-transparent px-5 py-3 text-[0.95rem] transition-colors ${collapsed ? "md:justify-center md:px-0" : ""
                                     } ${active
-                                        ? "border-white bg-white/15 font-semibold text-white"
-                                        : "border-transparent text-white/85 hover:bg-white/10"
+                                        ? "bg-amber-400 hover:bg-amber-500 font-semibold "
+                                        : "text-white/150 "
                                     }`}
                             >
                                 <Icon className="h-5 w-5 shrink-0" strokeWidth={1.8} />
@@ -201,12 +201,12 @@ export default function AdminSidebar({ username, role }: Props) {
                             </span>
                         </div>
 
-                        <form action={logout} className="shrink-0" title="Sign out">
+                        <form action={logout} className="shrink-0" title="Sign out ">
                             <ConfirmSubmit
                                 title="Sign out"
                                 message="Are you sure you want to sign out?"
                                 confirmLabel="Sign out"
-                                className="flex h-10 w-10 items-center justify-center rounded-lg text-white/90 hover:bg-white/10"
+                                className="flex h-10 w-10 items-center justify-center rounded-lg text-white/90 hover:bg-amber-500"
                             >
                                 <LogOut className="h-5 w-5" strokeWidth={1.8} />
                                 <span className="sr-only">Sign out</span>

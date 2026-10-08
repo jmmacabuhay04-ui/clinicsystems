@@ -191,12 +191,12 @@ export default async function DentalHealthFormPage({ searchParams }: Props) {
                 <p className="no-print rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800">
                     Dental health record saved.
                 </p>
-            )}{!canEdit && (
+            )}
+            {!canEdit && (
                 <p className="no-print rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
                     View only. You can view this form but cannot edit or print it.
                 </p>
             )}
-
             <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
                 <aside className="no-print rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
                     <form method="get" className="relative">

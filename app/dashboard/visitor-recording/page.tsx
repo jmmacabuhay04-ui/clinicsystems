@@ -54,7 +54,7 @@ export default async function VisitorRecordingPage() {
   `;
 
     return (
-        <main className="space-y-6 p-6 md:p-8">
+        <main className="space-y-6 p-6 md:p-8 ">
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <h1 className="text-3xl font-semibold text-gray-900">Visitor Recording</h1>
                 {!canEdit && (

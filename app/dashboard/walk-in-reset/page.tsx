@@ -105,7 +105,7 @@ export default async function WalkInResetPage({
     const notice = params.notice ? NOTICES[params.notice] : null;
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen">
             <div className="mx-auto max-w-3xl space-y-4 p-6">
                 <div>
                     <h1 className="text-2xl font-semibold text-gray-900">Walk-in Password Reset</h1>
@@ -133,8 +133,8 @@ export default async function WalkInResetPage({
                             <Link
                                 href="/dashboard/walk-in-reset?type=student"
                                 className={`rounded-lg px-4 py-2 text-sm font-medium ${type === "student"
-                                    ? "bg-[#15664f] text-white"
-                                    : "border border-gray-300 bg-white text-gray-700"
+                                    ? "bg-[#15664f] text-white hover:bg-[#10523f]"
+                                    : "border border-gray-300  bg-[#15664f] text-white hover:bg-[#10523f] "
                                     }`}
                             >
                                 Student
@@ -142,8 +142,8 @@ export default async function WalkInResetPage({
                             <Link
                                 href="/dashboard/walk-in-reset?type=employee"
                                 className={`rounded-lg px-4 py-2 text-sm font-medium ${type === "employee"
-                                    ? "bg-[#15664f] text-white"
-                                    : "border border-gray-300 bg-white text-gray-700"
+                                    ? "bg-amber-400 hover:bg-amber-500  "
+                                    : "border border-gray-300 bg-amber-400  hover:bg-amber-500"
                                     }`}
                             >
                                 Employee
@@ -155,13 +155,19 @@ export default async function WalkInResetPage({
                             <input
                                 type="text"
                                 name="q"
+                                autoComplete="off"
                                 defaultValue={q}
                                 placeholder={`Search ${type} by name...`}
-                                className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm"
+
+                                className="flex-1 rounded-lg border border-gray-500 px-3 py-2 text-sm"
                             />
                             <button
                                 type="submit"
-                                className="rounded-lg bg-[#15664f] px-4 py-2 text-sm font-medium text-white"
+                                className={
+                                    type === "employee"
+                                        ? "rounded-lg bg-amber-400  px-3 py-1.5 text-xs font-medium text-neutral-900 hover:bg-amber-500"
+                                        : "rounded-lg bg-[#15664f] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#15664f]/80"
+                                }
                             >
                                 Search
                             </button>
@@ -193,7 +199,11 @@ export default async function WalkInResetPage({
                                                         title="Reset this password?"
                                                         message={`Start a walk-in password reset for ${person.full_name}? Make sure this person is in front of you with a valid ID.`}
                                                         confirmLabel="Continue"
-                                                        className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                                                        className={
+                                                            type === "employee"
+                                                                ? "rounded-lg bg-amber-400  px-3 py-1.5 text-xs font-medium text-neutral-900 hover:bg-amber-500"
+                                                                : "rounded-lg bg-[#15664f]  px-3 py-1.5 text-xs font-medium text-white hover:bg-[#15664f]/80"
+                                                        }
                                                     >
                                                         Select
                                                     </ConfirmLink>

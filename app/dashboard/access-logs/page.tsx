@@ -70,7 +70,7 @@ export default async function AccessLogsPage() {
     const actors = new Set(logs.map((l) => l.actor_name ?? l.actor_id)).size;
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen ">
             <div className="mx-auto max-w-7xl space-y-4 p-6">
                 <div>
                     <h1 className="text-2xl font-semibold text-gray-900">Record Access Logs</h1>

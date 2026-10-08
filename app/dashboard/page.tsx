@@ -183,8 +183,8 @@ export default async function DashboardPage() {
                             className="flex items-start justify-between rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
                         >
                             <div>
-                                <p className="text-sm text-gray-600">{stat.label}</p>
-                                <p className="mt-2 text-3xl font-semibold text-gray-900">
+                                <p className="text-lg text-[#15664f]">{stat.label}</p>
+                                <p className="mt-2 text-3xl font-semibold text-[#15664f]">
                                     {stat.value.toLocaleString("en-US")}
                                 </p>
                             </div>
@@ -199,10 +199,10 @@ export default async function DashboardPage() {
             <section className="grid gap-6 xl:grid-cols-2">
                 {/* Recent Clinic Visits */}
                 <div>
-                    <h2 className="mb-3 text-lg font-semibold text-gray-900">Recent Clinic Visits</h2>
+                    <h2 className="mb-3 text-lg font-semibold text-[#14532D]">Recent Clinic Visits</h2>
                     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                         {data.recentVisits.length === 0 ? (
-                            <p className="p-8 text-center text-sm text-gray-500">No clinic visits recorded yet.</p>
+                            <p className="p-8 text-center text-md text-gray-700">No clinic visits recorded yet.</p>
                         ) : (
                             data.recentVisits.map((visit, index) => {
                                 const name = `${visit.first_name} ${visit.last_name}`;
@@ -234,10 +234,10 @@ export default async function DashboardPage() {
 
                 {/* Case Report Summary */}
                 <div>
-                    <h2 className="mb-3 text-lg font-semibold text-gray-900">Case Report Summary</h2>
+                    <h2 className="mb-3 text-lg font-semibold text-[#14532D]">Case Report Summary</h2>
                     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                         {data.caseSummary.length === 0 ? (
-                            <p className="p-8 text-center text-sm text-gray-500">No case reports yet.</p>
+                            <p className="p-8 text-center text-md text-gray-700">No case reports yet.</p>
                         ) : (
                             <table className="w-full text-left text-sm">
                                 <thead className="bg-gray-50 text-gray-700">
@@ -274,10 +274,10 @@ export default async function DashboardPage() {
                 {/* Recent Dental Visits (hidden for doctors) */}
                 {!isDoctor && (
                     <div>
-                        <h2 className="mb-3 text-lg font-semibold text-gray-900">Recent Dental Visits</h2>
+                        <h2 className="mb-3 text-lg font-semibold text-[#14532D]">Recent Dental Visits</h2>
                         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                             {data.recentDental.length === 0 ? (
-                                <p className="p-8 text-center text-sm text-gray-500">No dental visits recorded yet.</p>
+                                <p className="p-8 text-center text-md text-gray-700">No dental visits recorded yet.</p>
                             ) : (
                                 data.recentDental.map((d, index) => {
                                     const name = `${d.first_name ?? ""} ${d.last_name ?? ""}`.trim() || "Unknown";
