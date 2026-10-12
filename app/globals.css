@@ -117,29 +117,29 @@
 
 
 
-  /* Font size that adjusts to the screen */
   html {
     font-size: 100%;
+    /* 16px */
   }
 
-  /* phones: 16px */
   @media (min-width: 640px) {
     html {
-      font-size: 112.5%;
+      font-size: 100%;
+      /* 16px sa tablet */
     }
   }
 
-  /* tablets: 18px */
   @media (min-width: 1024px) {
     html {
-      font-size: 125%;
+      font-size: 106.25%;
+      /* 17px sa laptop */
     }
   }
 
-  /* laptops: 20px */
   @media (min-width: 1440px) {
     html {
-      font-size: 137.5%;
+      font-size: 112.5%;
+      /* 18px sa malaking monitor */
     }
   }
 
@@ -178,5 +178,5 @@ body {
 
 input::placeholder,
 textarea::placeholder {
-  color: #181818;
+  color: #686767;
 }

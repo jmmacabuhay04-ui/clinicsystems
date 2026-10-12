@@ -6,11 +6,11 @@ import { employeeLogout } from "@/app/employee/login/actions";
 import ConfirmSubmit from "./confirm-submit";
 
 const tabs = [
-    { label: "Overview", href: "/employee/dashboard" },
-    { label: "My Visits", href: "/employee/visits" },
+    { href: "/employee/dashboard", label: "Overview" },
+    { href: "/employee/visits", label: "My Visits" },
     { href: "/employee/dental", label: "Dental" },
-    { label: "Vitals", href: "/employee/vitals" },
-    { label: "Profile", href: "/employee/profile" },
+    { href: "/employee/vitals", label: "Vitals" },
+    { href: "/employee/profile", label: "Profile" },
 ];
 
 type Props = {

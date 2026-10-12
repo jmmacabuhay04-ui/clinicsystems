@@ -38,10 +38,7 @@ export default async function StudentVitalsPage() {
             <StudentNav fullName={fullName} initials={initialsOf(student.first_name, student.last_name)} />
 
             <main className="mx-auto max-w-5xl space-y-6 px-4 py-6">
-                <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                    These are read-only records managed by BCAS clinic staff. Visit the clinic to correct any
-                    errors.
-                </div>
+
 
                 <section>
                     <h1 className="mb-3 text-xl font-semibold text-gray-900">Latest Vital Signs</h1>

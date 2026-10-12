@@ -62,13 +62,16 @@ export default function EditCaseForm(props: Props) {
                     </span>
                 </div>
 
-                <div className="mt-4">
-                    <p className="text-sm font-medium text-gray-700">Patient</p>
-                    <div className="mt-1.5 inline-flex rounded-lg border border-gray-300 bg-white p-1">
+
+                <div className="mt-4 space-y-1.5">
+                    <span className="block text-sm font-medium text-gray-700">Patient</span>
+                    <div className="inline-flex rounded-xl border border-gray-200 bg-white p-1">
                         <button
                             type="button"
                             onClick={() => setPatientType("student")}
-                            className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${isStudent ? "bg-[#15664f] text-white" : "text-gray-700 hover:bg-gray-50"
+                            className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${patientType === "student"
+                                ? "bg-[#15664f] text-white"
+                                : "text-gray-700 hover:bg-gray-100"
                                 }`}
                         >
                             Student
@@ -76,7 +79,9 @@ export default function EditCaseForm(props: Props) {
                         <button
                             type="button"
                             onClick={() => setPatientType("employee")}
-                            className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${!isStudent ? "bg-[#15664f] text-white" : "text-gray-700 hover:bg-gray-50"
+                            className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${patientType === "employee"
+                                ? "bg-amber-400 text-amber-950"
+                                : "text-gray-700 hover:bg-gray-100"
                                 }`}
                         >
                             Employee

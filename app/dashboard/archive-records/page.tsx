@@ -277,8 +277,8 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
         <main className="space-y-8 p-6 md:p-8">
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-semibold text-gray-900">Archive Records</h1>
-                    <p className="mt-1 text-gray-600">Archived items are hidden from their main pages.</p>
+                    <h1 className="text-3xl font-semibold text-[#15664f]">Archive Records</h1>
+                    <p className="mt-1 text-gray-700">Archived items are hidden from their main pages.</p>
                 </div>
                 {!canEdit && (
                     <span className="rounded-full bg-gray-200 px-3 py-1 text-xs font-medium text-gray-600">
@@ -296,10 +296,10 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                 </div>
             )}
 
-            <div className="flex items-start gap-3 rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-600">
+            <div className="flex items-start gap-3 rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-700">
                 <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-[#15664f]" />
                 <div>
-                    <p className="font-semibold text-gray-900">
+                    <p className="font-semibold text-[#15664f]">
                         Data retention policy: {RETENTION_YEARS} years
                     </p>
 
@@ -312,6 +312,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                     <input
                         name="q"
                         defaultValue={q}
+                        autoComplete="off"
                         placeholder="Search by ID number, last name, or first name..."
                         suppressHydrationWarning
                         className="h-10 w-full rounded-lg border border-gray-300 bg-white pl-9 pr-3 text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20"
@@ -342,16 +343,16 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
             )}
 
             <section>
-                <h2 className="mb-3 text-lg font-semibold text-gray-900">
+                <h2 className="mb-3 text-lg font-semibold text-[#15664f]">
                     Archived Students ({students.length})
                 </h2>
                 <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                     {students.length === 0 ? (
-                        <p className="p-8 text-center text-sm text-gray-500">No archived students.</p>
+                        <p className="p-8 text-center text-sm text-gray-700">No archived students.</p>
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm">
-                                <thead className="bg-gray-50 text-gray-700">
+                                <thead className="bg-[#EEEEEE] text-[#15664f]">
                                     <tr>
                                         <th className="whitespace-nowrap px-4 py-3 font-medium">Student Number</th>
                                         <th className="px-4 py-3 font-medium">Name</th>
@@ -417,16 +418,16 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
             </section>
 
             <section>
-                <h2 className="mb-3 text-lg font-semibold text-gray-900">
+                <h2 className="mb-3 text-lg font-semibold text-[#15664f]">
                     Archived Employees ({employees.length})
                 </h2>
                 <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                     {employees.length === 0 ? (
-                        <p className="p-8 text-center text-sm text-gray-500">No archived employees.</p>
+                        <p className="p-8 text-center text-sm text-gray-700">No archived employees.</p>
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm">
-                                <thead className="bg-gray-50 text-gray-700">
+                                <thead className="bg-[#EEEEEE] text-[#15664f]">
                                     <tr>
                                         <th className="whitespace-nowrap px-4 py-3 font-medium">Employee Number</th>
                                         <th className="px-4 py-3 font-medium">Name</th>
@@ -494,16 +495,16 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
             </section>
 
             <section>
-                <h2 className="mb-3 text-lg font-semibold text-gray-900">
+                <h2 className="mb-3 text-lg font-semibold text-[#15664f]">
                     Archived Case Reports ({cases.length})
                 </h2>
                 <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                     {cases.length === 0 ? (
-                        <p className="p-8 text-center text-sm text-gray-500">No archived case reports.</p>
+                        <p className="p-8 text-center text-sm text-gray-700">No archived case reports.</p>
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm">
-                                <thead className="bg-gray-50 text-gray-700">
+                                <thead className="bg-[#EEEEEE] text-[#15664f]">
                                     <tr>
                                         <th className="whitespace-nowrap px-4 py-3 font-medium">Case No.</th>
                                         <th className="px-4 py-3 font-medium">Patient</th>
@@ -573,16 +574,16 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
             </section>
 
             <section>
-                <h2 className="mb-3 text-lg font-semibold text-gray-900">
+                <h2 className="mb-3 text-lg font-semibold text-[#15664f]">
                     Archived Visit Records — Students ({records.length})
                 </h2>
                 <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                     {records.length === 0 ? (
-                        <p className="p-8 text-center text-sm text-gray-500">No archived visit records.</p>
+                        <p className="p-8 text-center text-sm text-gray-700">No archived visit records.</p>
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm">
-                                <thead className="bg-gray-50 text-gray-700">
+                                <thead className="bg-[#EEEEEE] text-[#15664f]">
                                     <tr>
                                         <th className="whitespace-nowrap px-4 py-3 font-medium">Student Number</th>
                                         <th className="px-4 py-3 font-medium">Name</th>
@@ -648,18 +649,18 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
             </section>
 
             <section>
-                <h2 className="mb-3 text-lg font-semibold text-gray-900">
+                <h2 className="mb-3 text-lg font-semibold text-[#15664f]">
                     Archived Visit Records — Employees ({employeeRecords.length})
                 </h2>
                 <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                     {employeeRecords.length === 0 ? (
-                        <p className="p-8 text-center text-sm text-gray-500">
+                        <p className="p-8 text-center text-sm text-gray-700 ">
                             No archived employee visit records.
                         </p>
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm">
-                                <thead className="bg-gray-50 text-gray-700">
+                                <thead className="bg-[#EEEEEE] text-[#15664f]">
                                     <tr>
                                         <th className="whitespace-nowrap px-4 py-3 font-medium">Employee Number</th>
                                         <th className="px-4 py-3 font-medium">Name</th>
@@ -727,16 +728,16 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
             </section>
 
             <section>
-                <h2 className="mb-3 text-lg font-semibold text-gray-900">
+                <h2 className="mb-3 text-lg font-semibold text-[#15664f]">
                     Archived Dental Records ({dental.length})
                 </h2>
                 <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                     {dental.length === 0 ? (
-                        <p className="p-8 text-center text-sm text-gray-500">No archived dental records.</p>
+                        <p className="p-8 text-center text-sm text-gray-700">No archived dental records.</p>
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm">
-                                <thead className="bg-gray-50 text-gray-700">
+                                <thead className="bg-[#EEEEEE] text-[#15664f]">
                                     <tr>
                                         <th className="whitespace-nowrap px-4 py-3 font-medium">ID Number</th>
                                         <th className="px-4 py-3 font-medium">Name</th>
@@ -808,11 +809,11 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                 </h2>
                 <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                     {slips.length === 0 ? (
-                        <p className="p-8 text-center text-sm text-gray-500">No archived referral slips.</p>
+                        <p className="p-8 text-center text-sm text-[#15664f]">No archived referral slips.</p>
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm">
-                                <thead className="bg-gray-50 text-gray-700">
+                                <thead className="bg-[#EEEEEE] text-[#15664f]">
                                     <tr>
                                         <th className="whitespace-nowrap px-4 py-3 font-medium">Student Number</th>
                                         <th className="px-4 py-3 font-medium">Name</th>
@@ -883,17 +884,17 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
             </section>
 
             <section>
-                <h2 className="mb-3 text-lg font-semibold text-gray-900">
+                <h2 className="mb-3 text-lg font-semibold text-[#15664f]">
                     Archived Clinic Staff ({staff.length})
                 </h2>
 
                 <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                     {staff.length === 0 ? (
-                        <p className="p-8 text-center text-sm text-gray-500">No archived clinic staff.</p>
+                        <p className="p-8 text-center text-sm text-[#15664f]">No archived clinic staff.</p>
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm">
-                                <thead className="bg-gray-50 text-gray-700">
+                                <thead className="bg-[#EEEEEE] text-[#15664f]">
                                     <tr>
                                         <th className="px-4 py-3 font-medium">Name</th>
                                         <th className="px-4 py-3 font-medium">Role</th>

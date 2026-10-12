@@ -41,8 +41,8 @@ export default function ConfirmButton({
             <button
                 ref={anchorRef}
                 type="button"
-                onClick={() => setOpen(true)}
                 disabled={disabled}
+                onClick={() => setOpen(true)}
                 className={className}
                 suppressHydrationWarning
             >

@@ -26,7 +26,7 @@ export default function WeekPicker({ weeks, current }: Props) {
 
     return (
         <div className="flex items-center gap-2">
-            <label htmlFor="week" className="text-sm font-medium text-gray-700">
+            <label htmlFor="week" className="text-sm font-medium text-[#15664f]">
                 Week:
             </label>
 

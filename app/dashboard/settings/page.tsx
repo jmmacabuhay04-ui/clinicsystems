@@ -51,18 +51,18 @@ export default async function SettingsPage() {
     return (
         <main className="space-y-6 p-6 md:p-8">
             <div>
-                <h1 className="text-3xl font-semibold text-gray-900">Settings</h1>
-                <p className="mt-1 text-base text-gray-600">Manage clinic system settings and configurations</p>
+                <h1 className="text-3xl font-semibold text-[#15664f]">Settings</h1>
+                <p className="mt-1 text-base text-gray-700">Manage clinic system settings and configurations</p>
             </div>
 
             <section className="space-y-8 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                 <div>
                     <div className="flex items-center gap-2">
                         <ShieldCheck className="h-6 w-6 text-[#15664f]" />
-                        <h2 className="text-xl font-semibold text-gray-900">Security &amp; Access</h2>
+                        <h2 className="text-xl font-semibold text-[#15664f]">Security &amp; Access</h2>
                     </div>
 
-                    <p className="mt-5 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    <p className="mt-5 text-xs font-semibold uppercase tracking-wide text-gray-700">
                         Change Password
                     </p>
                     <div className="mt-4">
@@ -73,7 +73,7 @@ export default async function SettingsPage() {
                 <div className="border-t border-gray-100 pt-6">
                     <div className="flex items-center gap-2">
                         <Clock className="h-6 w-6 text-[#15664f]" />
-                        <p className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+                        <p className="text-sm font-semibold uppercase tracking-wide text-[#15664f]">
                             Session &amp; Login
                         </p>
                     </div>
@@ -88,7 +88,7 @@ export default async function SettingsPage() {
                 <div className="border-t border-gray-100 pt-6">
                     <div className="flex items-center gap-2">
                         <LogOut className="h-6 w-6 text-[#15664f]" />
-                        <p className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+                        <p className="text-sm font-semibold uppercase tracking-wide text-[#15664f]">
                             Recent Login Activity
                         </p>
                     </div>
@@ -99,7 +99,7 @@ export default async function SettingsPage() {
                         ) : (
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left text-base">
-                                    <thead className="bg-[#f2efe9] text-gray-700">
+                                    <thead className="bg-[#EEEEEE] text-[#15664f]">
                                         <tr>
                                             <th className="px-4 py-3 font-medium">Account</th>
                                             <th className="whitespace-nowrap px-4 py-3 font-medium">Date &amp; Time</th>

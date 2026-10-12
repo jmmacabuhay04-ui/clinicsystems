@@ -78,25 +78,31 @@ export default function DentalForm({
             <input type="hidden" name="patientType" value={patientType} />
 
             <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-gray-900">Dental Visit</h2>
+                <h2 className="text-lg font-semibold text-[#14532D]">Dental Visit</h2>
 
                 <div className="mt-4">
                     <p className="text-sm font-medium text-gray-700">Patient</p>
-                    <div className="mt-2 inline-flex rounded-lg border border-gray-300 bg-gray-50 p-1">
-                        {(["student", "employee"] as const).map((type) => (
-                            <button
-                                key={type}
-                                type="button"
-                                onClick={() => setPatientType(type)}
-                                suppressHydrationWarning
-                                className={`rounded-md px-4 py-1.5 text-sm font-medium capitalize transition-colors ${patientType === type
-                                    ? "bg-[#15664f] text-white shadow-sm"
-                                    : "text-gray-700 hover:bg-white"
-                                    }`}
-                            >
-                                {type}
-                            </button>
-                        ))}
+                    <div className="inline-flex rounded-xl border border-gray-200 bg-white p-1">
+                        <button
+                            type="button"
+                            onClick={() => setPatientType("student")}
+                            className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${patientType === "student"
+                                ? "bg-[#14532D] text-white"
+                                : "text-gray-700 hover:bg-gray-100"
+                                }`}
+                        >
+                            Student
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setPatientType("employee")}
+                            className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${patientType === "employee"
+                                ? "bg-[#F2CD33] text-[#1F2937]"
+                                : "text-gray-700 hover:bg-gray-100"
+                                }`}
+                        >
+                            Employee
+                        </button>
                     </div>
                 </div>
 
@@ -189,8 +195,8 @@ export default function DentalForm({
             </section>
 
             <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-gray-900">Dental Model</h2>
-                <p className="mt-1 text-xs text-gray-500">
+                <h2 className="text-lg font-semibold text-[#14532D]">Dental Model</h2>
+                <p className="mt-1 text-sm text-gray-700">
                     Click a tooth, then add it to the Tooth field above. Teeth outlined in green are already listed there.
                 </p>
                 <div className="mt-5">

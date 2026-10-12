@@ -73,8 +73,8 @@ export default async function EditRecordPage({ searchParams }: Props) {
             </Link>
 
             <div>
-                <h1 className="text-3xl font-semibold text-gray-900">Edit Health Record</h1>
-                <p className="mt-1 text-gray-600">
+                <h1 className="text-3xl font-semibold text-[#15664f]">Edit Health Record</h1>
+                <p className="mt-1 text-gray-700">
                     {row.last_name}, {row.first_name} · {row.student_number}
                 </p>
             </div>

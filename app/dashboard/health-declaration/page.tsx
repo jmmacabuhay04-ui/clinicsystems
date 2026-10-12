@@ -131,8 +131,8 @@ export default async function HealthDeclarationPage({ searchParams }: Props) {
 
             <div className="no-print flex flex-wrap items-start justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-semibold text-gray-900">Health Declaration</h1>
-                    <p className="mt-1 text-gray-600">
+                    <h1 className="text-3xl font-semibold text-[#15664f]">Health Declaration</h1>
+                    <p className="mt-1 text-gray-700">
                         Student Information and Health Status Declaration.
                     </p>
                 </div>
@@ -171,6 +171,7 @@ export default async function HealthDeclarationPage({ searchParams }: Props) {
                         <input
                             name="q"
                             defaultValue={q}
+                            autoComplete="off"
                             placeholder="Search student..."
                             suppressHydrationWarning
                             className="h-10 w-full rounded-lg border border-gray-300 bg-white pl-9 pr-3 text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20"
@@ -179,7 +180,7 @@ export default async function HealthDeclarationPage({ searchParams }: Props) {
 
                     <div className="mt-4 max-h-[560px] space-y-1 overflow-y-auto">
                         {students.length === 0 && (
-                            <p className="p-3 text-sm text-gray-500">No students found.</p>
+                            <p className="p-3 text-sm text-gray-700">No students found.</p>
                         )}
                         {students.map((s) => {
                             const active = s.student_number === studentNumber;
@@ -206,7 +207,7 @@ export default async function HealthDeclarationPage({ searchParams }: Props) {
                 <section className="space-y-6">
                     {!selected && (
                         <div className="rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center">
-                            <p className="text-gray-500">
+                            <p className="text-gray-700">
                                 Select a student on the left to view the declaration.
                             </p>
                         </div>

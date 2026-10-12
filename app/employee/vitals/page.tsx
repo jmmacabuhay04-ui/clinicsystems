@@ -1,23 +1,18 @@
-
 import { redirect } from "next/navigation";
 import { getEmployeeSession } from "@/lib/employee-session";
-import {
-    getEmployee,
-    getEmployeeVisits,
-    formatDate,
-    initialsOf,
-    show,
-} from "@/lib/employee-data";
+import { getEmployee, getEmployeeVisits, formatDate, show, initialsOf } from "@/lib/employee-data";
 import EmployeeNav from "@/components/employee-nav";
 
 export default async function EmployeeVitalsPage() {
     const session = await getEmployeeSession();
     if (!session) redirect("/employee/login");
 
-    const employee = await getEmployee(Number(session.employeeId));
+    const [employee, visits] = await Promise.all([
+        getEmployee(session.employeeId),
+        getEmployeeVisits(session.employeeId),
+    ]);
     if (!employee) redirect("/employee/login");
 
-    const visits = await getEmployeeVisits(session.employeeId);
     const fullName = `${employee.first_name} ${employee.last_name}`;
 
     return (
@@ -27,14 +22,13 @@ export default async function EmployeeVitalsPage() {
                 initials={initialsOf(employee.first_name, employee.last_name)}
             />
 
+
             <main className="mx-auto max-w-5xl space-y-6 p-6">
                 <h1 className="text-2xl font-semibold text-gray-900">Vitals History</h1>
 
                 <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                     {visits.length === 0 ? (
-                        <p className="p-12 text-center text-sm text-gray-500">
-                            Wala pang naitalang vital signs.
-                        </p>
+                        <p className="p-8 text-center text-sm text-gray-500">No vital signs recorded yet.</p>
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm">

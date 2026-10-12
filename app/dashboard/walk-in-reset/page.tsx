@@ -108,8 +108,8 @@ export default async function WalkInResetPage({
         <div className="min-h-screen">
             <div className="mx-auto max-w-3xl space-y-4 p-6">
                 <div>
-                    <h1 className="text-2xl font-semibold text-gray-900">Walk-in Password Reset</h1>
-                    <p className="mt-1 text-sm text-gray-600">
+                    <h1 className="text-2xl font-semibold text-[#15664f]">Walk-in Password Reset</h1>
+                    <p className="mt-1 text-sm text-gray-700">
                         For people who forgot their password and came to the clinic in person.
                         An ID is required, and every reset is recorded.
                     </p>

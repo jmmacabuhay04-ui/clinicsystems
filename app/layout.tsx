@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Bcas Clinic",
-  description: "Bcas Clinic is a healthcare facility that provides comprehensive medical services to patients. Our team of experienced doctors and healthcare professionals are dedicated to delivering high-quality care in a compassionate and patient-centered environment.",
+  title: "BCAS CLINIC",
+  description: "medical",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

@@ -59,8 +59,8 @@ export default async function PasswordRequestsPage({ searchParams }: Props) {
     return (
         <main className="space-y-6 p-6 md:p-8">
             <div>
-                <h1 className="text-3xl font-semibold text-gray-900">Password Requests</h1>
-                <p className="mt-1 text-gray-600">
+                <h1 className="text-3xl font-semibold text-[#15664f]">Password Requests</h1>
+                <p className="mt-1 text-gray-700">
                     Students and employees who asked for a new portal password. Verify their identity in person
                     before giving the new password.
                 </p>
@@ -79,11 +79,11 @@ export default async function PasswordRequestsPage({ searchParams }: Props) {
 
             <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                 {requests.length === 0 ? (
-                    <p className="p-8 text-center text-sm text-gray-500">No pending requests.</p>
+                    <p className="p-8 text-center text-sm text-gray-700">No pending requests.</p>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm">
-                            <thead className="bg-gray-50 text-gray-700">
+                            <thead className="bg-[#EEEEEE] text-[#15664f]">
                                 <tr>
                                     <th className="px-4 py-3 font-medium">Type</th>
                                     <th className="whitespace-nowrap px-4 py-3 font-medium">ID Number</th>

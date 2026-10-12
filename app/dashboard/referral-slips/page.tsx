@@ -105,8 +105,8 @@ export default async function ReferralSlipsPage({ searchParams }: Props) {
         <main className="space-y-6 p-6 md:p-8">
             <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-semibold text-gray-900">Referral Slips</h1>
-                    <p className="mt-1 text-gray-600">Manage teacher referrals and gate passes</p>
+                    <h1 className="text-3xl font-semibold text-[#15664f]">Referral Slips</h1>
+                    <p className="mt-1 text-gray-700">Manage teacher referrals and gate passes</p>
                 </div>
                 {!canEdit && (
                     <span className="rounded-full bg-gray-200 px-3 py-1 text-xs font-medium text-gray-600">
@@ -149,16 +149,16 @@ export default async function ReferralSlipsPage({ searchParams }: Props) {
                 )}
 
                 <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                    <h2 className="mb-4 text-lg font-semibold text-gray-900">
+                    <h2 className="mb-4 text-lg font-semibold text-[#15664f]">
                         {listTitle} ({slips.length})
                     </h2>
 
                     {slips.length === 0 ? (
-                        <p className="py-8 text-center text-sm text-gray-500">No slips to show.</p>
+                        <p className="py-8 text-center text-sm text-gray-700">No slips to show.</p>
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm">
-                                <thead className="text-gray-600">
+                                <thead className="text-[#15664f]">
                                     <tr className="border-b border-gray-200">
                                         <th className="whitespace-nowrap pb-3 pr-4 font-medium">Time</th>
                                         <th className="pb-3 pr-4 font-medium">Student</th>

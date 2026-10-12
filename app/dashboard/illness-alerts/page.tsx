@@ -277,7 +277,7 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
     return (
         <main className="space-y-6 p-6 md:p-8">
             <div className="flex flex-wrap items-start justify-between gap-4">
-                <h1 className="text-3xl font-semibold text-gray-900">Weekly Illness Alert Dashboard</h1>
+                <h1 className="text-3xl font-semibold text-[#15664f]">Weekly Illness Alert Dashboard</h1>
 
                 <WeekPicker weeks={weeks} current={weekStart} />
             </div>
@@ -289,8 +289,8 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                         <span
                             key={key}
                             className={`rounded-lg px-4 py-2 text-sm font-medium ${active
-                                ? "bg-[#15664f] text-white"
-                                : "border border-gray-200 bg-white text-gray-600"
+                                ? "bg-[#15664f] text-[#ffffff]"
+                                : "border border-gray-200 bg-white text-[#15664f]"
                                 }`}
                         >
                             {levels[key].tab}
@@ -302,9 +302,9 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
             <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 {stats.map((s) => (
                     <div key={s.label} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-                        <p className="text-sm text-gray-600">{s.label}</p>
-                        <p className="mt-2 break-words text-2xl font-semibold text-gray-900">{s.value}</p>
-                        {s.hint ? <p className="mt-1 text-xs text-gray-500">{s.hint}</p> : null}
+                        <p className="text-lg text-[#15664f]">{s.label}</p>
+                        <p className="mt-2 break-words text-2xl font-semibold text-[#15664f]">{s.value}</p>
+                        {s.hint ? <p className="mt-1 text-xs text-gray-700">{s.hint}</p> : null}
                     </div>
                 ))}
             </section>
@@ -319,10 +319,10 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
 
             <section className="grid gap-6 xl:grid-cols-2">
                 <div>
-                    <h2 className="mb-3 text-lg font-semibold text-gray-900">Illness Breakdown</h2>
+                    <h2 className="mb-3 text-lg font-semibold text-[#15664f]">Illness Breakdown</h2>
                     <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                         {breakdown.length === 0 ? (
-                            <p className="py-8 text-center text-sm text-gray-500">No cases this week.</p>
+                            <p className="py-8 text-center text-sm text-gray-700">No cases this week.</p>
                         ) : (
                             <div className="space-y-5">
                                 {breakdown.map((b) => {
@@ -331,8 +331,8 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                                     return (
                                         <div key={b.illness}>
                                             <div className="flex items-center justify-between gap-4 text-sm">
-                                                <span className="font-medium text-gray-900">{b.illness}</span>
-                                                <span className="shrink-0 text-gray-600">
+                                                <span className="font-medium text-[#15664f]">{b.illness}</span>
+                                                <span className="shrink-0 text-gray-700">
                                                     {b.count} case{b.count === 1 ? "" : "s"} ({pct.toFixed(1)}% of students)
                                                 </span>
                                             </div>
@@ -350,19 +350,19 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
 
                         <div className="mt-6 space-y-2 border-t border-gray-100 pt-4 text-sm">
                             <div className="flex justify-between gap-4">
-                                <span className="text-gray-600">Warning Threshold</span>
+                                <span className="text-gray-700">Warning Threshold</span>
                                 <span className="text-right font-medium text-amber-600">
                                     {totalStudents > 0 ? ((WARNING_PER_DAY / totalStudents) * 100).toFixed(1) : "0.0"}%
-                                    <span className="ml-1 text-xs font-normal text-gray-500">
+                                    <span className="ml-1 text-xs font-normal text-gray-700">
                                         ({WARNING_PER_DAY} persons per day)
                                     </span>
                                 </span>
                             </div>
                             <div className="flex justify-between gap-4">
-                                <span className="text-gray-600">Outbreak Threshold</span>
+                                <span className="text-gray-700">Outbreak Threshold</span>
                                 <span className="text-right font-medium text-red-600">
                                     {totalStudents > 0 ? ((OUTBREAK_PER_DAY / totalStudents) * 100).toFixed(1) : "0.0"}%
-                                    <span className="ml-1 text-xs font-normal text-gray-500">
+                                    <span className="ml-1 text-xs font-normal text-gray-700">
                                         ({OUTBREAK_PER_DAY} persons per day)
                                     </span>
                                 </span>
@@ -372,7 +372,7 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                 </div>
 
                 <div>
-                    <h2 className="mb-3 text-lg font-semibold text-gray-900">Daily Case Trend</h2>
+                    <h2 className="mb-3 text-lg font-semibold text-[#15664f]">Daily Case Trend</h2>
                     <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                         <div className="flex gap-4">
                             {/* Bars area */}
@@ -413,13 +413,13 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                         {/* Day labels */}
                         <div className="mt-2 flex gap-4">
                             {daily.map((d) => (
-                                <span key={d.name} className="flex-1 text-center text-sm text-gray-600">
+                                <span key={d.name} className="flex-1 text-center text-sm text-gray-700">
                                     {d.name}
                                 </span>
                             ))}
                         </div>
 
-                        <p className="mt-4 border-t border-gray-100 pt-3 text-xs text-gray-500">
+                        <p className="mt-4 border-t border-gray-100 pt-3 text-xs text-gray-700">
                             Each bar counts sick persons, not records. A student with both a clinic
                             visit and a case report on the same day counts once.
                         </p>
@@ -428,16 +428,16 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
             </section>
 
             <section>
-                <h2 className="mb-3 text-lg font-semibold text-gray-900">
+                <h2 className="mb-3 text-lg font-semibold text-[#15664f]">
                     Weekly Case Log ({cases.length})
                 </h2>
                 <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                     {cases.length === 0 ? (
-                        <p className="p-8 text-center text-sm text-gray-500">No cases recorded this week.</p>
+                        <p className="p-8 text-center text-sm text-gray-700">No cases recorded this week.</p>
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm">
-                                <thead className="bg-gray-50 text-gray-700">
+                                <thead className="bg-[#EEEEEE] text-gray-700">
                                     <tr>
                                         <th className="whitespace-nowrap px-4 py-3 font-medium">Date</th>
                                         <th className="whitespace-nowrap px-4 py-3 font-medium">ID Number</th>
@@ -450,7 +450,7 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                                 <tbody>
                                     {cases.map((c) => (
                                         <tr key={c.key} className="border-t border-gray-100">
-                                            <td className="whitespace-nowrap px-4 py-3 text-gray-600">
+                                            <td className="whitespace-nowrap px-4 py-3 text-gray-700">
                                                 {formatDay(c.date)}
                                             </td>
                                             <td className="px-4 py-3 font-medium text-gray-900">
@@ -460,8 +460,8 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                                                 {c.last_name}, {c.first_name}
                                                 <span
                                                     className={`ml-2 rounded-full px-2 py-0.5 text-xs font-medium ${c.patient_type === "employee"
-                                                        ? "bg-violet-100 text-violet-800"
-                                                        : "bg-gray-100 text-gray-700"
+                                                        ? "bg-amber-300 text-white"
+                                                        : "bg-[#15664f]  text-white"
                                                         }`}
                                                 >
                                                     {c.patient_type === "employee" ? "Employee" : "Student"}

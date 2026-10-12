@@ -50,9 +50,9 @@ export default function SessionForm({ minutes, twoFactor }: Props) {
                 </select>
             </label>
 
-            <label className="flex items-start justify-between gap-4 rounded-lg bg-[#f2efe9] p-4">
+            <label className="flex items-start justify-between gap-4 rounded-lg bg-[#EEEEEE] p-4">
                 <span>
-                    <span className="block text-sm font-semibold text-gray-800">
+                    <span className="block text-sm font-semibold text-[#15664f]">
                         Two-Factor Authentication
                     </span>
                     <span className="block text-xs text-gray-600">Require OTP on each login</span>

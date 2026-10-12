@@ -58,7 +58,7 @@ export default async function EditCasePage({ searchParams }: Props) {
     const isEmployee = row.patient_type === "employee";
 
     return (
-        <main className="mx-auto max-w-4xl space-y-6 p-6 md:p-8">
+        <main className="space-y-6 p-6 md:p-8">
             <Link
                 href={BASE}
                 className="inline-flex items-center gap-1 text-sm font-medium text-[#15664f] hover:underline"
@@ -72,7 +72,9 @@ export default async function EditCasePage({ searchParams }: Props) {
                 <p className="mt-1 text-gray-600">
                     {row.case_number} · {row.last_name}, {row.first_name} · {row.patient_number}
                     <span
-                        className={`ml-2 rounded-full px-2 py-0.5 text-xs font-medium ${isEmployee ? "bg-violet-100 text-violet-800" : "bg-gray-100 text-gray-700"
+                        className={`ml-2 rounded-full px-2 py-0.5 text-xs font-medium ${isEmployee
+                            ? "bg-amber-300 text-white"
+                            : "bg-[#15664f]  text-white"
                             }`}
                     >
                         {isEmployee ? "Employee" : "Student"}

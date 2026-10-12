@@ -35,7 +35,7 @@ export default async function NewHealthRecordPage({ searchParams }: Props) {
                 Back to Student Health Records
             </Link>
 
-            <h1 className="text-3xl font-semibold text-gray-900">Add Health Record</h1>
+            <h1 className="text-3xl font-semibold text-[#15664f]">Add Health Record</h1>
 
             <RecordForm studentNumber={student} today={today} staffName={staffName} cancelHref={backHref} />
         </main>

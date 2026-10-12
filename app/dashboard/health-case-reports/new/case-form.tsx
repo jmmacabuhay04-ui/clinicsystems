@@ -65,8 +65,8 @@ export default function CaseForm({ today, staffName, cancelHref }: Props) {
                             type="button"
                             onClick={() => setPatientType("employee")}
                             className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${!isStudent
-                                ? "bg-[#15664f] text-white"
-                                : "text-gray-700 hover:bg-gray-50"
+                                ? "bg-amber-400 text-gray-900"
+                                : "text-gray-700 hover:bg-amber-500"
                                 }`}
                         >
                             Employee

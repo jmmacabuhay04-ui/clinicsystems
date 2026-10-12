@@ -163,8 +163,8 @@ export default async function StudentHealthFormPage({ searchParams }: Props) {
 
             <div className="no-print flex flex-wrap items-start justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-semibold text-gray-900">Student Health Form</h1>
-                    <p className="mt-1 text-gray-600">
+                    <h1 className="text-3xl font-semibold text-[#15664f]">Student Health Form</h1>
+                    <p className="mt-1 text-gray-700">
                         Student&apos;s Health Record — medical history, review of system, and consent.
                     </p>
                 </div>
@@ -203,6 +203,7 @@ export default async function StudentHealthFormPage({ searchParams }: Props) {
                         <input
                             name="q"
                             defaultValue={q}
+                            autoComplete="off"
                             placeholder="Search student..."
                             suppressHydrationWarning
                             className="h-10 w-full rounded-lg border border-gray-300 bg-white pl-9 pr-3 text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20"

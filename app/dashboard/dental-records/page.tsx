@@ -1,5 +1,6 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Archive, Briefcase, ClipboardPlus, GraduationCap, Pencil, Search } from "lucide-react";
+import { Archive, ArrowLeft, Briefcase, ClipboardPlus, GraduationCap, Pencil, Search } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { canManageDental } from "@/lib/permissions";
@@ -23,7 +24,7 @@ type DentalRow = {
 };
 
 type Props = {
-    searchParams: Promise<{ q?: string }>;
+    searchParams: Promise<{ q?: string; student?: string; employee?: string; view?: string }>;
 };
 
 function fmt(date: Date) {
@@ -44,26 +45,31 @@ function RecordTable({
     numberLabel,
     rows,
     canEdit,
+    subtitle,
 }: {
     title: string;
     icon: React.ReactNode;
     numberLabel: string;
     rows: DentalRow[];
     canEdit: boolean;
+    subtitle?: string;
 }) {
     return (
         <section>
-            <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold text-gray-900">
-                {icon}
-                {title} ({rows.length})
-            </h2>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <h2 className="flex items-center gap-2 text-lg font-semibold text-[#15664f]">
+                    {icon}
+                    {title} ({rows.length})
+                </h2>
+                {subtitle && <p className="text-sm text-gray-900">{subtitle}</p>}
+            </div>
             <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                 {rows.length === 0 ? (
-                    <p className="p-8 text-center text-sm text-gray-500">No records found.</p>
+                    <p className="p-8 text-center text-md text-gray-700">No records found.</p>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm">
-                            <thead className="bg-gray-50 text-gray-700">
+                            <thead className="bg-[#EEEEEE] text-[#15664f]">
                                 <tr>
                                     <th className="whitespace-nowrap px-4 py-3 font-medium">Date</th>
                                     <th className="whitespace-nowrap px-4 py-3 font-medium">{numberLabel}</th>
@@ -93,8 +99,8 @@ function RecordTable({
                                         <td className="px-4 py-3">
                                             <span
                                                 className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${d.status === "follow-up"
-                                                    ? "bg-yellow-100 text-yellow-800"
-                                                    : "bg-green-100 text-green-700"
+                                                    ? "bg-amber-300 text-white"
+                                                    : "bg-[#15664f]  text-white"
                                                     }`}
                                             >
                                                 {d.status === "follow-up" ? "Follow-up" : "Completed"}
@@ -150,6 +156,12 @@ export default async function DentalRecordsPage({ searchParams }: Props) {
     const q = (params.q ?? "").trim();
     const like = `%${q}%`;
 
+    // ?student=<no> or ?employee=<no> with ?view=history (from the dashboard
+    // View button) shows only that one person's dental records.
+    const patientKind = params.student ? "student" : params.employee ? "employee" : "";
+    const patientNumber = (params.student || params.employee || "").trim();
+    const historyOnly = (params.view ?? "") === "history" && patientNumber !== "";
+
     const records = await prisma.$queryRaw<DentalRow[]>`
     SELECT d.dental_id, d.visit_date, d.procedure_name, d.tooth, d.dentist_name, d.status,
            CASE WHEN d.employee_id IS NOT NULL THEN 'employee' ELSE 'student' END AS patient_type,
@@ -165,6 +177,10 @@ export default async function DentalRecordsPage({ searchParams }: Props) {
         OR COALESCE(s.last_name, e.last_name) ILIKE ${like}
         OR COALESCE(s.first_name, e.first_name) ILIKE ${like}
         OR d.procedure_name ILIKE ${like})
+      AND (${patientNumber}::text = ''
+        OR COALESCE(s.student_number, e.employee_number) = ${patientNumber})
+      AND (${patientKind}::text = ''
+        OR CASE WHEN d.employee_id IS NOT NULL THEN 'employee' ELSE 'student' END = ${patientKind})
     ORDER BY d.visit_date DESC, d.dental_id DESC
     LIMIT 300
   `;
@@ -172,10 +188,16 @@ export default async function DentalRecordsPage({ searchParams }: Props) {
     const studentRows = records.filter((r) => r.patient_type === "student");
     const employeeRows = records.filter((r) => r.patient_type === "employee");
 
+    const patientName = records[0]
+        ? `${records[0].last_name}, ${records[0].first_name} (${records[0].patient_number})`
+        : patientNumber;
+
     return (
         <main className="space-y-8 p-6 md:p-8">
             <div className="flex flex-wrap items-center justify-between gap-4">
-                <h1 className="text-3xl font-semibold text-gray-900">Dental Records</h1>
+                <div>
+                    <h1 className="text-3xl font-semibold text-[#15664f]">Dental Records</h1>
+                </div>
 
                 {canEdit ? (
                     <ConfirmLink
@@ -196,32 +218,51 @@ export default async function DentalRecordsPage({ searchParams }: Props) {
                 )}
             </div>
 
-            <form method="get" action={BASE} className="relative max-w-md">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                <input
-                    name="q"
-                    defaultValue={q}
-                    placeholder="Search by name, ID number, or procedure..."
-                    suppressHydrationWarning
-                    className="h-11 w-full rounded-lg border border-gray-300 bg-white pl-10 pr-3 text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20"
+            {historyOnly && (
+                <Link
+                    href="/dashboard"
+                    className="inline-flex items-center gap-1 text-sm font-medium text-[#15664f] hover:underline"
+                >
+                    <ArrowLeft className="h-4 w-4" />
+                    Back to dashboard
+                </Link>
+            )}
+
+            {!historyOnly && (
+                <form method="get" action={BASE} className="relative max-w-md">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                    <input
+                        name="q"
+                        defaultValue={q}
+                        autoComplete="off"
+                        placeholder="Search by name, ID number, or procedure..."
+                        suppressHydrationWarning
+                        className="h-11 w-full rounded-lg border border-gray-300 bg-white pl-10 pr-3 text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20"
+                    />
+                </form>
+            )}
+
+            {(!historyOnly || patientKind === "student") && (
+                <RecordTable
+                    title="Student Dental Records"
+                    icon={<GraduationCap className="h-5 w-5 text-[#15664f]" />}
+                    numberLabel="Student No."
+                    rows={studentRows}
+                    canEdit={canEdit}
+                    subtitle={historyOnly ? patientName : undefined}
                 />
-            </form>
+            )}
 
-            <RecordTable
-                title="Student Dental Records"
-                icon={<GraduationCap className="h-5 w-5 text-[#15664f]" />}
-                numberLabel="Student No."
-                rows={studentRows}
-                canEdit={canEdit}
-            />
-
-            <RecordTable
-                title="Employee Dental Records"
-                icon={<Briefcase className="h-5 w-5 text-[#15664f]" />}
-                numberLabel="Employee No."
-                rows={employeeRows}
-                canEdit={canEdit}
-            />
+            {(!historyOnly || patientKind === "employee") && (
+                <RecordTable
+                    title="Employee Dental Records"
+                    icon={<Briefcase className="h-5 w-5 text-[#15664f]" />}
+                    numberLabel="Employee No."
+                    rows={employeeRows}
+                    canEdit={canEdit}
+                    subtitle={historyOnly ? patientName : undefined}
+                />
+            )}
         </main>
     );
 }

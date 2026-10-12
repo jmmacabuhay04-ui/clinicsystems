@@ -62,7 +62,7 @@ type VisitItem = {
 };
 
 type Props = {
-    searchParams: Promise<{ q?: string; student?: string }>;
+    searchParams: Promise<{ q?: string; student?: string; view?: string }>;
 };
 
 const BASE = "/dashboard/student-health-records";
@@ -127,6 +127,8 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
     const params = await searchParams;
     const q = (params.q ?? "").trim();
     const selectedNumber = (params.student ?? "").trim();
+    // ?view=history (from the dashboard View button) shows only the Visit History table.
+    const historyOnly = (params.view ?? "") === "history";
 
     let selected: StudentRow | undefined;
     let results: StudentRow[] = [];
@@ -252,12 +254,12 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
         ? `${BASE}/new?student=${encodeURIComponent(selected.student_number)}`
         : `${BASE}/new`;
 
-    const backHref = q ? `${BASE}?q=${encodeURIComponent(q)}` : BASE;
+    const backHref = historyOnly ? "/dashboard" : q ? `${BASE}?q=${encodeURIComponent(q)}` : BASE;
 
     return (
         <main className="space-y-6 p-6 md:p-8">
             <div className="flex flex-wrap items-center justify-between gap-4">
-                <h1 className="text-3xl font-semibold text-gray-900">Student Health Records</h1>
+                <h1 className="text-3xl font-semibold text-[#15664f]">Student Health Records</h1>
                 {canEdit ? (
                     <div className="flex flex-wrap items-center gap-3">
                         {canAddStudent && !selected && (
@@ -302,6 +304,7 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
                     <input
                         name="q"
                         defaultValue={q}
+                        autoComplete="off"
                         placeholder="Search by student number or name..."
                         suppressHydrationWarning
                         className="h-11 w-full rounded-lg border border-gray-300 bg-white pl-10 pr-3 text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20"
@@ -322,11 +325,11 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
                     </div>
 
                     {results.length === 0 ? (
-                        <p className="p-8 text-center text-sm text-gray-500">No students found.</p>
+                        <p className="p-8 text-center text-sm text-gray-700">No students found.</p>
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm">
-                                <thead className="bg-gray-50 text-gray-700">
+                                <thead className="bg-[#EEEEEE] text-[#15664f]">
                                     <tr>
                                         <th className="whitespace-nowrap px-4 py-3 font-medium">Grade/Level</th>
                                         <th className="px-4 py-3 font-medium">Program</th>
@@ -382,66 +385,72 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
                             className="inline-flex items-center gap-1 text-sm font-medium text-[#15664f] hover:underline"
                         >
                             <ArrowLeft className="h-4 w-4" />
-                            Back to student list
+                            {historyOnly ? "Back to dashboard" : "Back to student list"}
                         </Link>
                     )}
 
-                    <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-                            {profile.map((item) => (
-                                <div key={item.label} className="min-w-0">
-                                    <p className="text-xs uppercase tracking-wide text-gray-500">{item.label}</p>
-                                    <p className="mt-1 break-words font-semibold text-gray-900">{item.value}</p>
+                    {!historyOnly && (
+                        <>
+                            <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+                                    {profile.map((item) => (
+                                        <div key={item.label} className="min-w-0">
+                                            <p className="text-xs uppercase tracking-wide text-gray-500">{item.label}</p>
+                                            <p className="mt-1 break-words font-semibold text-gray-900">{item.value}</p>
+                                        </div>
+                                    ))}
                                 </div>
-                            ))}
-                        </div>
 
-                        {canAddStudent && (
-                            <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-gray-100 pt-4">
-                                <ConfirmLink
-                                    href={`${BASE}/students/edit?student=${encodeURIComponent(selected.student_number)}`}
-                                    title="Edit student details"
-                                    message={`Edit the details of ${selected.first_name} ${selected.last_name} (${selected.student_number})? Changes will replace the current information.`}
-                                    confirmLabel="Edit"
-                                    className="inline-flex h-9 items-center gap-2 rounded-lg border border-[#15664f] bg-white px-4 text-sm font-medium text-[#15664f] hover:bg-[#eef6f2]"
-                                >
-                                    <Pencil className="h-4 w-4" />
-                                    Edit student details
-                                </ConfirmLink>
+                                {canAddStudent && (
+                                    <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-gray-100 pt-4">
+                                        <ConfirmLink
+                                            href={`${BASE}/students/edit?student=${encodeURIComponent(selected.student_number)}`}
+                                            title="Edit student details"
+                                            message={`Edit the details of ${selected.first_name} ${selected.last_name} (${selected.student_number})? Changes will replace the current information.`}
+                                            confirmLabel="Edit"
+                                            className="inline-flex h-9 items-center gap-2 rounded-lg border border-[#15664f] bg-white px-4 text-sm font-medium text-[#15664f] hover:bg-[#eef6f2]"
+                                        >
+                                            <Pencil className="h-4 w-4" />
+                                            Edit student details
+                                        </ConfirmLink>
 
-                                <form action={archiveStudent}>
-                                    <input type="hidden" name="studentId" value={selected.student_id} />
-                                    <ConfirmButton
-                                        title="Archive student"
-                                        confirmLabel="Archive"
-                                        message={`Archive ${selected.last_name}, ${selected.first_name} (${selected.student_number})? This student will be hidden from Student Health Records and moved to Archive Records. You can restore them later.`}
-                                        className="inline-flex h-9 items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 text-sm font-medium text-amber-800 hover:bg-amber-100"
-                                    >
-                                        <Archive className="h-4 w-4" />
-                                        Archive this student
-                                    </ConfirmButton>
-                                </form>
-                            </div>
-                        )}
-                    </section>
+                                        <form action={archiveStudent}>
+                                            <input type="hidden" name="studentId" value={selected.student_id} />
+                                            <ConfirmButton
+                                                title="Archive student"
+                                                confirmLabel="Archive"
+                                                message={`Archive ${selected.last_name}, ${selected.first_name} (${selected.student_number})? This student will be hidden from Student Health Records and moved to Archive Records. You can restore them later.`}
+                                                className="inline-flex h-9 items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 text-sm font-medium text-amber-800 hover:bg-amber-100"
+                                            >
+                                                <Archive className="h-4 w-4" />
+                                                Archive this student
+                                            </ConfirmButton>
+                                        </form>
+                                    </div>
+                                )}
+                            </section>
 
-                    <section>
-                        <h2 className="mb-3 text-lg font-semibold text-gray-900">Vital Signs</h2>
-                        <div className="grid gap-4 sm:grid-cols-3 xl:grid-cols-6">
-                            {vitals.map((v) => (
-                                <div key={v.label} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                                    <p className="text-sm text-gray-500">{v.label}</p>
-                                    <p className="mt-2 text-xl font-semibold text-gray-900">{v.value}</p>
+                            <section>
+                                <h2 className="mb-3 text-lg font-semibold text-gray-900">Vital Signs</h2>
+                                <div className="grid gap-4 sm:grid-cols-3 xl:grid-cols-6">
+                                    {vitals.map((v) => (
+                                        <div key={v.label} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                                            <p className="text-sm text-gray-500">{v.label}</p>
+                                            <p className="mt-2 text-xl font-semibold text-gray-900">{v.value}</p>
+                                        </div>
+                                    ))}
                                 </div>
-                            ))}
-                        </div>
-                    </section>
+                            </section>
+                        </>
+                    )}
 
                     <section>
                         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                            <h2 className="text-lg font-semibold text-gray-900">Visit History</h2>
-                            <p className="text-sm text-gray-500">
-                                Clinic visits and health case reports combined, newest first.
+                            <h2 className="text-lg font-semibold text-[#15664f]">Visit History</h2>
+                            <p className="text-sm text-gray-900">
+                                {historyOnly
+                                    ? `${selected.last_name}, ${selected.first_name} (${selected.student_number})`
+                                    : "Clinic visits and health case reports combined, newest first."}
                             </p>
                         </div>
                         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -452,7 +461,7 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
                             ) : (
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left text-sm">
-                                        <thead className="bg-gray-50 text-gray-700">
+                                        <thead className="bg-[#EEEEEE] text-[#15664f]">
                                             <tr>
                                                 <th className="whitespace-nowrap px-4 py-3 font-medium">Date</th>
                                                 <th className="whitespace-nowrap px-4 py-3 font-medium">Type</th>

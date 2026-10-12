@@ -46,7 +46,7 @@ export default async function NewDentalRecordPage() {
                 Back to Dental Records
             </Link>
 
-            <h1 className="text-3xl font-semibold text-gray-900">Add Dental Record</h1>
+            <h1 className="text-3xl font-semibold text-[#14532D]">Add Dental Record</h1>
 
             <DentalForm mode="create" record={empty} cancelHref={BASE} />
         </main>

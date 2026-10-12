@@ -45,10 +45,11 @@ export default async function UsersPage({ searchParams }: Props) {
     const notice = reset ? notices[reset] : null;
 
     return (
-        <main className="space-y-6 p-6 md:p-8">
-            <div className="space-y-6">
+        <main className="min-h-screen bg-muted p-6">
+            <div className="mx-auto max-w-6xl space-y-6">
                 <div className="flex items-center justify-between">
-                    <h1 className="text-3xl font-semibold text-gray-900">Manage Accounts</h1>
+                    <h1 className="text-3xl font-semibold text-[#15664f]">Manage Accounts</h1>
+
                 </div>
 
                 {notice && (

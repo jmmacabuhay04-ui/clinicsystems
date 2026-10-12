@@ -33,7 +33,7 @@ export default async function NewStudentPage() {
                 Back to Student Health Records
             </Link>
 
-            <h1 className="text-3xl font-semibold text-gray-900">Add Student</h1>
+            <h1 className="text-3xl font-semibold text-[#15664f]">Add Student</h1>
 
             <StudentForm mode="create" student={empty} cancelHref={BASE} />
         </main>

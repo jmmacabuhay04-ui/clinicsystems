@@ -70,7 +70,7 @@ export default function RecordForm({
 
             {isCreate && (
                 <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                    <h2 className="text-lg font-semibold text-gray-900">Employee</h2>
+                    <h2 className="text-lg font-semibold text-[#15664f]">Employee</h2>
                     <div className="mt-4 grid gap-4 md:grid-cols-3">
                         <Field label="Employee Number *">
                             <input
@@ -105,16 +105,16 @@ export default function RecordForm({
                             </select>
                         </Field>
                     </div>
-                    <p className="mt-3 text-sm text-gray-500">
+                    <p className="mt-3 text-sm text-gray-700">
                         Leave date of birth and gender blank to keep the employee&apos;s current details.
                     </p>
                 </section>
             )}
 
             <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-gray-900">Visit Details</h2>
+                <h2 className="text-lg font-semibold text-[#15664f]">Visit Details</h2>
                 {!isCreate && (
-                    <p className="mt-1 text-sm text-gray-600">
+                    <p className="mt-1 text-sm text-gray-700">
                         {employeeName} · {v.employeeNumber}
                     </p>
                 )}
@@ -174,7 +174,7 @@ export default function RecordForm({
             </section>
 
             <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-gray-900">Vital Signs</h2>
+                <h2 className="text-lg font-semibold text-[#15664f]">Vital Signs</h2>
                 <div className="mt-4 grid gap-4 md:grid-cols-4">
                     <Field label="Height (cm)">
                         <input

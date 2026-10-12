@@ -59,7 +59,7 @@ export default function EmployeeForm({
             {mode === "edit" && <input type="hidden" name="employeeId" value={employeeId} />}
 
             <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-gray-900">Employee Details</h2>
+                <h2 className="text-lg font-semibold text-[#15664f]">Employee Details</h2>
                 <div className="mt-4 grid gap-4 md:grid-cols-3">
                     <Field label="Employee Number *">
                         <input
@@ -170,8 +170,8 @@ export default function EmployeeForm({
             </section>
 
             <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-gray-900">Employee Portal Login</h2>
-                <p className="mt-1 text-xs text-gray-500">
+                <h2 className="text-lg font-semibold text-[#15664f]">Employee Portal Login</h2>
+                <p className="mt-1 text-xs text-gray-700">
                     {mode === "create"
                         ? "The employee signs in with their employee number and this password."
                         : "Leave blank to keep the current password."}

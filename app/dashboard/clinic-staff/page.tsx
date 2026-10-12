@@ -41,8 +41,8 @@ export default async function ClinicStaffPage() {
         <main className="space-y-6 p-6 md:p-8">
             <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-semibold text-gray-900">Clinic Staff</h1>
-                    <p className="mt-1 text-gray-600">Manage clinic personnel and their roles.</p>
+                    <h1 className="text-3xl font-semibold text-[#15664f]">Clinic Staff</h1>
+                    <p className="mt-1 text-gray-700">Manage clinic personnel and their roles.</p>
                 </div>
 
                 {canEdit ? (
@@ -65,11 +65,11 @@ export default async function ClinicStaffPage() {
 
             <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                 {staff.length === 0 ? (
-                    <p className="p-8 text-center text-sm text-gray-500">No clinic staff recorded yet.</p>
+                    <p className="p-8 text-center text-sm text-gray-700">No clinic staff recorded yet.</p>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm">
-                            <thead className="bg-gray-50 text-gray-700">
+                            <thead className="bg-[#EEEEEE] text-[#15664f]">
                                 <tr>
                                     <th className="px-4 py-3 font-medium">Name</th>
                                     <th className="px-4 py-3 font-medium">Role</th>

@@ -59,7 +59,7 @@ export default function StudentForm({ mode, student, cancelHref }: Props) {
             {mode === "edit" && <input type="hidden" name="studentId" value={studentId} />}
 
             <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-gray-900">Student Details</h2>
+                <h2 className="text-lg font-semibold text-[#15664f]">Student Details</h2>
                 <div className="mt-4 grid gap-4 md:grid-cols-3">
                     <Field label="Student Number *">
                         <input
@@ -170,8 +170,8 @@ export default function StudentForm({ mode, student, cancelHref }: Props) {
             </section>
 
             <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-gray-900">Student Portal Login</h2>
-                <p className="mt-1 text-xs text-gray-500">
+                <h2 className="text-lg font-semibold text-[#15664f]">Student Portal Login</h2>
+                <p className="mt-1 text-xs text-gray-700">
                     {mode === "create"
                         ? "The student signs in with their student number and this password."
                         : "Leave blank to keep the current password."}

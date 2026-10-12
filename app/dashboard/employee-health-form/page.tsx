@@ -197,8 +197,8 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
 
             <div className="no-print flex flex-wrap items-start justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-semibold text-gray-900">Employee Health Form</h1>
-                    <p className="mt-1 text-gray-600">
+                    <h1 className="text-3xl font-semibold text-[#15664f]">Employee Health Form</h1>
+                    <p className="mt-1 text-gray-700">
                         Employee&apos;s Health Record — medical history and medical examination.
                     </p>
                 </div>
@@ -237,6 +237,7 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
                         <input
                             name="q"
                             defaultValue={q}
+                            autoComplete="off"
                             placeholder="Search employee..."
                             suppressHydrationWarning
                             className="h-10 w-full rounded-lg border border-gray-300 bg-white pl-9 pr-3 text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20"
@@ -272,7 +273,7 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
                 <section className="space-y-6">
                     {!selected && (
                         <div className="rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center">
-                            <p className="text-gray-500">Select an employee on the left to view the form.</p>
+                            <p className="text-gray-700">Select an employee on the left to view the form.</p>
                         </div>
                     )}
 
@@ -280,7 +281,7 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
                         <>
                             <PrintHeader />
                             <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                                <h2 className="text-center text-lg font-bold uppercase tracking-wide text-gray-900">
+                                <h2 className="text-center text-lg font-bold uppercase tracking-wide text-[#15664f]">
                                     Employee&apos;s Health Record
                                 </h2>
                                 <div className="mt-5 grid gap-x-8 gap-y-2 md:grid-cols-2">

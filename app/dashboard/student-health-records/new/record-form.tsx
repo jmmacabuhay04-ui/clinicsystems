@@ -36,7 +36,7 @@ export default function RecordForm({ studentNumber, today, staffName, cancelHref
             )}
 
             <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-gray-900">Student</h2>
+                <h2 className="text-lg font-semibold text-[#15664f]">Student</h2>
                 <div className="mt-4 grid gap-4 md:grid-cols-3">
                     <Field label="Student Number *">
                         <input
@@ -70,13 +70,13 @@ export default function RecordForm({ studentNumber, today, staffName, cancelHref
                         </select>
                     </Field>
                 </div>
-                <p className="mt-3 text-xs text-gray-500">
+                <p className="mt-3 text-sm text-gray-700">
                     Leave date of birth and gender blank to keep the student&apos;s current details.
                 </p>
             </section>
 
             <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-gray-900">Visit Details</h2>
+                <h2 className="text-lg font-semibold text-[#15664f]">Visit Details</h2>
                 <div className="mt-4 grid gap-4 md:grid-cols-2">
                     <Field label="Visit Date *">
                         <input
@@ -123,8 +123,8 @@ export default function RecordForm({ studentNumber, today, staffName, cancelHref
             </section>
 
             <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-gray-900">Vital Signs</h2>
-                <p className="mt-1 text-xs text-gray-500">All optional. Fill in only what was measured.</p>
+                <h2 className="text-lg font-semibold text-[#15664f]">Vital Signs</h2>
+                <p className="mt-1 text-sm text-gray-700">All optional. Fill in only what was measured.</p>
                 <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
                     <Field label="Height (cm)">
                         <input name="height" type="number" step="0.1" defaultValue={v.height ?? ""} placeholder="165" suppressHydrationWarning className={inputClass} />

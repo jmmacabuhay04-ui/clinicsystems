@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { verifyAndReset, type VerifyState } from "./actions";
+import PasswordInput from "@/components/password-input";
 
 const initialState: VerifyState = {};
 
@@ -60,16 +61,14 @@ export default function VerifyForm({ email }: { email: string }) {
                 <label htmlFor="password" className="block text-sm font-semibold text-gray-700">
                     New Password
                 </label>
-                <input
+                <PasswordInput
                     id="password"
                     name="password"
-                    type="password"
                     placeholder="At least 8 characters"
                     autoComplete="new-password"
-                    minLength={8}
                     required
-                    suppressHydrationWarning
-                    className={inputClass}
+                    minLength={8}
+                    className="h-11 w-full rounded-lg border border-gray-300 pl-3 text-gray-900 outline-none focus:border-[#0d6e56] focus:ring-2 focus:ring-[#0d6e56]/20"
                 />
             </div>
 
@@ -77,16 +76,14 @@ export default function VerifyForm({ email }: { email: string }) {
                 <label htmlFor="confirm" className="block text-sm font-semibold text-gray-700">
                     Confirm New Password
                 </label>
-                <input
+                <PasswordInput
                     id="confirm"
                     name="confirm"
-                    type="password"
                     placeholder="Re-enter your new password"
                     autoComplete="new-password"
-                    minLength={8}
                     required
-                    suppressHydrationWarning
-                    className={inputClass}
+                    minLength={8}
+                    className="h-11 w-full rounded-lg border border-gray-300 pl-3 text-gray-900 outline-none focus:border-[#0d6e56] focus:ring-2 focus:ring-[#0d6e56]/20"
                 />
             </div>
 

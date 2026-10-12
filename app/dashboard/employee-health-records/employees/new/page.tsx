@@ -33,7 +33,7 @@ export default async function NewEmployeePage() {
                 Back to Employee Health Records
             </Link>
 
-            <h1 className="text-3xl font-semibold text-gray-900">Add Employee</h1>
+            <h1 className="text-3xl font-semibold text-[#15664f]">Add Employee</h1>
 
             <EmployeeForm mode="create" employee={empty} cancelHref={BASE} />
         </main>

@@ -28,6 +28,7 @@ import { logout } from "@/app/login/actions";
 import ConfirmSubmit from "@/components/confirm-submit";
 
 
+
 type NavItem = {
     href: string;
     label: string;
@@ -44,17 +45,17 @@ const navItems: NavItem[] = [
     { href: "/dashboard/employee-health-form", label: "Employee Health Form", icon: Briefcase, roles: ["admin", "doctor", "nurse"] },
     { href: "/dashboard/dental-records", label: "Dental Records", icon: Stethoscope, roles: ["admin", "dentist", "nurse"] },
     { href: "/dashboard/dental-health-form", label: "Dental Health Form", icon: ClipboardList, roles: ["admin", "dentist", "nurse"] },
-    { href: "/dashboard/health-case-reports", label: "Health Case Reports", icon: ClipboardList, roles: ["admin", "doctor", "nurse"] },
-    { href: "/dashboard/visitor-recording", label: "Visitor Recording", icon: Users, roles: ["admin", "nurse"] },
-    { href: "/dashboard/referral-slips", label: "Referral Slips", icon: FileCheck, roles: ["admin", "doctor", "nurse", "dentist"] },
-    { href: "/dashboard/illness-alerts", label: "Illness Alerts", icon: Activity, roles: ["admin", "doctor", "nurse"] },
+    { href: "/dashboard/health-case-reports", label: "Health Case Reports", icon: ClipboardList, roles: ["admin", "nurse", "doctor"] },
+    { href: "/dashboard/illness-alerts", label: "Illness Alerts", icon: Activity, roles: ["admin", "nurse", "doctor"] },
+    { href: "/dashboard/visitor-recording", label: "Visitor Recording", icon: Users, roles: ["admin", "nurse", "doctor", "dentist"] },
+    { href: "/dashboard/referral-slips", label: "Referral Slips", icon: FileCheck, roles: ["admin", "nurse", "dentist", "doctor"] },
     { href: "/dashboard/archive-records", label: "Archive Records", icon: Archive, roles: ["admin", "nurse"] },
     { href: "/dashboard/clinic-staff", label: "Clinic Staff", icon: UserCog, roles: ["nurse", "admin"] },
     { href: "/dashboard/users", label: "User Management", icon: ShieldCheck, roles: ["admin", "ittech"] },
     { href: "/dashboard/password-requests", label: "Password Requests", icon: KeyRound, roles: ["nurse"] },
     { href: "/dashboard/access-logs", label: "Access Logs", icon: ScrollText, roles: ["admin", "ittech"] },
-    { href: "/dashboard/walk-in-reset", label: "Walk-in Reset", icon: UserCheck, roles: ["nurse",] },
-    { href: "/dashboard/settings", label: "Settings", icon: Settings },
+    { href: "/dashboard/walk-in-reset", label: "Walk-in Reset", icon: UserCheck, roles: ["nurse"] },
+    { href: "/dashboard/settings", label: "Settings", icon: Settings, },
 
 ];
 
@@ -167,13 +168,17 @@ export default function AdminSidebar({ username, role }: Props) {
                                 href={item.href}
                                 title={item.label}
                                 onClick={() => setMobileOpen(false)}
-                                className={`flex items-center gap-3.5 border-r-4 border-transparent px-5 py-3 text-[0.95rem] transition-colors ${collapsed ? "md:justify-center md:px-0" : ""
+                                className={`group mb-1 flex items-center gap-3.5 rounded-lg px-4 py-3 text-[0.95rem] transition-colors ${collapsed ? "md:justify-center md:px-0" : ""
                                     } ${active
-                                        ? "bg-amber-400 hover:bg-amber-500 font-semibold "
-                                        : "text-white/150 "
+                                        ? "bg-amber-400 font-semibold text-gray-900"
+                                        : "text-white hover:bg-amber-400 hover:font-semibold hover:text-gray-900"
                                     }`}
                             >
-                                <Icon className="h-5 w-5 shrink-0" strokeWidth={1.8} />
+                                <Icon
+                                    className={`h-5 w-5 shrink-0 ${active ? "text-[#14532D]" : "group-hover:text-[#14532D]"
+                                        }`}
+                                    strokeWidth={1.8}
+                                />
                                 <span className={`truncate ${collapsed ? "md:hidden" : ""}`}>{item.label}</span>
                             </Link>
                         );

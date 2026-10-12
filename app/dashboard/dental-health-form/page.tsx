@@ -157,9 +157,9 @@ export default async function DentalHealthFormPage({ searchParams }: Props) {
 
             <div className="no-print flex flex-wrap items-start justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-semibold text-gray-900">Dental Health Form</h1>
+                    <h1 className="text-3xl font-semibold text-[#15664f]">Dental Health Form</h1>
 
-                    <p className="mt-1 text-gray-600">
+                    <p className="mt-1 text-gray-700">
                         Student&apos;s Dental Health Record — tooth chart, findings, and treatment needed.
                     </p>
 
@@ -204,6 +204,7 @@ export default async function DentalHealthFormPage({ searchParams }: Props) {
                         <input
                             name="q"
                             defaultValue={q}
+                            autoComplete="off"
                             placeholder="Search student..."
                             suppressHydrationWarning
                             className="h-10 w-full rounded-lg border border-gray-300 bg-white pl-9 pr-3 text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20"

@@ -9,7 +9,7 @@ export const ROLE_LABELS: Record<string, string> = {
 
 /** Nurses and doctors maintain clinic records: create, edit, archive. */
 export function canManageRecords(role: string) {
-    return role === "nurse" || role === "doctor";
+    return role === "nurse" || role === "doctor" || role === "dentist";
 }
 
 /** Dentists and nurses maintain dental records. */
@@ -33,11 +33,8 @@ export function isViewOnly(role: string) {
 /** Admins and nurses manage clinic personnel records. */
 export const canManageStaff = (role: string) => role === "nurse";
 
-
-
-// Pagkatapos: may edit ang nurse at dentist, view-only ang admin
 export function canManageDentalForm(role: string) {
-    return role === "nurse" || role === "dentist";
+    return role === "dentist" || role === "nurse";
 }
 export function canViewClinicData(role: string) {
     return role !== "ittech";

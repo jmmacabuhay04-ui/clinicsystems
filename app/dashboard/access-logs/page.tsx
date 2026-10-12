@@ -70,11 +70,11 @@ export default async function AccessLogsPage() {
     const actors = new Set(logs.map((l) => l.actor_name ?? l.actor_id)).size;
 
     return (
-        <div className="min-h-screen ">
+        <div className="min-h-screen bg-[#EEEEEE]">
             <div className="mx-auto max-w-7xl space-y-4 p-6">
                 <div>
-                    <h1 className="text-2xl font-semibold text-gray-900">Record Access Logs</h1>
-                    <p className="mt-1 text-sm text-gray-600">
+                    <h1 className="text-2xl font-semibold text-[#15664f]">Record Access Logs</h1>
+                    <p className="mt-1 text-sm text-gray-700">
                         A trail of every health record viewed or changed. Entries cannot be edited
                         or deleted from within the system.
                     </p>
@@ -82,28 +82,28 @@ export default async function AccessLogsPage() {
 
                 <div className="grid gap-3 sm:grid-cols-4">
                     <div className="rounded-lg border border-gray-200 bg-white p-4">
-                        <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                        <p className="text-xs font-medium uppercase tracking-wide text-[#15664f]">
                             Total Entries
                         </p>
-                        <p className="mt-1 text-2xl font-semibold text-gray-900">{logs.length}</p>
+                        <p className="mt-1 text-2xl font-semibold text-[#15664f]">{logs.length}</p>
                     </div>
                     <div className="rounded-lg border border-gray-200 bg-white p-4">
-                        <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                        <p className="text-xs font-medium uppercase tracking-wide text-[#15664f]">
                             Today
                         </p>
-                        <p className="mt-1 text-2xl font-semibold text-gray-900">{todayCount}</p>
+                        <p className="mt-1 text-2xl font-semibold text-[#15664f]">{todayCount}</p>
                     </div>
                     <div className="rounded-lg border border-gray-200 bg-white p-4">
-                        <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                        <p className="text-xs font-medium uppercase tracking-wide text-[#15664f]">
                             Views
                         </p>
-                        <p className="mt-1 text-2xl font-semibold text-gray-900">{viewCount}</p>
+                        <p className="mt-1 text-2xl font-semibold text-[#15664f]">{viewCount}</p>
                     </div>
                     <div className="rounded-lg border border-gray-200 bg-white p-4">
-                        <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                        <p className="text-xs font-medium uppercase tracking-wide text-[#15664f]">
                             Users
                         </p>
-                        <p className="mt-1 text-2xl font-semibold text-gray-900">{actors}</p>
+                        <p className="mt-1 text-2xl font-semibold text-[#15664f]">{actors}</p>
                     </div>
                 </div>
 

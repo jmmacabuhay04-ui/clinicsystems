@@ -54,9 +54,9 @@ export default async function VisitorRecordingPage() {
   `;
 
     return (
-        <main className="space-y-6 p-6 md:p-8 ">
+        <main className="space-y-6 p-6 md:p-8">
             <div className="flex flex-wrap items-center justify-between gap-4">
-                <h1 className="text-3xl font-semibold text-gray-900">Visitor Recording</h1>
+                <h1 className="text-3xl font-semibold text-[#15664f]">Visitor Recording</h1>
                 {!canEdit && (
                     <span className="rounded-full bg-gray-200 px-3 py-1 text-xs font-medium text-gray-600">
                         View only
@@ -72,14 +72,14 @@ export default async function VisitorRecordingPage() {
 
                     {canEdit && (
                         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                            <h2 className="mb-5 text-lg font-semibold text-gray-900">Visitor Check-In</h2>
+                            <h2 className="mb-5 text-lg font-semibold text-[#15664f]">Visitor Check-In</h2>
                             <VisitorForm today={today} timeNow={timeNow} />
                         </div>
                     )}
                 </div>
 
                 <div>
-                    <h2 className="mb-3 text-lg font-semibold text-gray-900">
+                    <h2 className="mb-3 text-lg font-semibold text-[#15664f]">
                         Today&apos;s Visitors ({visitors.length})
                     </h2>
                     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -88,7 +88,7 @@ export default async function VisitorRecordingPage() {
                         ) : (
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left text-sm">
-                                    <thead className="bg-gray-50 text-gray-700">
+                                    <thead className="bg-[#EEEEEE] text-[#15664f]">
                                         <tr>
                                             <th className="px-4 py-3 font-medium">Name</th>
                                             <th className="px-4 py-3 font-medium">Purpose</th>
