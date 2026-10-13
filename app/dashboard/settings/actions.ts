@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getSession, createSession } from "@/lib/session";
+import { validatePasswordStrength } from "@/lib/password-policy";
 
 const BASE = "/dashboard/settings";
 
@@ -22,7 +23,8 @@ export async function changePassword(
     const confirm = String(formData.get("confirm") ?? "");
 
     if (!current || !next || !confirm) return { error: "All password fields are required." };
-    if (next.length < 8) return { error: "New password must be at least 8 characters." };
+    const weak = validatePasswordStrength(next);
+    if (weak) return { error: weak };
     if (next !== confirm) return { error: "New passwords do not match." };
     if (next === current) return { error: "New password must be different from the current one." };
 

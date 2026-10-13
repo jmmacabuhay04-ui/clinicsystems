@@ -9,7 +9,7 @@ const IT_TECH_ALLOWED = [
 ];
 
 // Session expires after this many minutes of inactivity
-const IDLE_MINUTES = 30;
+const DEFAULT_IDLE_MINUTES = 30;
 
 type Renew = { cookie: string; payload: Record<string, unknown> } | null;
 
@@ -75,17 +75,21 @@ export async function proxy(req: NextRequest) {
     // Sliding session: every page visit extends the session
     if (renew) {
         try {
-            const { exp, iat, ...payload } = renew.payload;
+            const { exp, iat, sm, ...payload } = renew.payload;
             void exp;
             void iat;
 
-            const token = await signToken(payload as never, IDLE_MINUTES);
+            // Keep the lifetime the session was created with (user setting).
+            const minutes =
+                typeof sm === "number" && sm >= 5 && sm <= 480 ? sm : DEFAULT_IDLE_MINUTES;
+
+            const token = await signToken(payload as never, minutes);
             res.cookies.set(renew.cookie, token, {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === "production",
                 sameSite: "lax",
                 path: "/",
-                maxAge: IDLE_MINUTES * 60,
+                maxAge: minutes * 60,
             });
         } catch (err) {
             console.error("Session renew error:", err);

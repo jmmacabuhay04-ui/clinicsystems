@@ -9,7 +9,7 @@ import PasswordInput from "@/components/password-input";
 
 const initialState: CreateUserState = {};
 
-export default function UserForm() {
+export default function UserForm({ canCreatePrivileged = false }: { canCreatePrivileged?: boolean }) {
     const [state, formAction, pending] = useActionState(createUser, initialState);
 
     return (
@@ -60,11 +60,11 @@ export default function UserForm() {
                     suppressHydrationWarning
                     className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                    <option value="admin">Admin</option>
+                    {canCreatePrivileged && <option value="admin">Admin</option>}
                     <option value="doctor">Doctor</option>
                     <option value="dentist">Dentist</option>
                     <option value="nurse">Nurse</option>
-                    <option value="ittech">IT Tech</option>
+                    {canCreatePrivileged && <option value="ittech">IT Tech</option>}
                 </select>
             </div>
 

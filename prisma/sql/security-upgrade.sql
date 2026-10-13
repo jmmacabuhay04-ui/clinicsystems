@@ -63,8 +63,11 @@ ALTER TABLE users     ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN NOT 
 
 -- Bawat existing account na ginawa ng nurse ay dapat magpalit.
 -- I-comment out ang dalawang linyang ito kung ayaw mo pang ipilit sa lahat.
-UPDATE students  SET must_change_password = TRUE WHERE must_change_password = FALSE;
-UPDATE employees SET must_change_password = TRUE WHERE must_change_password = FALSE;
+-- WARNING: this forces EVERY account to change password again each time the
+-- file is run. Left commented out so re-running the script stays safe.
+-- Uncomment only for the very first rollout.
+-- UPDATE students  SET must_change_password = TRUE WHERE must_change_password = FALSE;
+-- UPDATE employees SET must_change_password = TRUE WHERE must_change_password = FALSE;
 
 
 -- ------------------------------------------------------------

@@ -323,12 +323,20 @@ export async function deleteEmployee(formData: FormData) {
         );
     }
 
-    await prisma.$executeRaw`
-    DELETE FROM employees
+    // health_case_reports.employee_id has no foreign key, so remove those
+    // rows too, in the same transaction, instead of leaving orphaned data.
+    const eligible = await prisma.$queryRaw<{ employee_id: number }[]>`
+    SELECT employee_id FROM employees
     WHERE employee_id = ${employeeId}
       AND archived_at IS NOT NULL
       AND archived_at < NOW() - (${RETENTION_YEARS} || ' years')::interval
   `;
+    if (eligible.length === 0) return;
+
+    await prisma.$transaction([
+        prisma.$executeRaw`DELETE FROM health_case_reports WHERE employee_id = ${employeeId}`,
+        prisma.$executeRaw`DELETE FROM employees WHERE employee_id = ${employeeId}`,
+    ]);
 
     await logAccess(
         actorOf(session),

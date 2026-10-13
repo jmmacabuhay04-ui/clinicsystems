@@ -11,6 +11,7 @@ import {
     recordLoginFailure,
     clearLoginFailures,
     LOCK_MINUTES,
+    DUMMY_HASH,
 } from "@/lib/login-guard";
 
 export type StudentLoginState = { error?: string };
@@ -97,7 +98,7 @@ export async function studentLogin(
         return { error: "Something went wrong. Please try again later." };
     }
 
-    const valid = student ? await bcrypt.compare(password, student.password) : false;
+    const valid = (await bcrypt.compare(password, student?.password ?? DUMMY_HASH)) && !!student;
 
     if (!student || !valid) {
         const left = await recordLoginFailure(studentNumber, ip);

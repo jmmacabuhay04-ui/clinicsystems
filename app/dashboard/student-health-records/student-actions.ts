@@ -93,12 +93,26 @@ export async function deleteStudent(formData: FormData) {
     );
   }
 
-  await prisma.$executeRaw`
-    DELETE FROM students
+  // dental_records, health_case_reports and referral_slips have no foreign
+  // key to students, so they would survive as orphaned health data. Remove
+  // them in the same transaction, and only when the student itself qualifies.
+  const eligible = prisma.$queryRaw<{ student_id: number }[]>`
+    SELECT student_id FROM students
     WHERE student_id = ${studentId}
       AND archived_at IS NOT NULL
       AND archived_at < NOW() - (${RETENTION_YEARS} || ' years')::interval
   `;
+  if ((await eligible).length === 0) {
+    refresh();
+    return;
+  }
+
+  await prisma.$transaction([
+    prisma.$executeRaw`DELETE FROM dental_records WHERE student_id = ${studentId}`,
+    prisma.$executeRaw`DELETE FROM health_case_reports WHERE student_id = ${studentId}`,
+    prisma.$executeRaw`DELETE FROM referral_slips WHERE student_id = ${studentId}`,
+    prisma.$executeRaw`DELETE FROM students WHERE student_id = ${studentId}`,
+  ]);
 
   await logAccess(
     { userId: Number(session.userId), role: session.role, name: String(session.username ?? "") },

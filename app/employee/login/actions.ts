@@ -11,6 +11,7 @@ import {
     recordLoginFailure,
     clearLoginFailures,
     LOCK_MINUTES,
+    DUMMY_HASH,
 } from "@/lib/login-guard";
 
 export type EmployeeLoginState = { error?: string };
@@ -89,7 +90,7 @@ export async function employeeLogin(
     LIMIT 1
   `;
     const employee = rows[0];
-    const valid = employee ? await bcrypt.compare(password, employee.password) : false;
+    const valid = (await bcrypt.compare(password, employee?.password ?? DUMMY_HASH)) && !!employee;
 
     if (!employee || !valid) {
         const left = await recordLoginFailure(employeeNumber, ip);

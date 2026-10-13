@@ -104,7 +104,7 @@ export async function deleteStaff(formData: FormData) {
     const staffId = Number(formData.get("staffId"));
     if (!staffId) return;
 
-    await prisma.$executeRaw`DELETE FROM clinic_staff WHERE staff_id = ${staffId}`;
+    await prisma.$executeRaw`DELETE FROM clinic_staff WHERE staff_id = ${staffId} AND archived_at IS NOT NULL`;
 
     revalidatePath(BASE);
 }

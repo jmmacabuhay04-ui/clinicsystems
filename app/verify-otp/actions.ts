@@ -3,6 +3,13 @@
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { validatePasswordStrength } from "@/lib/password-policy";
+import {
+    getClientIp,
+    checkLoginAllowed,
+    recordLoginFailure,
+    clearLoginFailures,
+} from "@/lib/login-guard";
 
 export type VerifyState = { error?: string; success?: string };
 
@@ -22,12 +29,24 @@ export async function verifyAndReset(
 
     if (!email || !code) return { error: "Enter the code sent to your email." };
     if (!/^\d{6}$/.test(code)) return { error: "The code must be 6 digits." };
-    if (password.length < 8) return { error: "Password must be at least 8 characters." };
+    const weak = validatePasswordStrength(password);
+    if (weak) return { error: weak };
     if (password !== confirm) return { error: "Passwords do not match." };
+
+    // Rate limit OTP guesses per email and per IP. A 6-digit code can be
+    // brute-forced in minutes without this. The "otp:" prefix keeps these
+    // counters apart from the normal login counters.
+    const guardKey = `otp:${email}`;
+    const ip = await getClientIp();
+    const guard = await checkLoginAllowed(guardKey, ip);
+    if (guard.blocked) return { error: guard.message };
 
     try {
         const user = await prisma.user.findUnique({ where: { username: email } });
-        if (!user) return { error: "Invalid code. Please request a new one." };
+        if (!user) {
+            await recordLoginFailure(guardKey, ip);
+            return { error: "Invalid code. Please request a new one." };
+        }
 
         const codeHash = crypto.createHash("sha256").update(code).digest("hex");
 
@@ -40,7 +59,10 @@ export async function verifyAndReset(
     `;
         const record = rows[0];
 
-        if (!record) return { error: "Invalid code. Please check and try again." };
+        if (!record) {
+            await recordLoginFailure(guardKey, ip);
+            return { error: "Invalid code. Please check and try again." };
+        }
         if (new Date(record.expires_at) < new Date()) {
             return { error: "This code has expired. Please request a new one." };
         }
@@ -56,6 +78,7 @@ export async function verifyAndReset(
         UPDATE password_reset_tokens SET used_at = NOW() WHERE id = ${record.id}
       `,
         ]);
+        await clearLoginFailures(guardKey, ip);
     } catch (err) {
         console.error("Verify OTP error:", err);
         return { error: "Something went wrong. Please try again." };
