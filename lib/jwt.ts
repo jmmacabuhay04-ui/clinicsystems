@@ -5,6 +5,9 @@ export type SessionPayload = {
     username: string;
     role: string;
     mustChangePassword?: boolean;
+    // Lifetime (minutes) this session was issued with. proxy.ts reuses it
+    // when it renews the token, so the user's chosen auto-logout time sticks.
+    sm?: number;
 };
 
 // Only ever used by `next dev`. Never a fallback anywhere else: it is
@@ -44,7 +47,7 @@ function getKey() {
 }
 
 export async function signToken(payload: SessionPayload, minutes = 30) {
-    return new SignJWT(payload)
+    return new SignJWT({ ...payload, sm: minutes })
         .setProtectedHeader({ alg: "HS256" })
         .setIssuedAt()
         .setExpirationTime(`${minutes}m`)

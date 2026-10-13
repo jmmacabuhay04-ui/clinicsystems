@@ -46,6 +46,12 @@ export async function createUser(
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "Enter a valid email address." };
     if (!ROLES.includes(role)) return { error: "Invalid role." };
 
+    // IT Tech has no access to clinical data by design. Letting it create an
+    // admin (or another IT Tech) would be a way around that separation.
+    if (session.role === "ittech" && (role === "admin" || role === "ittech")) {
+        return { error: "IT Tech can only create clinical staff accounts." };
+    }
+
     // Staff accounts can read every health record, so the policy matters most here.
     const passwordError = checkPassword(formData, password);
     if (passwordError) return { error: passwordError };

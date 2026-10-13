@@ -1,4 +1,6 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
+import { prisma } from "@/lib/prisma";
 import { signToken, verifyToken } from "@/lib/jwt";
 
 const EMPLOYEE_COOKIE = "employee_session";
@@ -34,6 +36,16 @@ export async function createEmployeeSession(
     });
 }
 
+// An archived or deleted employee must lose access immediately.
+const isActiveEmployee = cache(async (employeeId: number) => {
+    const rows = await prisma.$queryRaw<{ ok: number }[]>`
+        SELECT 1 AS ok FROM employees
+        WHERE employee_id = ${employeeId} AND archived_at IS NULL
+        LIMIT 1
+    `;
+    return rows.length > 0;
+});
+
 export async function getEmployeeSession(): Promise<EmployeeSession | null> {
     try {
         const store = await cookies();
@@ -42,6 +54,7 @@ export async function getEmployeeSession(): Promise<EmployeeSession | null> {
 
         const payload = (await verifyToken(token)) as unknown as EmployeeSession | null;
         if (!payload || payload.role !== "employee") return null;
+        if (!(await isActiveEmployee(Number(payload.employeeId)))) return null;
         return payload;
     } catch {
         return null;

@@ -15,6 +15,11 @@
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 
+// Real bcrypt hash of a random throwaway string. Compared against when the
+// account does not exist, so response time does not reveal valid usernames.
+export const DUMMY_HASH =
+    "$2b$12$P7iZ8Zqif8PWBJA1xvTxne1qQ12TYHwwQdsPMvakff0mbjBFNyizW";
+
 export const MAX_USER_ATTEMPTS = 5;
 export const MAX_IP_ATTEMPTS = 10;
 export const LOCK_MINUTES = 15;

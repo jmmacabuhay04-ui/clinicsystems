@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { canManageRecords } from "@/lib/permissions";
+import { logAccess } from "@/lib/access-log";
 
 function refresh() {
   revalidatePath("/dashboard/student-health-records");
@@ -51,8 +52,16 @@ export async function deleteRecord(formData: FormData) {
   if (!recordId) return;
 
   await prisma.$executeRaw`
-    DELETE FROM health_records WHERE record_id = ${recordId}
+    DELETE FROM health_records WHERE record_id = ${recordId} AND archived_at IS NOT NULL
   `;
+
+  await logAccess(
+    { userId: Number(session.userId), role: session.role, name: String(session.username ?? "") },
+    "visit",
+    null,
+    "delete",
+    `Deleted archived visit record #${recordId}.`,
+  );
 
   refresh();
 }

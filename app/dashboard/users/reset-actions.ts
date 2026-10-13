@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { canCreateAccounts } from "@/lib/permissions";
 import { sendMail } from "@/lib/mailer";
+import { validatePasswordStrength } from "@/lib/password-policy";
 
 const MAX_ATTEMPTS = 5;
 type ResetRow = { id: number; new_password_hash: string; otp_hash: string; attempts: number };
@@ -18,7 +19,7 @@ export async function resetUserPassword(formData: FormData) {
 
   const userId = Number(formData.get("userId"));
   const password = String(formData.get("password") ?? "");
-  if (!userId || password.length < 8) return;
+  if (!userId || validatePasswordStrength(password)) return;
 
   const rows = await prisma.$queryRaw<{ email: string }[]>`
         SELECT username AS email FROM users WHERE user_id = ${userId}

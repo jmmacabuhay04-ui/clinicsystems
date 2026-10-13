@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
-import { canManageRecords } from "@/lib/permissions";
+import { canManageStudents } from "@/lib/permissions";
 import { validatePasswordStrength } from "@/lib/password-policy";
 
 export type StudentState = {
@@ -86,7 +86,7 @@ export async function createStudent(
 
     const session = await getSession();
     if (!session) return fail("Your session has expired. Please sign in again.");
-    if (!canManageRecords(session.role)) return fail("Only nurses can create student accounts.");
+    if (!canManageStudents(session.role)) return fail("Only nurses can create student accounts.");
 
     const problem = validate(values, true);
     if (problem) return fail(problem);
@@ -149,7 +149,7 @@ export async function updateStudent(
 
     const session = await getSession();
     if (!session) return fail("Your session has expired. Please sign in again.");
-    if (!canManageRecords(session.role)) return fail("Only nurses can edit student accounts.");
+    if (!canManageStudents(session.role)) return fail("Only nurses can edit student accounts.");
 
     const studentId = Number(get("studentId"));
     if (!studentId) return fail("Invalid student.");

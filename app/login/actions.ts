@@ -11,6 +11,7 @@ import {
     recordLoginFailure,
     clearLoginFailures,
     LOCK_MINUTES,
+    DUMMY_HASH,
 } from "@/lib/login-guard";
 
 export type LoginState = { error?: string } | undefined;
@@ -71,7 +72,7 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
     }
 
     const user = await prisma.user.findUnique({ where: { username: email } });
-    const valid = user ? await bcrypt.compare(password, user.password) : false;
+    const valid = (await bcrypt.compare(password, user?.password ?? DUMMY_HASH)) && !!user;
 
     if (!user || !valid) {
         const left = await recordLoginFailure(email, ip);

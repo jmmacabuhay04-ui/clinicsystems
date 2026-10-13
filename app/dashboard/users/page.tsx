@@ -78,7 +78,7 @@ export default async function UsersPage({ searchParams }: Props) {
                             <CardTitle>New Account</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <UserForm />
+                            <UserForm canCreatePrivileged={session.role === "admin"} />
                         </CardContent>
                     </Card>
 
