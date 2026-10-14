@@ -62,11 +62,12 @@ type VisitItem = {
 };
 
 type Props = {
-    searchParams: Promise<{ q?: string; student?: string; view?: string }>;
+    searchParams: Promise<{ q?: string; student?: string; view?: string; page?: string }>;
 };
 
 const BASE = "/dashboard/student-health-records";
 const CASES = "/dashboard/health-case-reports";
+const PAGE_SIZE = 10;
 
 const STATUS_STYLES: Record<string, string> = {
     pending: "bg-yellow-100 text-yellow-800",
@@ -88,15 +89,38 @@ function show(value: number | string | null | undefined, unit = "") {
     return value === null || value === undefined || value === "" ? "—" : `${value}${unit}`;
 }
 
-async function searchStudents(q: string) {
+async function countStudents(q: string): Promise<number> {
+    if (!q) {
+        const rows = await prisma.$queryRaw<{ count: bigint }[]>`
+      SELECT COUNT(*) AS count FROM students WHERE archived_at IS NULL
+    `;
+        return Number(rows[0]?.count ?? 0);
+    }
+
+    const like = `%${q}%`;
+    const rows = await prisma.$queryRaw<{ count: bigint }[]>`
+    SELECT COUNT(*) AS count
+    FROM students
+    WHERE archived_at IS NULL
+      AND (student_number ILIKE ${like}
+        OR last_name ILIKE ${like}
+        OR first_name ILIKE ${like}
+        OR middle_name ILIKE ${like}
+        OR (first_name || ' ' || last_name) ILIKE ${like}
+        OR (last_name || ', ' || first_name) ILIKE ${like})
+  `;
+    return Number(rows[0]?.count ?? 0);
+}
+
+async function searchStudents(q: string, limit: number, offset: number) {
     if (!q) {
         return prisma.$queryRaw<StudentRow[]>`
       SELECT student_id, student_number, last_name, first_name, middle_name,
              grade_level, program, date_of_birth, gender, contact_number, email
       FROM students
       WHERE archived_at IS NULL
-        ORDER BY student_number ASC
-      LIMIT 20
+      ORDER BY student_number ASC
+      LIMIT ${limit} OFFSET ${offset}
     `;
     }
 
@@ -113,7 +137,7 @@ async function searchStudents(q: string) {
         OR (first_name || ' ' || last_name) ILIKE ${like}
         OR (last_name || ', ' || first_name) ILIKE ${like})
     ORDER BY last_name, first_name
-    LIMIT 50
+    LIMIT ${limit} OFFSET ${offset}
   `;
 }
 
@@ -129,9 +153,13 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
     const selectedNumber = (params.student ?? "").trim();
     // ?view=history (from the dashboard View button) shows only the Visit History table.
     const historyOnly = (params.view ?? "") === "history";
+    const requestedPage = Math.max(1, parseInt(params.page ?? "1", 10) || 1);
 
     let selected: StudentRow | undefined;
     let results: StudentRow[] = [];
+    let totalResults = 0;
+    let totalPages = 1;
+    let currentPage = 1;
 
     if (selectedNumber) {
         const rows = await prisma.$queryRaw<StudentRow[]>`
@@ -143,7 +171,28 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
     `;
         selected = rows[0];
     } else {
-        results = await searchStudents(q);
+        totalResults = await countStudents(q);
+        totalPages = Math.max(1, Math.ceil(totalResults / PAGE_SIZE));
+        currentPage = Math.min(requestedPage, totalPages);
+        results = await searchStudents(q, PAGE_SIZE, (currentPage - 1) * PAGE_SIZE);
+    }
+
+    const pageHref = (p: number) => {
+        const sp = new URLSearchParams();
+        if (q) sp.set("q", q);
+        if (p > 1) sp.set("page", String(p));
+        const qs = sp.toString();
+        return qs ? `${BASE}?${qs}` : BASE;
+    };
+
+    // Page numbers with ellipsis, e.g. 1 … 4 5 6 … 12
+    const pageItems: (number | "…")[] = [];
+    for (let p = 1; p <= totalPages; p++) {
+        if (p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1) {
+            pageItems.push(p);
+        } else if (pageItems[pageItems.length - 1] !== "…") {
+            pageItems.push("…");
+        }
     }
 
     const records = selected
@@ -254,7 +303,15 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
         ? `${BASE}/new?student=${encodeURIComponent(selected.student_number)}`
         : `${BASE}/new`;
 
-    const backHref = historyOnly ? "/dashboard" : q ? `${BASE}?q=${encodeURIComponent(q)}` : BASE;
+    const backHref = historyOnly
+        ? "/dashboard"
+        : (() => {
+            const sp = new URLSearchParams();
+            if (q) sp.set("q", q);
+            if (requestedPage > 1) sp.set("page", String(requestedPage));
+            const qs = sp.toString();
+            return qs ? `${BASE}?${qs}` : BASE;
+        })();
 
     return (
         <main className="space-y-6 p-6 md:p-8">
@@ -327,52 +384,115 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
                     {results.length === 0 ? (
                         <p className="p-8 text-center text-sm text-gray-700">No students found.</p>
                     ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left text-sm">
-                                <thead className="bg-[#EEEEEE] text-[#15664f]">
-                                    <tr>
-                                        <th className="whitespace-nowrap px-4 py-3 font-medium">Grade/Level</th>
-                                        <th className="px-4 py-3 font-medium">Program</th>
-                                        <th className="whitespace-nowrap px-4 py-3 font-medium">Student Number</th>
-                                        <th className="whitespace-nowrap px-4 py-3 font-medium">Last Name</th>
-                                        <th className="whitespace-nowrap px-4 py-3 font-medium">First Name</th>
-                                        <th className="whitespace-nowrap px-4 py-3 font-medium">Middle Name</th>
-                                        <th className="whitespace-nowrap px-4 py-3 font-medium">Contact Number</th>
-                                        <th className="px-4 py-3 font-medium">Email</th>
-                                        <th className="px-4 py-3 font-medium">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {results.map((s) => (
-                                        <tr key={s.student_id} className="border-t border-gray-100">
-                                            <td className="px-4 py-3 text-gray-600">{show(s.grade_level)}</td>
-                                            <td className="px-4 py-3 text-gray-600">{show(s.program)}</td>
-                                            <td className="px-4 py-3 font-medium text-gray-900">{s.student_number}</td>
-                                            <td className="px-4 py-3 text-gray-900">{s.last_name}</td>
-                                            <td className="px-4 py-3 text-gray-900">{s.first_name}</td>
-                                            <td className="px-4 py-3 text-gray-900">{show(s.middle_name)}</td>
-                                            <td className="whitespace-nowrap px-4 py-3 text-gray-700">
-                                                {show(s.contact_number)}
-                                            </td>
-                                            <td className="px-4 py-3 text-gray-700">{show(s.email)}</td>
-                                            <td className="whitespace-nowrap px-4 py-3">
-                                                <div className="flex items-center gap-3">
-                                                    <ConfirmLink
-                                                        href={`${BASE}?student=${encodeURIComponent(s.student_number)}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
-                                                        title="View health record"
-                                                        message={`Open the health record of ${s.first_name} ${s.last_name} (${s.student_number})? This contains confidential medical information and your access will be recorded.`}
-                                                        className="font-medium text-[#15664f] hover:underline"
-                                                    >
-                                                        View record
-                                                    </ConfirmLink>
-
-                                                </div>
-                                            </td>
+                        <>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left text-sm">
+                                    <thead className="bg-[#EEEEEE] text-[#15664f]">
+                                        <tr>
+                                            <th className="whitespace-nowrap px-4 py-3 font-medium">Grade/Level</th>
+                                            <th className="px-4 py-3 font-medium">Program</th>
+                                            <th className="whitespace-nowrap px-4 py-3 font-medium">Student Number</th>
+                                            <th className="whitespace-nowrap px-4 py-3 font-medium">Last Name</th>
+                                            <th className="whitespace-nowrap px-4 py-3 font-medium">First Name</th>
+                                            <th className="whitespace-nowrap px-4 py-3 font-medium">Middle Name</th>
+                                            <th className="whitespace-nowrap px-4 py-3 font-medium">Contact Number</th>
+                                            <th className="px-4 py-3 font-medium">Email</th>
+                                            <th className="px-4 py-3 font-medium">Actions</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                                    </thead>
+                                    <tbody>
+                                        {results.map((s) => (
+                                            <tr key={s.student_id} className="border-t border-gray-100">
+                                                <td className="px-4 py-3 text-gray-600">{show(s.grade_level)}</td>
+                                                <td className="px-4 py-3 text-gray-600">{show(s.program)}</td>
+                                                <td className="px-4 py-3 font-medium text-gray-900">{s.student_number}</td>
+                                                <td className="px-4 py-3 text-gray-900">{s.last_name}</td>
+                                                <td className="px-4 py-3 text-gray-900">{s.first_name}</td>
+                                                <td className="px-4 py-3 text-gray-900">{show(s.middle_name)}</td>
+                                                <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                                                    {show(s.contact_number)}
+                                                </td>
+                                                <td className="px-4 py-3 text-gray-700">{show(s.email)}</td>
+                                                <td className="whitespace-nowrap px-4 py-3">
+                                                    <div className="flex items-center gap-3">
+                                                        <ConfirmLink
+                                                            href={`${BASE}?student=${encodeURIComponent(s.student_number)}${q ? `&q=${encodeURIComponent(q)}` : ""}${currentPage > 1 ? `&page=${currentPage}` : ""}`}
+                                                            title="View health record"
+                                                            message={`Open the health record of ${s.first_name} ${s.last_name} (${s.student_number})? This contains confidential medical information and your access will be recorded.`}
+                                                            className="font-medium text-[#15664f] hover:underline"
+                                                        >
+                                                            View record
+                                                        </ConfirmLink>
+
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 px-4 py-3 text-sm text-gray-600">
+                                <p>
+                                    Showing {(currentPage - 1) * PAGE_SIZE + 1}–
+                                    {(currentPage - 1) * PAGE_SIZE + results.length} of {totalResults}
+                                </p>
+
+                                {totalPages > 1 && (
+                                    <nav className="flex items-center gap-1" aria-label="Pagination">
+                                        {currentPage > 1 ? (
+                                            <Link
+                                                href={pageHref(currentPage - 1)}
+                                                className="rounded-lg border border-gray-300 px-3 py-1.5 font-medium text-[#15664f] hover:bg-[#eef6f2]"
+                                            >
+                                                Previous
+                                            </Link>
+                                        ) : (
+                                            <span className="rounded-lg border border-gray-200 px-3 py-1.5 text-gray-400">
+                                                Previous
+                                            </span>
+                                        )}
+
+                                        {pageItems.map((item, i) =>
+                                            item === "…" ? (
+                                                <span key={`gap-${i}`} className="px-2 text-gray-400">
+                                                    …
+                                                </span>
+                                            ) : item === currentPage ? (
+                                                <span
+                                                    key={item}
+                                                    aria-current="page"
+                                                    className="rounded-lg bg-[#15664f] px-3 py-1.5 font-semibold text-white"
+                                                >
+                                                    {item}
+                                                </span>
+                                            ) : (
+                                                <Link
+                                                    key={item}
+                                                    href={pageHref(item)}
+                                                    className="rounded-lg border border-gray-300 px-3 py-1.5 font-medium text-gray-700 hover:bg-[#eef6f2]"
+                                                >
+                                                    {item}
+                                                </Link>
+                                            )
+                                        )}
+
+                                        {currentPage < totalPages ? (
+                                            <Link
+                                                href={pageHref(currentPage + 1)}
+                                                className="rounded-lg border border-gray-300 px-3 py-1.5 font-medium text-[#15664f] hover:bg-[#eef6f2]"
+                                            >
+                                                Next
+                                            </Link>
+                                        ) : (
+                                            <span className="rounded-lg border border-gray-200 px-3 py-1.5 text-gray-400">
+                                                Next
+                                            </span>
+                                        )}
+                                    </nav>
+                                )}
+                            </div>
+                        </>
                     )}
                 </section>
             )}

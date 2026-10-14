@@ -105,12 +105,12 @@ export default function AdminSidebar({ username, role }: Props) {
 
     return (
         <aside
-            className={`flex w-full shrink-0 flex-col bg-[#14532D] text-white transition-[width] duration-200 md:sticky md:top-0 md:h-screen ${collapsed ? "md:w-20" : "md:w-72"
+            className={`flex w-full shrink-0 flex-col bg-[#14532D] text-white transition-[width] duration-200 md:sticky md:top-0 md:h-screen ${collapsed ? "md:w-16" : "md:w-60"
                 }`}
         >
             {/* Header: logo + menu button */}
             <div
-                className={`relative flex items-center justify-center border-b border-white/10 px-4 py-6 ${collapsed ? "md:px-2 md:py-4" : ""
+                className={`relative flex items-center justify-center border-b border-white/10 px-4 py-4 ${collapsed ? "md:px-2 md:py-3" : ""
                     }`}
             >
                 <Link
@@ -123,9 +123,9 @@ export default function AdminSidebar({ username, role }: Props) {
                     <img
                         src="/bcas.jpg"
                         alt="BCAS"
-                        className="h-20 w-20 rounded-full bg-white object-contain"
+                        className="h-14 w-14 rounded-full bg-white object-contain"
                     />
-                    <p className="text-base font-semibold uppercase tracking-wider text-white/90">
+                    <p className="text-sm font-semibold uppercase tracking-wider text-white/90">
                         BCAS Clinic
                     </p>
                 </Link>
@@ -135,9 +135,9 @@ export default function AdminSidebar({ username, role }: Props) {
                     type="button"
                     onClick={() => setMobileOpen((o) => !o)}
                     aria-label={mobileOpen ? "Close menu" : "Open menu"}
-                    className="absolute right-3 top-3 rounded-lg p-2 hover:bg-white/10 md:hidden"
+                    className="absolute right-2 top-2 rounded-lg p-1.5 hover:bg-white/10 md:hidden"
                 >
-                    {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+                    {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
                 </button>
 
                 {/* Desktop: collapse/expand */}
@@ -148,17 +148,17 @@ export default function AdminSidebar({ username, role }: Props) {
                     onClick={toggleCollapsed}
                     aria-label={collapsed ? "Expand menu" : "Collapse menu"}
                     title={collapsed ? "Expand menu" : "Collapse menu"}
-                    className={`hidden rounded-lg p-2  hover:bg-amber-500  md:inline-flex ${collapsed ? "" : "md:absolute md:right-3 md:top-3"
+                    className={`hidden rounded-lg p-1.5  hover:bg-amber-500  md:inline-flex ${collapsed ? "" : "md:absolute md:right-2 md:top-2"
                         }`}
                 >
-                    <Menu className="h-6 w-6" />
+                    <Menu className="h-5 w-5" />
                 </button>
             </div>
 
             {/* Body: hidden on phone until menu is opened */}
             <div className={`${mobileOpen ? "flex" : "hidden"} min-h-0 flex-1 flex-col md:flex`}>
                 {/* Menu */}
-                <nav className="no-scrollbar flex-1 overflow-y-auto py-3">
+                <nav className="no-scrollbar flex-1 overflow-y-auto px-2 py-2">
                     {visibleItems.map((item) => {
                         const Icon = item.icon;
                         const active = isActive(item.href);
@@ -168,14 +168,14 @@ export default function AdminSidebar({ username, role }: Props) {
                                 href={item.href}
                                 title={item.label}
                                 onClick={() => setMobileOpen(false)}
-                                className={`group mb-1 flex items-center gap-3.5 rounded-lg px-4 py-3 text-[0.95rem] transition-colors ${collapsed ? "md:justify-center md:px-0" : ""
+                                className={`group mb-0.5 flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${collapsed ? "md:justify-center md:px-0" : ""
                                     } ${active
                                         ? "bg-amber-400 font-semibold text-gray-900"
                                         : "text-white hover:bg-amber-400 hover:font-semibold hover:text-gray-900"
                                     }`}
                             >
                                 <Icon
-                                    className={`h-5 w-5 shrink-0 ${active ? "text-[#14532D]" : "group-hover:text-[#14532D]"
+                                    className={`h-[18px] w-[18px] shrink-0 ${active ? "text-[#14532D]" : "group-hover:text-[#14532D]"
                                         }`}
                                     strokeWidth={1.8}
                                 />
@@ -185,23 +185,23 @@ export default function AdminSidebar({ username, role }: Props) {
                     })}
                 </nav>
 
-                <div className={`border-t border-white/10 px-5 py-4 ${collapsed ? "md:px-2" : ""}`}>
+                <div className={`border-t border-white/10 px-4 py-3 ${collapsed ? "md:px-2" : ""}`}>
                     <div
                         className={`flex items-center gap-3 ${collapsed ? "md:flex-col md:justify-center" : ""
                             }`}
                     >
                         <div
                             aria-hidden="true"
-                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20 text-base font-semibold"
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/20 text-sm font-semibold"
                         >
                             {username.charAt(0).toUpperCase()}
                         </div>
 
                         <div className={`min-w-0 flex-1 ${collapsed ? "md:hidden" : ""}`}>
-                            <p className="truncate text-base font-semibold" title={username}>
+                            <p className="truncate text-sm font-semibold" title={username}>
                                 {displayName}
                             </p>
-                            <span className="mt-1 inline-block rounded bg-white/20 px-2 py-0.5 text-xs font-medium">
+                            <span className="mt-0.5 inline-block rounded bg-white/20 px-2 py-0.5 text-xs font-medium">
                                 {roleLabels[role] ?? role}
                             </span>
                         </div>
@@ -211,9 +211,9 @@ export default function AdminSidebar({ username, role }: Props) {
                                 title="Sign out"
                                 message="Are you sure you want to sign out?"
                                 confirmLabel="Sign out"
-                                className="flex h-10 w-10 items-center justify-center rounded-lg text-white/90 hover:bg-amber-500"
+                                className="flex h-9 w-9 items-center justify-center rounded-lg text-white/90 hover:bg-amber-500"
                             >
-                                <LogOut className="h-5 w-5" strokeWidth={1.8} />
+                                <LogOut className="h-[18px] w-[18px]" strokeWidth={1.8} />
                                 <span className="sr-only">Sign out</span>
                             </ConfirmSubmit>
                         </form>

@@ -85,46 +85,47 @@ function RecentTable({
 }) {
     return (
         <div>
-            <h2 className="mb-3 text-lg font-semibold text-[#14532D]">{title}</h2>
+            <h2 className="mb-2 text-base font-semibold text-[#14532D]">{title}</h2>
             <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                 {rows.length === 0 ? (
-                    <p className="p-8 text-center text-md text-gray-700">{empty}</p>
+                    <p className="p-5 text-center text-sm text-gray-700">{empty}</p>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm">
                             <thead className="bg-[#EEEEEE] text-[#15664f]">
                                 <tr>
-                                    <th className="px-3 py-3 font-medium">Name</th>
-                                    <th className="px-3 py-3 font-medium">{detailLabel}</th>
-                                    <th className="px-3 py-3 font-medium">Type</th>
-                                    <th className="whitespace-nowrap px-3 py-3 font-medium">Date</th>
-                                    <th className="px-3 py-3 text-center font-medium">Action</th>
+                                    <th className="px-3 py-2 font-medium">Name</th>
+                                    <th className="px-3 py-2 font-medium">{detailLabel}</th>
+                                    <th className="px-3 py-2 font-medium">Type</th>
+                                    <th className="whitespace-nowrap px-3 py-2 font-medium">Date</th>
+                                    <th className="px-3 py-2 text-center font-medium">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {rows.map((r) => (
                                     <tr key={r.key} className="border-t border-gray-100">
-                                        <td className="px-3 py-3 font-medium text-gray-900">{r.name}</td>
-                                        <td className="px-3 py-3 text-gray-700">{r.detail}</td>
-                                        <td className="px-3 py-3">
+                                        <td className="px-3 py-2 font-medium text-gray-900">{r.name}</td>
+                                        <td className="px-3 py-2 text-gray-700">{r.detail}</td>
+                                        <td className="px-3 py-2">
                                             <span
                                                 className={`inline-block whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ${r.type === "employee"
-                                                    ? "bg-amber-100 text-amber-800"
-                                                    : "bg-[#dff1ea] text-[#15664f]"
+                                                    ? "bg-amber-300 text-gray-900"
+                                                    : "bg-[#15664f] text-white"
+
                                                     }`}
                                             >
                                                 {r.type === "employee" ? "Employee" : "Student"}
                                             </span>
                                         </td>
-                                        <td className="whitespace-nowrap px-3 py-3 text-gray-700">
+                                        <td className="whitespace-nowrap px-3 py-2 text-gray-700">
                                             {formatVisitDate(r.date)}
                                         </td>
-                                        <td className="px-3 py-3 text-center">
+                                        <td className="px-3 py-2 text-center">
                                             <ConfirmLink
                                                 href={r.href}
                                                 title={viewTitle}
                                                 message={r.message}
-                                                className="inline-block rounded-md bg-[#15664f] px-4 py-1.5 text-xs font-medium text-white hover:bg-[#124f3d]"
+                                                className="inline-block rounded-md bg-[#15664f] px-3 py-1 text-xs font-medium text-white hover:bg-[#124f3d]"
                                             >
                                                 View
                                             </ConfirmLink>
@@ -225,26 +226,26 @@ function QuickActionsSection({
 }) {
     return (
         <div className={className}>
-            <h2 className="mb-3 text-lg font-semibold text-[#14532D]">Quick Actions</h2>
-            <div className="space-y-3">
+            <h2 className="mb-2 text-base font-semibold text-[#14532D]">Quick Actions</h2>
+            <div className="space-y-2">
                 {actions.map((a) => {
                     const Icon = a.icon;
                     return (
                         <Link
                             key={a.label}
                             href={a.href}
-                            className={`flex items-center gap-4 rounded-xl border p-4 shadow-sm transition hover:shadow-md ${a.cardClass}`}
+                            className={`flex items-center gap-3 rounded-xl border p-3 shadow-sm transition hover:shadow-md ${a.cardClass}`}
                         >
                             <div
-                                className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-xl text-white ${a.iconClass}`}
+                                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white ${a.iconClass}`}
                             >
-                                <Icon className="h-7 w-7" strokeWidth={1.8} />
+                                <Icon className="h-5 w-5" strokeWidth={1.8} />
                             </div>
                             <div className="min-w-0 flex-1">
-                                <p className="text-base font-semibold text-gray-900">{a.label}</p>
-                                <p className="text-sm text-gray-700">{a.description}</p>
+                                <p className="text-sm font-semibold text-gray-900">{a.label}</p>
+                                <p className="text-xs text-gray-700">{a.description}</p>
                             </div>
-                            <ChevronRight className="h-5 w-5 shrink-0 text-gray-600" />
+                            <ChevronRight className="h-4 w-4 shrink-0 text-gray-600" />
                         </Link>
                     );
                 })}
@@ -520,29 +521,28 @@ export default async function DashboardPage() {
     ];
 
     return (
-        <main className="space-y-8 p-6 md:p-8 ">
+        <main className="min-w-0 space-y-5 p-4 md:p-6">
             <div>
-                <h1 className="text-3xl font-semibold text-[#15664f] ">Dashboard</h1>
-                <p className="mt-1 text-gray-700">Welcome back! Here&apos;s what&apos;s happening today.</p>
+                <h1 className="text-2xl font-semibold text-[#15664f]">Dashboard</h1>
+                <p className="mt-0.5 text-sm text-gray-700">Welcome back! Here&apos;s what&apos;s happening today.</p>
             </div>
-
-            <section className={`grid gap-4 sm:grid-cols-2 lg:grid-cols-3 ${gridCols}`}>
+            <section className={`grid gap-3 sm:grid-cols-2 lg:grid-cols-3 ${gridCols}`}>
                 {stats.map((stat) => {
                     const Icon = stat.icon;
                     return (
                         <div
                             key={stat.label}
-                            className="flex h-full flex-col rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
+                            className="flex h-full min-w-0 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white p-3 shadow-sm"
                         >
-                            <div className="flex items-start justify-between gap-3">
-                                <p className="min-h-[3rem] text-base leading-6 text-[#15664f]">
+                            <div className="flex items-start justify-between gap-2">
+                                <p className="min-h-[2rem] min-w-0 flex-1 break-words text-xs leading-4 text-[#15664f]">
                                     {stat.label}
                                 </p>
-                                <div className="shrink-0 rounded-lg bg-[#dff1ea] p-2.5 text-[#15664f]">
-                                    <Icon className="h-6 w-6" strokeWidth={1.8} />
+                                <div className="shrink-0 rounded-lg bg-[#dff1ea] p-1.5 text-[#15664f]">
+                                    <Icon className="h-4 w-4" strokeWidth={1.8} />
                                 </div>
                             </div>
-                            <p className="mt-auto pt-2 text-3xl font-semibold text-[#15664f]">
+                            <p className="mt-auto pt-1 text-2xl font-semibold text-[#15664f]">
                                 {stat.value.toLocaleString("en-US")}
                             </p>
                         </div>
@@ -550,9 +550,9 @@ export default async function DashboardPage() {
                 })}
             </section>
 
-            <section className="grid gap-6 xl:grid-cols-5">
+            <section className="grid gap-4 xl:grid-cols-5">
                 {/* Lists on the left, Quick Actions on the right (same layout for every role) */}
-                <div className="space-y-6 xl:col-span-3">
+                <div className="space-y-4 xl:col-span-3">
                     {!isDentist && (
                         <VisitList
                             title="Today's Clinic Visits"

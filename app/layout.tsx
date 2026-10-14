@@ -21,6 +21,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
+      // Base font size ng buong app. Lahat ng Tailwind sizes (text, padding,
+      // width, atbp.) ay nakabase sa rem, kaya ito lang ang papalitan para
+      // lumaki o lumiit ang lahat. 100% = default (16px).
+      style={{ fontSize: "85%" }}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>

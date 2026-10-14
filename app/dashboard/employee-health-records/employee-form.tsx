@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { createEmployee, updateEmployee, type EmployeeState } from "./employee-actions";
+import BirthdateField from "@/components/birthdate-field";
 
 const initialState: EmployeeState = {};
 
@@ -121,15 +122,12 @@ export default function EmployeeForm({
                             className={inputClass}
                         />
                     </Field>
-                    <Field label="Date of Birth">
-                        <input
-                            name="dateOfBirth"
-                            type="date"
-                            defaultValue={v.dateOfBirth}
-                            suppressHydrationWarning
-                            className={inputClass}
-                        />
-                    </Field>
+
+                    <BirthdateField
+                        name="dateOfBirth"
+                        defaultValue={v.dateOfBirth}
+                        inputClass={inputClass}
+                    />
                     <Field label="Gender">
                         <select
                             name="gender"

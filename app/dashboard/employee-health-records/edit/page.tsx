@@ -4,7 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { canManageRecords } from "@/lib/permissions";
-import RecordForm, { type RecordValues } from "../../record-form";
+import RecordForm, { type RecordValues } from "../record-form"; 
 
 const BASE = "/dashboard/employee-health-records";
 

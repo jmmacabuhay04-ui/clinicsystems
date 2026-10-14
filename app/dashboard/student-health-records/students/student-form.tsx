@@ -5,6 +5,8 @@ import { createStudent, updateStudent, type StudentState } from "./actions";
 import PasswordInput from "@/components/password-input";
 import ConfirmSubmit from "@/components/confirm-submit";
 import ConfirmLink from "@/components/confirm-link";
+import BirthdateField from "@/components/birthdate-field";
+
 
 const initialState: StudentState = {};
 
@@ -121,15 +123,11 @@ export default function StudentForm({ mode, student, cancelHref }: Props) {
                             className={inputClass}
                         />
                     </Field>
-                    <Field label="Date of Birth">
-                        <input
-                            name="dateOfBirth"
-                            type="date"
-                            defaultValue={v.dateOfBirth}
-                            suppressHydrationWarning
-                            className={inputClass}
-                        />
-                    </Field>
+                    <BirthdateField
+                        name="dateOfBirth"
+                        defaultValue={v.dateOfBirth}
+                        inputClass={inputClass}
+                    />
                     <Field label="Gender">
                         <select
                             name="gender"

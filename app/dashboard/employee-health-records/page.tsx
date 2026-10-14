@@ -283,8 +283,9 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
                             <ConfirmLink
                                 href={
                                     selected
-                                        ? `${BASE}/records/new?employee=${encodeURIComponent(selected.employee_number)}`
-                                        : `${BASE}/records/new`
+                                        ? `${BASE}/new?employee=${encodeURIComponent(selected.employee_number)}`
+                                        : `${BASE}/new`
+
                                 }
                                 title="Add a new visit record?"
                                 message={
@@ -307,324 +308,336 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
                 )}
             </div>
 
-            {!selected && (
-                <form method="get" action={BASE} className="relative max-w-md">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                    <input
-                        name="q"
-                        defaultValue={q}
-                        placeholder="Search by employee number or name..."
-                        suppressHydrationWarning
-                        className="h-11 w-full rounded-lg border border-gray-300 bg-white pl-10 pr-3 text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20"
-                    />
-                </form>
-            )}
-            {!selected && (
-                <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                    <p className="border-b border-gray-100 px-4 py-3 text-sm text-gray-600">
-                        {q ? `Search results for “${q}”` : "Recently registered employees"}
-                    </p>
+            {
+                !selected && (
+                    <form method="get" action={BASE} className="relative max-w-md">
+                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                        <input
+                            name="q"
+                            defaultValue={q}
+                            placeholder="Search by employee number or name..."
+                            suppressHydrationWarning
+                            className="h-11 w-full rounded-lg border border-gray-300 bg-white pl-10 pr-3 text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20"
+                        />
+                    </form>
+                )
+            }
+            {
+                !selected && (
+                    <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                        <p className="border-b border-gray-100 px-4 py-3 text-sm text-gray-600">
+                            {q ? `Search results for “${q}”` : "Recently registered employees"}
+                        </p>
 
-                    {employees.length === 0 ? (
-                        <p className="p-8 text-center text-sm text-gray-500">No employees found.</p>
-                    ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left text-sm">
-                                <thead className="bg-[#EEEEEE] text-[#15664f]">
-                                    <tr>
+                        {employees.length === 0 ? (
+                            <p className="p-8 text-center text-sm text-gray-500">No employees found.</p>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left text-sm">
+                                    <thead className="bg-[#EEEEEE] text-[#15664f]">
+                                        <tr>
 
-                                        <th className="px-4 py-3 font-medium">Department</th>
-                                        <th className="px-4 py-3 font-medium">Position</th>
-                                        <th className="whitespace-nowrap px-4 py-3 font-medium">Employee Number</th>
-                                        <th className="whitespace-nowrap px-4 py-3 font-medium">Last Name</th>
-                                        <th className="whitespace-nowrap px-4 py-3 font-medium">First Name</th>
-                                        <th className="whitespace-nowrap px-4 py-3 font-medium">Middle Name</th>
-                                        <th className="whitespace-nowrap px-4 py-3 font-medium">Contact Number</th>
-                                        <th className="px-4 py-3 font-medium">Email</th>
-                                        <th className="px-4 py-3 font-medium">Actions</th>
+                                            <th className="px-4 py-3 font-medium">Department</th>
+                                            <th className="px-4 py-3 font-medium">Position</th>
+                                            <th className="whitespace-nowrap px-4 py-3 font-medium">Employee Number</th>
+                                            <th className="whitespace-nowrap px-4 py-3 font-medium">Last Name</th>
+                                            <th className="whitespace-nowrap px-4 py-3 font-medium">First Name</th>
+                                            <th className="whitespace-nowrap px-4 py-3 font-medium">Middle Name</th>
+                                            <th className="whitespace-nowrap px-4 py-3 font-medium">Contact Number</th>
+                                            <th className="px-4 py-3 font-medium">Email</th>
+                                            <th className="px-4 py-3 font-medium">Actions</th>
 
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {employees.map((e) => (
-                                        <tr key={e.employee_id} className="border-t border-gray-100">
-                                            <td className="px-4 py-3 text-gray-600">{e.department ?? "—"}</td>
-                                            <td className="px-4 py-3 text-gray-600">{e.position ?? "—"}</td>
-                                            <td className="whitespace-nowrap px-4 py-3 font-semibold text-gray-900">
-                                                {e.employee_number}
-                                            </td>
-                                            <td className="px-4 py-3 text-gray-900">{e.last_name}</td>
-                                            <td className="px-4 py-3 text-gray-900">{e.first_name}</td>
-                                            <td className="px-4 py-3 text-gray-900">{e.middle_name ?? "—"}</td>
-                                            <td className="whitespace-nowrap px-4 py-3 text-gray-700">
-                                                {e.contact_number ?? "—"}
-                                            </td>
-                                            <td className="px-4 py-3 text-gray-700">{e.email ?? "—"}</td>
-                                            <td className="whitespace-nowrap px-4 py-3">
-                                                <ConfirmLink
-                                                    href={`${BASE}?employee=${encodeURIComponent(e.employee_number)}${q ? `&q=${encodeURIComponent(q)}` : ""}&page=${page}`}
-                                                    title="View health record"
-                                                    message={`Open the health record of ${e.first_name} ${e.last_name} (${e.employee_number})? This contains confidential medical information.`}
-                                                    className="font-medium text-[#15664f] hover:underline"
-                                                >
-                                                    View record
-                                                </ConfirmLink>
-                                            </td>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-
-                    {employees.length > 0 && (
-                        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 px-4 py-3">
-                            <p className="text-sm text-gray-500">
-                                Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} of {total} employees
-                            </p>
-
-                            <nav className="flex items-center gap-1" aria-label="Pagination">
-                                {page > 1 ? (
-                                    <Link
-                                        href={pageHref(page - 1)}
-                                        className="flex h-9 min-w-9 items-center justify-center rounded-lg border border-gray-300 px-3 text-sm text-[#15664f] hover:bg-[#eef6f2]"
-                                    >
-                                        ‹
-                                    </Link>
-                                ) : (
-                                    <span className="flex h-9 min-w-9 items-center justify-center rounded-lg border border-gray-200 px-3 text-sm text-gray-300">
-                                        ‹
-                                    </span>
-                                )}
-
-                                {pageList(page, totalPages).map((p, i) =>
-                                    p === "..." ? (
-                                        <span key={`gap-${i}`} className="px-2 text-gray-400">
-                                            …
-                                        </span>
-                                    ) : (
-                                        <Link
-                                            key={p}
-                                            href={pageHref(p)}
-                                            aria-current={p === page ? "page" : undefined}
-                                            className={`flex h-9 min-w-9 items-center justify-center rounded-lg border px-3 text-sm font-medium ${p === page
-                                                ? "border-[#15664f] bg-[#15664f] text-white"
-                                                : "border-gray-300 text-[#15664f] hover:bg-[#eef6f2]"
-                                                }`}
-                                        >
-                                            {p}
-                                        </Link>
-                                    )
-                                )}
-
-                                {page < totalPages ? (
-                                    <Link
-                                        href={pageHref(page + 1)}
-                                        className="flex h-9 min-w-9 items-center justify-center rounded-lg border border-gray-300 px-3 text-sm text-[#15664f] hover:bg-[#eef6f2]"
-                                    >
-                                        ›
-                                    </Link>
-                                ) : (
-                                    <span className="flex h-9 min-w-9 items-center justify-center rounded-lg border border-gray-200 px-3 text-sm text-gray-300">
-                                        ›
-                                    </span>
-                                )}
-                            </nav>
-                        </div>
-                    )}
-                </section>
-            )}
-
-            {selected && (
-                <>
-                    <Link
-                        href={backHref}
-                        className="inline-flex items-center gap-1 text-sm font-medium text-[#15664f] hover:underline"
-                    >
-                        <ArrowLeft className="h-4 w-4" />
-                        {historyOnly ? "Back to dashboard" : "Back to employee list"}
-                    </Link>
-
-                    {!historyOnly && (
-                        <>
-                            <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                                <div className="grid gap-x-6 gap-y-5 sm:grid-cols-3 lg:grid-cols-6">
-                                    <Info label="Department" value={show(selected.department)} />
-                                    <Info label="Position" value={show(selected.position)} />
-                                    <Info label="Employee Number" value={selected.employee_number} />
-                                    <Info label="Last Name" value={selected.last_name} />
-                                    <Info label="First Name" value={selected.first_name} />
-                                    <Info label="Middle Name" value={show(selected.middle_name)} />
-                                    <Info label="Date of Birth" value={fmt(selected.date_of_birth, "long")} />
-                                    <Info label="Gender" value={show(selected.gender)} />
-                                    <Info label="Contact Number" value={show(selected.contact_number)} />
-                                    <Info label="Email Address" value={show(selected.email)} />
-                                </div>
-
-                                {canEditEmployees && (
-                                    <div className="mt-6 flex flex-wrap gap-3 border-t border-gray-100 pt-5">
-                                        <ConfirmLink
-                                            href={`${BASE}/employees/edit?employee=${encodeURIComponent(selected.employee_number)}`}
-                                            title="Edit employee details"
-                                            message={`Edit the details of ${selected.first_name} ${selected.last_name} (${selected.employee_number})? Changes will replace the current information.`}
-                                            confirmLabel="Edit"
-                                            className="inline-flex h-10 items-center gap-2 rounded-lg border border-[#15664f] px-4 text-sm font-medium text-[#15664f] hover:bg-[#15664f]/5"
-                                        >
-                                            <Pencil className="h-4 w-4" />
-                                            Edit employee details
-                                        </ConfirmLink>
-                                        <form action={archiveEmployee}>
-                                            <input type="hidden" name="employeeId" value={selected.employee_id} />
-                                            <ConfirmButton
-                                                title="Archive employee"
-                                                confirmLabel="Archive"
-                                                message={`Archive ${selected.last_name}, ${selected.first_name}? Their portal login will stop working until restored.`}
-                                                className="inline-flex h-10 items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 text-sm font-medium text-amber-800 hover:bg-amber-100"
-                                            >
-                                                <Archive className="h-4 w-4" />
-                                                Archive this employee
-                                            </ConfirmButton>
-                                        </form>
-                                    </div>
-                                )}
-                            </section>
-
-                            <section>
-                                <h2 className="mb-3 text-lg font-semibold text-gray-900">Vital Signs</h2>
-                                <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
-                                    {[
-                                        { label: "Height", value: show(latest?.height_cm, " cm") },
-                                        { label: "Weight", value: show(latest?.weight_kg, " kg") },
-                                        { label: "Heart Rate", value: show(latest?.heart_rate, " bpm") },
-                                        { label: "Blood Pressure", value: show(latest?.blood_pressure) },
-                                        { label: "Temperature", value: show(latest?.temperature, " °C") },
-                                        {
-                                            label: "Last Updated",
-                                            value: records[0] ? fmt(records[0].visit_date) : "—",
-                                        },
-                                    ].map((item) => (
-                                        <div
-                                            key={item.label}
-                                            className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
-                                        >
-                                            <p className="text-sm text-gray-600">{item.label}</p>
-                                            <p className="mt-2 text-xl font-semibold text-gray-900">{item.value}</p>
-                                        </div>
-                                    ))}
-                                </div>
-                            </section>
-                        </>
-                    )}
-
-                    <section>
-                        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                            <h2 className="text-lg font-semibold text-gray-900">Visit History</h2>
-                            <p className="text-sm text-gray-500">
-                                {historyOnly
-                                    ? `${selected.last_name}, ${selected.first_name} (${selected.employee_number})`
-                                    : "Clinic visits and health case reports combined, newest first."}
-                            </p>
-                        </div>
-                        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                            {visits.length === 0 ? (
-                                <p className="p-8 text-center text-sm text-gray-500">
-                                    No clinic visits or case reports recorded yet.
-                                </p>
-                            ) : (
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-left text-sm">
-                                        <thead className="bg-[#EEEEEE] text-[#15664f]">
-                                            <tr>
-                                                <th className="whitespace-nowrap px-4 py-3 font-medium">Date</th>
-                                                <th className="whitespace-nowrap px-4 py-3 font-medium">Type</th>
-                                                <th className="px-4 py-3 font-medium">Complaint</th>
-                                                <th className="px-4 py-3 font-medium">Action Taken / Notes</th>
-                                                <th className="px-4 py-3 font-medium">Attending Staff</th>
-                                                {canEditRecords && <th className="px-4 py-3 font-medium">Actions</th>}
+                                    </thead>
+                                    <tbody>
+                                        {employees.map((e) => (
+                                            <tr key={e.employee_id} className="border-t border-gray-100">
+                                                <td className="px-4 py-3 text-gray-600">{e.department ?? "—"}</td>
+                                                <td className="px-4 py-3 text-gray-600">{e.position ?? "—"}</td>
+                                                <td className="whitespace-nowrap px-4 py-3 font-semibold text-gray-900">
+                                                    {e.employee_number}
+                                                </td>
+                                                <td className="px-4 py-3 text-gray-900">{e.last_name}</td>
+                                                <td className="px-4 py-3 text-gray-900">{e.first_name}</td>
+                                                <td className="px-4 py-3 text-gray-900">{e.middle_name ?? "—"}</td>
+                                                <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                                                    {e.contact_number ?? "—"}
+                                                </td>
+                                                <td className="px-4 py-3 text-gray-700">{e.email ?? "—"}</td>
+                                                <td className="whitespace-nowrap px-4 py-3">
+                                                    <ConfirmLink
+                                                        href={`${BASE}?employee=${encodeURIComponent(e.employee_number)}${q ? `&q=${encodeURIComponent(q)}` : ""}&page=${page}`}
+                                                        title="View health record"
+                                                        message={`Open the health record of ${e.first_name} ${e.last_name} (${e.employee_number})? This contains confidential medical information.`}
+                                                        className="font-medium text-[#15664f] hover:underline"
+                                                    >
+                                                        View record
+                                                    </ConfirmLink>
+                                                </td>
                                             </tr>
-                                        </thead>
-                                        <tbody>
-                                            {visits.map((v) => (
-                                                <tr key={v.key} className="border-t border-gray-100">
-                                                    <td className="whitespace-nowrap px-4 py-3 text-gray-900">
-                                                        {fmt(v.date)}
-                                                    </td>
-                                                    <td className="whitespace-nowrap px-4 py-3">
-                                                        {v.kind === "visit" ? (
-                                                            <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
-                                                                Clinic Visit
-                                                            </span>
-                                                        ) : (
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="rounded-full bg-[#eef6f2] px-2.5 py-0.5 text-xs font-medium text-[#15664f]">
-                                                                    Case {v.caseNumber}
-                                                                </span>
-                                                                <span
-                                                                    className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLES[v.status ?? ""] ??
-                                                                        "bg-gray-100 text-gray-700"
-                                                                        }`}
-                                                                >
-                                                                    {v.status}
-                                                                </span>
-                                                            </div>
-                                                        )}
-                                                    </td>
-                                                    <td className="px-4 py-3 text-gray-900">{v.complaint}</td>
-                                                    <td className="px-4 py-3 text-gray-900">{v.detail || "—"}</td>
-                                                    <td className="px-4 py-3 text-gray-900">{v.staff || "—"}</td>
-                                                    {canEditRecords && (
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+
+                        {employees.length > 0 && (
+                            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 px-4 py-3">
+                                <p className="text-sm text-gray-500">
+                                    Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} of {total} employees
+                                </p>
+
+                                {totalPages > 1 && (
+                                    <nav className="flex items-center gap-1" aria-label="Pagination">
+                                        {page > 1 ? (
+                                            <Link
+                                                href={pageHref(page - 1)}
+                                                className="rounded-lg border border-gray-300 px-3 py-1.5 font-medium text-[#15664f] hover:bg-[#eef6f2]"
+                                            >
+                                                Previous
+                                            </Link>
+                                        ) : (
+                                            <span className="rounded-lg border border-gray-200 px-3 py-1.5 text-gray-400">
+                                                Previous
+                                            </span>
+                                        )}
+
+                                        {pageList(page, totalPages).map((p, i) =>
+                                            p === "..." ? (
+                                                <span key={`gap-${i}`} className="px-2 text-gray-400">
+                                                    …
+                                                </span>
+                                            ) : p === page ? (
+                                                <span
+                                                    key={p}
+                                                    aria-current="page"
+                                                    className="rounded-lg bg-[#15664f] px-3 py-1.5 font-semibold text-white"
+                                                >
+                                                    {p}
+                                                </span>
+                                            ) : (
+                                                <Link
+                                                    key={p}
+                                                    href={pageHref(p)}
+                                                    className="rounded-lg border border-gray-300 px-3 py-1.5 font-medium text-gray-700 hover:bg-[#eef6f2]"
+                                                >
+                                                    {p}
+                                                </Link>
+                                            )
+                                        )}
+
+                                        {page < totalPages ? (
+                                            <Link
+                                                href={pageHref(page + 1)}
+                                                className="rounded-lg border border-gray-300 px-3 py-1.5 font-medium text-[#15664f] hover:bg-[#eef6f2]"
+                                            >
+                                                Next
+                                            </Link>
+                                        ) : (
+                                            <span className="rounded-lg border border-gray-200 px-3 py-1.5 text-gray-400">
+                                                Next
+                                            </span>
+                                        )}
+                                    </nav>
+                                )}
+                            </div>
+                        )}
+                    </section>
+                )
+            }
+
+            {
+                selected && (
+                    <>
+                        <Link
+                            href={backHref}
+                            className="inline-flex items-center gap-1 text-sm font-medium text-[#15664f] hover:underline"
+                        >
+                            <ArrowLeft className="h-4 w-4" />
+                            {historyOnly ? "Back to dashboard" : "Back to employee list"}
+                        </Link>
+
+                        {!historyOnly && (
+                            <>
+                                <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                                    <div className="grid gap-x-6 gap-y-5 sm:grid-cols-3 lg:grid-cols-6">
+                                        <Info label="Department" value={show(selected.department)} />
+                                        <Info label="Position" value={show(selected.position)} />
+                                        <Info label="Employee Number" value={selected.employee_number} />
+                                        <Info label="Last Name" value={selected.last_name} />
+                                        <Info label="First Name" value={selected.first_name} />
+                                        <Info label="Middle Name" value={show(selected.middle_name)} />
+                                        <Info label="Date of Birth" value={fmt(selected.date_of_birth, "long")} />
+                                        <Info label="Gender" value={show(selected.gender)} />
+                                        <Info label="Contact Number" value={show(selected.contact_number)} />
+                                        <Info label="Email Address" value={show(selected.email)} />
+                                    </div>
+
+                                    {canEditEmployees && (
+                                        <div className="mt-6 flex flex-wrap gap-3 border-t border-gray-100 pt-5">
+                                            <ConfirmLink
+                                                href={`${BASE}/employees/edit?employee=${encodeURIComponent(selected.employee_number)}`}
+                                                title="Edit employee details"
+                                                message={`Edit the details of ${selected.first_name} ${selected.last_name} (${selected.employee_number})? Changes will replace the current information.`}
+                                                confirmLabel="Edit"
+                                                className="inline-flex h-10 items-center gap-2 rounded-lg border border-[#15664f] px-4 text-sm font-medium text-[#15664f] hover:bg-[#15664f]/5"
+                                            >
+                                                <Pencil className="h-4 w-4" />
+                                                Edit employee details
+                                            </ConfirmLink>
+                                            <form action={archiveEmployee}>
+                                                <input type="hidden" name="employeeId" value={selected.employee_id} />
+                                                <ConfirmButton
+                                                    title="Archive employee"
+                                                    confirmLabel="Archive"
+                                                    message={`Archive ${selected.last_name}, ${selected.first_name}? Their portal login will stop working until restored.`}
+                                                    className="inline-flex h-10 items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 text-sm font-medium text-amber-800 hover:bg-amber-100"
+                                                >
+                                                    <Archive className="h-4 w-4" />
+                                                    Archive this employee
+                                                </ConfirmButton>
+                                            </form>
+                                        </div>
+                                    )}
+                                </section>
+
+                                <section>
+                                    <h2 className="mb-3 text-lg font-semibold text-gray-900">Vital Signs</h2>
+                                    <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
+                                        {[
+                                            { label: "Height", value: show(latest?.height_cm, " cm") },
+                                            { label: "Weight", value: show(latest?.weight_kg, " kg") },
+                                            { label: "Heart Rate", value: show(latest?.heart_rate, " bpm") },
+                                            { label: "Blood Pressure", value: show(latest?.blood_pressure) },
+                                            { label: "Temperature", value: show(latest?.temperature, " °C") },
+                                            {
+                                                label: "Last Updated",
+                                                value: records[0] ? fmt(records[0].visit_date) : "—",
+                                            },
+                                        ].map((item) => (
+                                            <div
+                                                key={item.label}
+                                                className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+                                            >
+                                                <p className="text-sm text-gray-600">{item.label}</p>
+                                                <p className="mt-2 text-xl font-semibold text-gray-900">{item.value}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </section>
+                            </>
+                        )}
+
+                        <section>
+                            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                                <h2 className="text-lg font-semibold text-gray-900">Visit History</h2>
+                                <p className="text-sm text-gray-500">
+                                    {historyOnly
+                                        ? `${selected.last_name}, ${selected.first_name} (${selected.employee_number})`
+                                        : "Clinic visits and health case reports combined, newest first."}
+                                </p>
+                            </div>
+                            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                                {visits.length === 0 ? (
+                                    <p className="p-8 text-center text-sm text-gray-500">
+                                        No clinic visits or case reports recorded yet.
+                                    </p>
+                                ) : (
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left text-sm">
+                                            <thead className="bg-[#EEEEEE] text-[#15664f]">
+                                                <tr>
+                                                    <th className="whitespace-nowrap px-4 py-3 font-medium">Date</th>
+                                                    <th className="whitespace-nowrap px-4 py-3 font-medium">Type</th>
+                                                    <th className="px-4 py-3 font-medium">Complaint</th>
+                                                    <th className="px-4 py-3 font-medium">Action Taken / Notes</th>
+                                                    <th className="px-4 py-3 font-medium">Attending Staff</th>
+                                                    {canEditRecords && <th className="px-4 py-3 font-medium">Actions</th>}
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {visits.map((v) => (
+                                                    <tr key={v.key} className="border-t border-gray-100">
+                                                        <td className="whitespace-nowrap px-4 py-3 text-gray-900">
+                                                            {fmt(v.date)}
+                                                        </td>
                                                         <td className="whitespace-nowrap px-4 py-3">
-                                                            <div className="flex items-center gap-3">
-                                                                {v.kind === "visit" ? (
-                                                                    <>
+                                                            {v.kind === "visit" ? (
+                                                                <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
+                                                                    Clinic Visit
+                                                                </span>
+                                                            ) : (
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="rounded-full bg-[#eef6f2] px-2.5 py-0.5 text-xs font-medium text-[#15664f]">
+                                                                        Case {v.caseNumber}
+                                                                    </span>
+                                                                    <span
+                                                                        className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLES[v.status ?? ""] ??
+                                                                            "bg-gray-100 text-gray-700"
+                                                                            }`}
+                                                                    >
+                                                                        {v.status}
+                                                                    </span>
+                                                                </div>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-gray-900">{v.complaint}</td>
+                                                        <td className="px-4 py-3 text-gray-900">{v.detail || "—"}</td>
+                                                        <td className="px-4 py-3 text-gray-900">{v.staff || "—"}</td>
+                                                        {canEditRecords && (
+                                                            <td className="whitespace-nowrap px-4 py-3">
+                                                                <div className="flex items-center gap-3">
+                                                                    {v.kind === "visit" ? (
+                                                                        <>
+                                                                            <ConfirmLink
+                                                                                href={`${BASE}/edit?record=${v.id}`}
+                                                                                title="Edit visit record"
+                                                                                message={`Edit this visit (${fmt(v.date)} - ${v.complaint})?`}
+                                                                                confirmLabel="Edit"
+                                                                                className="inline-flex items-center gap-1 font-medium text-[#15664f] hover:underline"
+                                                                            >
+                                                                                <Pencil className="h-3.5 w-3.5" />
+                                                                                Edit
+                                                                            </ConfirmLink>
+                                                                            <form action={archiveEmployeeRecord}>
+                                                                                <input type="hidden" name="recordId" value={v.id} />
+                                                                                <ConfirmButton
+                                                                                    title="Archive record"
+                                                                                    confirmLabel="Archive"
+                                                                                    message={`Archive this visit? ${fmt(v.date)} · ${v.complaint}`}
+                                                                                    className="inline-flex items-center gap-1 font-medium text-amber-700 hover:underline"
+                                                                                >
+                                                                                    <Archive className="h-3.5 w-3.5" />
+                                                                                    Archive
+                                                                                </ConfirmButton>
+                                                                            </form>
+                                                                        </>
+                                                                    ) : (
                                                                         <ConfirmLink
-                                                                            href={`${BASE}/records/edit?record=${v.id}`}
-                                                                            title="Edit visit record"
-                                                                            message={`Edit this visit (${fmt(v.date)} - ${v.complaint})?`}
-                                                                            confirmLabel="Edit"
+                                                                            href={`${CASES}/edit?case=${v.id}`}
+                                                                            title="Open case report"
+                                                                            message={`Open case ${v.caseNumber} (${v.complaint})? You will be taken to Health Case Reports.`}
+                                                                            confirmLabel="Open"
                                                                             className="inline-flex items-center gap-1 font-medium text-[#15664f] hover:underline"
                                                                         >
                                                                             <Pencil className="h-3.5 w-3.5" />
-                                                                            Edit
+                                                                            Open case
                                                                         </ConfirmLink>
-                                                                        <form action={archiveEmployeeRecord}>
-                                                                            <input type="hidden" name="recordId" value={v.id} />
-                                                                            <ConfirmButton
-                                                                                title="Archive record"
-                                                                                confirmLabel="Archive"
-                                                                                message={`Archive this visit? ${fmt(v.date)} · ${v.complaint}`}
-                                                                                className="inline-flex items-center gap-1 font-medium text-amber-700 hover:underline"
-                                                                            >
-                                                                                <Archive className="h-3.5 w-3.5" />
-                                                                                Archive
-                                                                            </ConfirmButton>
-                                                                        </form>
-                                                                    </>
-                                                                ) : (
-                                                                    <ConfirmLink
-                                                                        href={`${CASES}/edit?case=${v.id}`}
-                                                                        title="Open case report"
-                                                                        message={`Open case ${v.caseNumber} (${v.complaint})? You will be taken to Health Case Reports.`}
-                                                                        confirmLabel="Open"
-                                                                        className="inline-flex items-center gap-1 font-medium text-[#15664f] hover:underline"
-                                                                    >
-                                                                        <Pencil className="h-3.5 w-3.5" />
-                                                                        Open case
-                                                                    </ConfirmLink>
-                                                                )}
-                                                            </div>
-                                                        </td>
-                                                    )}
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
-                        </div>
-                    </section>
-                </>
-            )}
-        </main>
+                                                                    )}
+                                                                </div>
+                                                            </td>
+                                                        )}
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </div>
+                        </section>
+                    </>
+                )
+            }
+        </main >
     );
 }

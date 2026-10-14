@@ -52,7 +52,7 @@ type Props = {
 const WARNING_PER_DAY = 5; // 5–9 persons in a day = Warning
 const OUTBREAK_PER_DAY = 10; // 10+ persons in a day = Outbreak
 
-const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const BASE = "/dashboard/illness-alerts";
 const CASES_BASE = "/dashboard/health-case-reports";
@@ -460,7 +460,7 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                                                 {c.last_name}, {c.first_name}
                                                 <span
                                                     className={`ml-2 rounded-full px-2 py-0.5 text-xs font-medium ${c.patient_type === "employee"
-                                                        ? "bg-amber-300 text-white"
+                                                        ? "bg-amber-300 text-gray-900"
                                                         : "bg-[#15664f]  text-white"
                                                         }`}
                                                 >
