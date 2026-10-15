@@ -31,15 +31,16 @@ export default function LoginPage() {
 
                     <div className="space-y-2">
                         <Label htmlFor="email" className="font-semibold text-gray-700">
-                            Email Address
+                            Email or ID Number
                         </Label>
 
                         <Input
                             id="email"
                             name="email"
-                            type="email"
-                            placeholder="yourname@bcas.edu.ph"
-                            autoComplete="email"
+                            type="text"
+                            placeholder="Email, student number or employee number"
+                            autoComplete="off"
+
                             required
                             suppressHydrationWarning
                             className="h-11 w-full rounded-lg border border-gray-300 px-3 text-gray-900 transition-colors hover:border-[#0d6e56] focus-visible:border-[#0d6e56] focus-visible:ring-2 focus-visible:ring-[#0d6e56]/20"
@@ -73,22 +74,6 @@ export default function LoginPage() {
                     <div className="text-center">
                         <Link href="/forgot-password" className="text-sm text-[#0d4a3a] hover:underline">
                             Forgot password?
-                        </Link>
-                    </div>
-
-
-                    <div className="space-y-2">
-                        <Link
-                            href="/student/login"
-                            className="block text-center text-sm font-semibold text-[#0d6e56] hover:underline"
-                        >
-                            Sign in to Student Portal
-                        </Link>
-                        <Link
-                            href="/employee/login"
-                            className="block text-center text-sm font-semibold text-[#0d6e56] hover:underline"
-                        >
-                            Sign in to Employee Portal
                         </Link>
                     </div>
                 </form>

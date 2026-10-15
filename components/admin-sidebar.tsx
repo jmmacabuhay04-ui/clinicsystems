@@ -16,23 +16,42 @@ import {
     LogOut,
     Menu,
     BarChart3,
+
     Settings,
     ShieldCheck,
-    Stethoscope,
     ScrollText,
     UserCheck,
     UserCog,
     Users,
     X,
     type LucideIcon,
+    Stethoscope,
 } from "lucide-react";
 import { logout } from "@/app/login/actions";
 import ConfirmSubmit from "@/components/confirm-submit";
 
+// Custom tooth icon (same props as the lucide icons used here).
+function ToothIcon({ className, strokeWidth = 2 }: { className?: string; strokeWidth?: number }) {
+    return (
+        <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={className}
+            aria-hidden="true"
+        >
+            <path d="M7 3C5 3 3.5 4.7 3.5 7C3.5 9 4.3 10.4 4.9 12C5.5 13.7 5.5 15.5 6 17.2C6.4 18.7 7.2 21 8.5 21C10 21 10.1 18.4 10.6 16.7C10.8 16 11.2 15.5 12 15.5C12.8 15.5 13.2 16 13.4 16.7C13.9 18.4 14 21 15.5 21C16.8 21 17.6 18.7 18 17.2C18.5 15.5 18.5 13.7 19.1 12C19.7 10.4 20.5 9 20.5 7C20.5 4.7 19 3 17 3C15.3 3 14.4 4 12 4C9.6 4 8.7 3 7 3Z" />
+        </svg>
+    );
+}
+
 type NavLink = {
     href: string;
     label: string;
-    icon: LucideIcon;
+    icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
     roles?: string[];
 };
 
@@ -52,9 +71,9 @@ function isGroup(entry: NavEntry): entry is NavGroup {
 
 const navItems: NavEntry[] = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "doctor", "dentist", "nurse"] },
-    { href: "/dashboard/student-health-records", label: "Student Health Records", icon: FileText, roles: ["admin", "doctor", "nurse"] },
-    { href: "/dashboard/employee-health-records", label: "Employee Health Records", icon: Briefcase, roles: ["admin", "doctor", "nurse"] },
-    { href: "/dashboard/dental-records", label: "Dental Records", icon: Stethoscope, roles: ["admin", "dentist", "nurse"] },
+    { href: "/dashboard/student-health-records", label: "Student Health Records", icon: Stethoscope, roles: ["admin", "doctor", "nurse"] },
+    { href: "/dashboard/employee-health-records", label: "Employee Health Records", icon: Stethoscope, roles: ["admin", "doctor", "nurse"] },
+    { href: "/dashboard/dental-records", label: "Dental Records", icon: ToothIcon, roles: ["admin", "dentist", "nurse"] },
 
     // ALL FORMS -> isang dropdown
     {
@@ -64,7 +83,7 @@ const navItems: NavEntry[] = [
             { href: "/dashboard/student-health-form", label: "Student Health Form", icon: FileText, roles: ["admin", "doctor", "nurse"] },
             { href: "/dashboard/health-declaration", label: "Health Declaration", icon: ClipboardList, roles: ["admin", "doctor", "nurse"] },
             { href: "/dashboard/employee-health-form", label: "Employee Health Form", icon: Briefcase, roles: ["admin", "doctor", "nurse"] },
-            { href: "/dashboard/dental-health-form", label: "Dental Health Form", icon: ClipboardList, roles: ["admin", "dentist", "nurse"] },
+            { href: "/dashboard/dental-health-form", label: "Dental Health Form", icon: ToothIcon, roles: ["admin", "dentist", "nurse"] },
         ],
     },
 
@@ -236,8 +255,8 @@ export default function AdminSidebar({ username, role }: Props) {
                                         }}
                                         className={`group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-[15px] transition-colors ${collapsed ? "md:justify-center md:px-0" : ""
                                             } ${hasActiveChild && !open
-                                                ? "bg-amber-400 font-semibold text-gray-900"
-                                                : "text-white hover:bg-amber-400 hover:font-semibold hover:text-gray-900"
+                                                ? "bg-amber-400 font-semibold text-[#14532D]"
+                                                : "text-white hover:bg-amber-400 hover:font-semibold hover:text-[#14532D]"
                                             }`}
                                     >
                                         <Icon
@@ -270,8 +289,8 @@ export default function AdminSidebar({ username, role }: Props) {
                                                         title={child.label}
                                                         onClick={() => setMobileOpen(false)}
                                                         className={`group mb-0.5 flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-[15px] transition-colors ${childActive
-                                                            ? "bg-amber-400 font-semibold text-gray-900"
-                                                            : "text-white/90 hover:bg-amber-400 hover:font-semibold hover:text-gray-900"
+                                                            ? "bg-amber-400 font-semibold text-[#14532D]"
+                                                            : "text-white/90 hover:bg-amber-400 hover:font-semibold hover:text-[#14532D]"
                                                             }`}
                                                     >
                                                         <ChildIcon
@@ -299,8 +318,8 @@ export default function AdminSidebar({ username, role }: Props) {
                                 onClick={() => setMobileOpen(false)}
                                 className={`group mb-0.5 flex items-center gap-3 rounded-lg px-3 py-2 text-[15px] transition-colors ${collapsed ? "md:justify-center md:px-0" : ""
                                     } ${active
-                                        ? "bg-amber-400 font-semibold text-gray-900"
-                                        : "text-white hover:bg-amber-400 hover:font-semibold hover:text-gray-900"
+                                        ? "bg-amber-400 font-semibold text-[#14532D]"
+                                        : "text-white hover:bg-amber-400 hover:font-semibold hover:text-[#14532D]"
                                     }`}
                             >
                                 <Icon

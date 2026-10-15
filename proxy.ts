@@ -33,10 +33,10 @@ export async function proxy(req: NextRequest) {
         renew = { cookie: "session", payload: staff as unknown as Record<string, unknown> };
     }
 
-    if (pathname.startsWith("/student/") && pathname !== "/student/login") {
+    if (pathname.startsWith("/student/")) {
         const student = await verifyToken(req.cookies.get("student_session")?.value);
         if (!student || student.role !== "student") {
-            return NextResponse.redirect(new URL("/student/login", req.url));
+            return NextResponse.redirect(new URL("/login", req.url));
         }
 
         // Pilitin ang pagpapalit ng password kapag ang clinic staff ang gumawa nito.
@@ -52,10 +52,10 @@ export async function proxy(req: NextRequest) {
         renew = { cookie: "student_session", payload: student as unknown as Record<string, unknown> };
     }
 
-    if (pathname.startsWith("/employee/") && pathname !== "/employee/login") {
+    if (pathname.startsWith("/employee/")) {
         const employee = await verifyToken(req.cookies.get("employee_session")?.value);
         if (!employee || employee.role !== "employee") {
-            return NextResponse.redirect(new URL("/employee/login", req.url));
+            return NextResponse.redirect(new URL("/login", req.url));
         }
 
         if (
