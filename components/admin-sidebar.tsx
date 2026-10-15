@@ -7,6 +7,7 @@ import {
     Activity,
     Archive,
     Briefcase,
+    ChevronDown,
     ClipboardList,
     FileCheck,
     FileText,
@@ -14,49 +15,98 @@ import {
     LayoutDashboard,
     LogOut,
     Menu,
+    BarChart3,
+
     Settings,
     ShieldCheck,
-    Stethoscope,
     ScrollText,
     UserCheck,
     UserCog,
     Users,
     X,
     type LucideIcon,
+    Stethoscope,
 } from "lucide-react";
 import { logout } from "@/app/login/actions";
 import ConfirmSubmit from "@/components/confirm-submit";
 
+// Custom tooth icon (same props as the lucide icons used here).
+function ToothIcon({ className, strokeWidth = 2 }: { className?: string; strokeWidth?: number }) {
+    return (
+        <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={className}
+            aria-hidden="true"
+        >
+            <path d="M7 3C5 3 3.5 4.7 3.5 7C3.5 9 4.3 10.4 4.9 12C5.5 13.7 5.5 15.5 6 17.2C6.4 18.7 7.2 21 8.5 21C10 21 10.1 18.4 10.6 16.7C10.8 16 11.2 15.5 12 15.5C12.8 15.5 13.2 16 13.4 16.7C13.9 18.4 14 21 15.5 21C16.8 21 17.6 18.7 18 17.2C18.5 15.5 18.5 13.7 19.1 12C19.7 10.4 20.5 9 20.5 7C20.5 4.7 19 3 17 3C15.3 3 14.4 4 12 4C9.6 4 8.7 3 7 3Z" />
+        </svg>
+    );
+}
 
-
-type NavItem = {
+type NavLink = {
     href: string;
     label: string;
-    icon: LucideIcon;
+    icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
     roles?: string[];
 };
 
-const navItems: NavItem[] = [
+// Dropdown group: maraming links sa ilalim ng isang menu item
+type NavGroup = {
+    label: string;
+    icon: LucideIcon;
+    children: NavLink[];
+    soloLabel?: string; // pangalan kapag isa lang ang child na pwede sa role
+};
+
+type NavEntry = NavLink | NavGroup;
+
+function isGroup(entry: NavEntry): entry is NavGroup {
+    return "children" in entry;
+}
+
+const navItems: NavEntry[] = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "doctor", "dentist", "nurse"] },
-    { href: "/dashboard/student-health-records", label: "Student Health Records", icon: FileText, roles: ["admin", "doctor", "nurse"] },
-    { href: "/dashboard/student-health-form", label: "Student Health Form", icon: FileText, roles: ["admin", "doctor", "nurse"] },
-    { href: "/dashboard/health-declaration", label: "Health Declaration", icon: ClipboardList, roles: ["admin", "doctor", "nurse"] },
-    { href: "/dashboard/employee-health-records", label: "Employee Health Records", icon: Briefcase, roles: ["admin", "doctor", "nurse"] },
-    { href: "/dashboard/employee-health-form", label: "Employee Health Form", icon: Briefcase, roles: ["admin", "doctor", "nurse"] },
-    { href: "/dashboard/dental-records", label: "Dental Records", icon: Stethoscope, roles: ["admin", "dentist", "nurse"] },
-    { href: "/dashboard/dental-health-form", label: "Dental Health Form", icon: ClipboardList, roles: ["admin", "dentist", "nurse"] },
+    { href: "/dashboard/student-health-records", label: "Student Health Records", icon: Stethoscope, roles: ["admin", "doctor", "nurse"] },
+    { href: "/dashboard/employee-health-records", label: "Employee Health Records", icon: Stethoscope, roles: ["admin", "doctor", "nurse"] },
+    { href: "/dashboard/dental-records", label: "Dental Records", icon: ToothIcon, roles: ["admin", "dentist", "nurse"] },
+
+    // ALL FORMS -> isang dropdown
+    {
+        label: "Forms",
+        icon: ClipboardList,
+        children: [
+            { href: "/dashboard/student-health-form", label: "Student Health Form", icon: FileText, roles: ["admin", "doctor", "nurse"] },
+            { href: "/dashboard/health-declaration", label: "Health Declaration", icon: ClipboardList, roles: ["admin", "doctor", "nurse"] },
+            { href: "/dashboard/employee-health-form", label: "Employee Health Form", icon: Briefcase, roles: ["admin", "doctor", "nurse"] },
+            { href: "/dashboard/dental-health-form", label: "Dental Health Form", icon: ToothIcon, roles: ["admin", "dentist", "nurse"] },
+        ],
+    },
+
     { href: "/dashboard/health-case-reports", label: "Health Case Reports", icon: ClipboardList, roles: ["admin", "nurse", "doctor"] },
-    { href: "/dashboard/illness-alerts", label: "Illness Alerts", icon: Activity, roles: ["admin", "nurse", "doctor"] },
+    { href: "/dashboard/illness-alerts", label: "Illness Alerts", icon: BarChart3, roles: ["admin", "nurse", "doctor"] },
     { href: "/dashboard/visitor-recording", label: "Visitor Recording", icon: Users, roles: ["admin", "nurse", "doctor", "dentist"] },
     { href: "/dashboard/referral-slips", label: "Referral Slips", icon: FileCheck, roles: ["admin", "nurse", "dentist", "doctor"] },
     { href: "/dashboard/archive-records", label: "Archive Records", icon: Archive, roles: ["admin", "nurse"] },
     { href: "/dashboard/clinic-staff", label: "Clinic Staff", icon: UserCog, roles: ["nurse", "admin"] },
     { href: "/dashboard/users", label: "User Management", icon: ShieldCheck, roles: ["admin", "ittech"] },
-    { href: "/dashboard/password-requests", label: "Password Requests", icon: KeyRound, roles: ["nurse"] },
     { href: "/dashboard/access-logs", label: "Access Logs", icon: ScrollText, roles: ["admin", "ittech"] },
-    { href: "/dashboard/walk-in-reset", label: "Walk-in Reset", icon: UserCheck, roles: ["nurse"] },
-    { href: "/dashboard/settings", label: "Settings", icon: Settings, },
 
+    // Password Requests, Walk-in Reset at Settings -> isang dropdown
+    {
+        label: "Settings",
+        icon: Settings,
+        soloLabel: "Settings",
+        children: [
+            { href: "/dashboard/settings", label: "Account Settings", icon: Settings },
+            { href: "/dashboard/password-requests", label: "Password Requests", icon: KeyRound, roles: ["nurse"] },
+            { href: "/dashboard/walk-in-reset", label: "Walk-in Reset", icon: UserCheck, roles: ["nurse"] },
+        ],
+    },
 ];
 
 const roleLabels: Record<string, string> = {
@@ -76,6 +126,7 @@ export default function AdminSidebar({ username, role }: Props) {
     const pathname = usePathname();
     const [collapsed, setCollapsed] = useState(false); // desktop: icons only
     const [mobileOpen, setMobileOpen] = useState(false); // phone: show/hide menu
+    const [openGroup, setOpenGroup] = useState<string | null>(null); // aling dropdown ang bukas
 
     // Tandaan ang huling pinili (collapsed o hindi)
     useEffect(() => {
@@ -101,11 +152,32 @@ export default function AdminSidebar({ username, role }: Props) {
     const isActive = (href: string) =>
         href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(href);
 
-    const visibleItems = navItems.filter((item) => !item.roles || item.roles.includes(role));
+    // Salain ayon sa role; ang dropdown ay mawawala kung walang child na pwede sa role
+    const visibleItems: NavEntry[] = navItems.flatMap<NavEntry>((entry) => {
+        if (isGroup(entry)) {
+            const children = entry.children.filter((c) => !c.roles || c.roles.includes(role));
+            if (children.length === 0) return [];
+            // Isa lang ang pwede sa role -> gawing normal link, hindi na dropdown
+            if (children.length === 1) {
+                return [{ ...children[0], label: entry.soloLabel ?? children[0].label }];
+            }
+            return [{ ...entry, children }];
+        }
+        return !entry.roles || entry.roles.includes(role) ? [entry] : [];
+    });
+
+    // Kapag nasa loob ng isang form page, awtomatikong bukas ang dropdown nito
+    useEffect(() => {
+        const group = visibleItems.find(
+            (e): e is NavGroup => isGroup(e) && e.children.some((c) => isActive(c.href)),
+        );
+        if (group) setOpenGroup(group.label);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [pathname, role]);
 
     return (
         <aside
-            className={`flex w-full shrink-0 flex-col bg-[#14532D] text-white transition-[width] duration-200 md:sticky md:top-0 md:h-screen ${collapsed ? "md:w-16" : "md:w-60"
+            className={`flex w-full shrink-0 flex-col bg-[#14532D] text-white transition-[width] duration-200 md:sticky md:top-0 md:h-screen ${collapsed ? "md:w-16" : "md:w-[250px]"
                 }`}
         >
             {/* Header: logo + menu button */}
@@ -141,7 +213,6 @@ export default function AdminSidebar({ username, role }: Props) {
                 </button>
 
                 {/* Desktop: collapse/expand */}
-                {/* Desktop: collapse/expand */}
                 <button
                     type="button"
                     suppressHydrationWarning
@@ -161,6 +232,83 @@ export default function AdminSidebar({ username, role }: Props) {
                 <nav className="no-scrollbar flex-1 overflow-y-auto px-2 py-2">
                     {visibleItems.map((item) => {
                         const Icon = item.icon;
+
+                        // ---------- DROPDOWN GROUP ----------
+                        if (isGroup(item)) {
+                            const open = openGroup === item.label;
+                            const hasActiveChild = item.children.some((c) => isActive(c.href));
+
+                            return (
+                                <div key={item.label} className="mb-0.5">
+                                    <button
+                                        type="button"
+                                        title={item.label}
+                                        aria-expanded={open}
+                                        onClick={() => {
+                                            // Kung icons-only, i-expand muna ang sidebar para makita ang dropdown
+                                            if (collapsed) {
+                                                toggleCollapsed();
+                                                setOpenGroup(item.label);
+                                            } else {
+                                                setOpenGroup(open ? null : item.label);
+                                            }
+                                        }}
+                                        className={`group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-[15px] transition-colors ${collapsed ? "md:justify-center md:px-0" : ""
+                                            } ${hasActiveChild && !open
+                                                ? "bg-amber-400 font-semibold text-[#14532D]"
+                                                : "text-white hover:bg-amber-400 hover:font-semibold hover:text-[#14532D]"
+                                            }`}
+                                    >
+                                        <Icon
+                                            className={`h-[18px] w-[18px] shrink-0 ${hasActiveChild && !open ? "text-[#14532D]" : "group-hover:text-[#14532D]"
+                                                }`}
+                                            strokeWidth={1.8}
+                                        />
+                                        <span className={`flex-1 truncate text-left ${collapsed ? "md:hidden" : ""}`}>
+                                            {item.label}
+                                        </span>
+                                        <ChevronDown
+                                            className={`h-4 w-4 shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""
+                                                } ${collapsed ? "md:hidden" : ""}`}
+                                            strokeWidth={2}
+                                        />
+                                    </button>
+
+                                    {open && (
+                                        <div
+                                            className={`mt-0.5 ml-4 border-l border-white/20 pl-2 ${collapsed ? "md:hidden" : ""
+                                                }`}
+                                        >
+                                            {item.children.map((child) => {
+                                                const ChildIcon = child.icon;
+                                                const childActive = isActive(child.href);
+                                                return (
+                                                    <Link
+                                                        key={child.href}
+                                                        href={child.href}
+                                                        title={child.label}
+                                                        onClick={() => setMobileOpen(false)}
+                                                        className={`group mb-0.5 flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-[15px] transition-colors ${childActive
+                                                            ? "bg-amber-400 font-semibold text-[#14532D]"
+                                                            : "text-white/90 hover:bg-amber-400 hover:font-semibold hover:text-[#14532D]"
+                                                            }`}
+                                                    >
+                                                        <ChildIcon
+                                                            className={`h-4 w-4 shrink-0 ${childActive ? "text-[#14532D]" : "group-hover:text-[#14532D]"
+                                                                }`}
+                                                            strokeWidth={1.8}
+                                                        />
+                                                        <span className="truncate">{child.label}</span>
+                                                    </Link>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        }
+
+                        // ---------- NORMAL LINK ----------
                         const active = isActive(item.href);
                         return (
                             <Link
@@ -168,10 +316,10 @@ export default function AdminSidebar({ username, role }: Props) {
                                 href={item.href}
                                 title={item.label}
                                 onClick={() => setMobileOpen(false)}
-                                className={`group mb-0.5 flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${collapsed ? "md:justify-center md:px-0" : ""
+                                className={`group mb-0.5 flex items-center gap-3 rounded-lg px-3 py-2 text-[15px] transition-colors ${collapsed ? "md:justify-center md:px-0" : ""
                                     } ${active
-                                        ? "bg-amber-400 font-semibold text-gray-900"
-                                        : "text-white hover:bg-amber-400 hover:font-semibold hover:text-gray-900"
+                                        ? "bg-amber-400 font-semibold text-[#14532D]"
+                                        : "text-white hover:bg-amber-400 hover:font-semibold hover:text-[#14532D]"
                                     }`}
                             >
                                 <Icon
