@@ -57,8 +57,9 @@ export default async function UsersPage({ searchParams }: Props) {
     const notice = reset ? notices[reset] : null;
 
     return (
-        <main className="min-h-screen bg-muted p-6">
-            <div className="mx-auto max-w-6xl space-y-6">
+        <main className="min-h-screen min-w-0 bg-muted p-4 md:p-6">
+            {/* FIX 1: mas malapad na container (dating max-w-6xl) */}
+            <div className="mx-auto w-full min-w-0 max-w-[1600px] space-y-6">
                 <div className="flex items-center justify-between">
                     <h1 className="text-3xl font-semibold text-[#15664f]">Manage Accounts</h1>
                 </div>
@@ -83,7 +84,8 @@ export default async function UsersPage({ searchParams }: Props) {
                     </div>
                 )}
 
-                <div className="grid gap-6 md:grid-cols-[320px_1fr]">
+                {/* FIX 2: mas makitid ang New Account card (dating 320px) + minmax(0,1fr) para hindi lumabas ang table */}
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-[280px_minmax(0,1fr)]">
                     <Card>
                         <CardHeader>
                             <CardTitle>New Account</CardTitle>
@@ -93,7 +95,7 @@ export default async function UsersPage({ searchParams }: Props) {
                         </CardContent>
                     </Card>
 
-                    <Card>
+                    <Card className="min-w-0">
                         <CardHeader>
                             <CardTitle>All Accounts ({users.length})</CardTitle>
                         </CardHeader>
@@ -133,7 +135,7 @@ export default async function UsersPage({ searchParams }: Props) {
                                                                 required
                                                                 autoComplete="one-time-code"
                                                                 suppressHydrationWarning
-                                                                className="h-9 w-32 rounded-lg border border-amber-400 bg-white px-2 text-center text-sm tracking-widest outline-none focus:border-[#15664f]"
+                                                                className="h-9 w-28 rounded-lg border border-amber-400 bg-white px-2 text-center text-sm tracking-widest outline-none focus:border-[#15664f]"
                                                             />
                                                             <ConfirmSubmit
                                                                 title="Verify OTP?"
@@ -151,6 +153,7 @@ export default async function UsersPage({ searchParams }: Props) {
                                                         /* STEP 1: new password */
                                                         <form action={resetUserPassword} className="flex items-center gap-2">
                                                             <input type="hidden" name="userId" value={u.user_id} />
+                                                            {/* FIX 3: w-40 -> w-32 para lumuwag ang table */}
                                                             <input
                                                                 name="password"
                                                                 type="password"
@@ -159,7 +162,7 @@ export default async function UsersPage({ searchParams }: Props) {
                                                                 required
                                                                 autoComplete="new-password"
                                                                 suppressHydrationWarning
-                                                                className="h-9 w-40 rounded-lg border border-gray-300 bg-white px-2 text-sm outline-none focus:border-[#15664f]"
+                                                                className="h-9 w-32 rounded-lg border border-gray-300 bg-white px-2 text-sm outline-none focus:border-[#15664f]"
                                                             />
                                                             <ConfirmSubmit
                                                                 title="Send OTP to account owner?"

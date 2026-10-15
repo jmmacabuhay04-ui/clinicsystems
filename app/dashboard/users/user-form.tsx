@@ -9,6 +9,14 @@ import PasswordInput from "@/components/password-input";
 
 const initialState: CreateUserState = {};
 
+// Iisang istilo para sa lahat ng field (email, password, role):
+// parehong taas, border, at manipis na berdeng focus
+const fieldClass =
+    "h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 shadow-none outline-none " +
+    "placeholder:text-gray-400 " +
+    "focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20 " +
+    "focus-visible:border-[#15664f] focus-visible:ring-2 focus-visible:ring-[#15664f]/20 focus-visible:ring-offset-0";
+
 export default function UserForm() {
     const [state, formAction, pending] = useActionState(createUser, initialState);
 
@@ -35,6 +43,7 @@ export default function UserForm() {
                     autoComplete="off"
                     required
                     suppressHydrationWarning
+                    className={fieldClass}
                 />
             </div>
 
@@ -46,7 +55,7 @@ export default function UserForm() {
                     autoComplete="new-password"
                     minLength={8}
                     required
-                    className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20"
+                    className={fieldClass}
                 />
             </div>
 
@@ -58,7 +67,7 @@ export default function UserForm() {
                     defaultValue="doctor"
                     required
                     suppressHydrationWarning
-                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className={fieldClass}
                 >
                     <option value="admin">Admin</option>
                     <option value="doctor">Doctor</option>
