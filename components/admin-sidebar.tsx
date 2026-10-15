@@ -125,7 +125,7 @@ type Props = {
 export default function AdminSidebar({ username, role }: Props) {
     const pathname = usePathname();
     const [collapsed, setCollapsed] = useState(false); // desktop: icons only
-    const [mobileOpen, setMobileOpen] = useState(false); // phone: show/hide menu
+    const [mobileOpen, setMobileOpen] = useState(false); // phone: show/hide drawer
     const [openGroup, setOpenGroup] = useState<string | null>(null); // aling dropdown ang bukas
 
     // Tandaan ang huling pinili (collapsed o hindi)
@@ -134,6 +134,26 @@ export default function AdminSidebar({ username, role }: Props) {
             setCollapsed(localStorage.getItem("sidebar-collapsed") === "1");
         } catch { }
     }, []);
+
+    // Isara ang drawer pagkatapos pumunta sa ibang page
+    useEffect(() => {
+        setMobileOpen(false);
+    }, [pathname]);
+
+    // Kapag bukas ang drawer sa phone: huwag mag-scroll ang page sa likod, at isara gamit ang Esc
+    useEffect(() => {
+        if (!mobileOpen) return;
+        const previous = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === "Escape") setMobileOpen(false);
+        };
+        window.addEventListener("keydown", onKey);
+        return () => {
+            document.body.style.overflow = previous;
+            window.removeEventListener("keydown", onKey);
+        };
+    }, [mobileOpen]);
 
     function toggleCollapsed() {
         setCollapsed((prev) => {
@@ -176,198 +196,228 @@ export default function AdminSidebar({ username, role }: Props) {
     }, [pathname, role]);
 
     return (
-        <aside
-            className={`flex w-full shrink-0 flex-col bg-[#14532D] text-white transition-[width] duration-200 md:sticky md:top-0 md:h-screen ${collapsed ? "md:w-16" : "md:w-[250px]"
-                }`}
-        >
-            {/* Header: logo + menu button */}
-            <div
-                className={`relative flex items-center justify-center border-b border-white/10 px-4 py-4 ${collapsed ? "md:px-2 md:py-3" : ""
-                    }`}
-            >
+        <>
+            {/* PHONE: top bar na laging nasa taas (nakatago sa md pataas) */}
+            <header className="sticky top-0 z-30 flex h-14 items-center justify-between bg-[#14532D] px-4 text-white md:hidden">
                 <Link
                     href={role === "ittech" ? "/dashboard/users" : "/dashboard"}
-                    onClick={() => setMobileOpen(false)}
-                    title="Go to Dashboard"
-                    className={`flex flex-col items-center gap-2 text-center hover:opacity-90 ${collapsed ? "md:hidden" : ""
-                        }`}
+                    className="flex items-center gap-2.5"
                 >
-                    <img
-                        src="/bcas.jpg"
-                        alt="BCAS"
-                        className="h-14 w-14 rounded-full bg-white object-contain"
-                    />
-                    <p className="text-sm font-semibold uppercase tracking-wider text-white/90">
-                        BCAS Clinic
-                    </p>
+                    <img src="/bcas.jpg" alt="BCAS" className="h-9 w-9 rounded-full bg-white object-contain" />
+                    <span className="text-sm font-semibold uppercase tracking-wider">BCAS Clinic</span>
                 </Link>
-
-                {/* Phone: open/close menu */}
                 <button
                     type="button"
-                    onClick={() => setMobileOpen((o) => !o)}
-                    aria-label={mobileOpen ? "Close menu" : "Open menu"}
-                    className="absolute right-2 top-2 rounded-lg p-1.5 hover:bg-white/10 md:hidden"
+                    onClick={() => setMobileOpen(true)}
+                    aria-label="Open menu"
+                    aria-expanded={mobileOpen}
+                    className="rounded-lg p-2 hover:bg-white/10"
                 >
-                    {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                    <Menu className="h-6 w-6" />
                 </button>
+            </header>
 
-                {/* Desktop: collapse/expand */}
-                <button
-                    type="button"
-                    suppressHydrationWarning
-                    onClick={toggleCollapsed}
-                    aria-label={collapsed ? "Expand menu" : "Collapse menu"}
-                    title={collapsed ? "Expand menu" : "Collapse menu"}
-                    className={`hidden rounded-lg p-1.5  hover:bg-amber-500  md:inline-flex ${collapsed ? "" : "md:absolute md:right-2 md:top-2"
+            {/* PHONE: madilim na background; pindutin para isara ang drawer */}
+            <div
+                aria-hidden="true"
+                onClick={() => setMobileOpen(false)}
+                className={`fixed inset-0 z-40 bg-black/50 transition-opacity duration-200 md:hidden ${mobileOpen ? "opacity-100" : "pointer-events-none opacity-0"
+                    }`}
+            />
+
+            <aside
+                className={`fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col bg-[#14532D] text-white transition-[transform,visibility] duration-200 md:sticky md:inset-auto md:top-0 md:h-screen md:max-w-none md:shrink-0 md:translate-x-0 md:transition-[width] md:visible ${mobileOpen ? "visible translate-x-0" : "invisible -translate-x-full"
+                    } ${collapsed ? "md:w-16" : "md:w-[250px]"}`}
+            >
+                {/* Header: logo + menu button */}
+                <div
+                    className={`relative flex items-center justify-center border-b border-white/10 px-4 py-4 ${collapsed ? "md:px-2 md:py-3" : ""
                         }`}
                 >
-                    <Menu className="h-5 w-5" />
-                </button>
-            </div>
-
-            {/* Body: hidden on phone until menu is opened */}
-            <div className={`${mobileOpen ? "flex" : "hidden"} min-h-0 flex-1 flex-col md:flex`}>
-                {/* Menu */}
-                <nav className="no-scrollbar flex-1 overflow-y-auto px-2 py-2">
-                    {visibleItems.map((item) => {
-                        const Icon = item.icon;
-
-                        // ---------- DROPDOWN GROUP ----------
-                        if (isGroup(item)) {
-                            const open = openGroup === item.label;
-                            const hasActiveChild = item.children.some((c) => isActive(c.href));
-
-                            return (
-                                <div key={item.label} className="mb-0.5">
-                                    <button
-                                        type="button"
-                                        title={item.label}
-                                        aria-expanded={open}
-                                        onClick={() => {
-                                            // Kung icons-only, i-expand muna ang sidebar para makita ang dropdown
-                                            if (collapsed) {
-                                                toggleCollapsed();
-                                                setOpenGroup(item.label);
-                                            } else {
-                                                setOpenGroup(open ? null : item.label);
-                                            }
-                                        }}
-                                        className={`group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-[15px] transition-colors ${collapsed ? "md:justify-center md:px-0" : ""
-                                            } ${hasActiveChild && !open
-                                                ? "bg-amber-400 font-semibold text-[#14532D]"
-                                                : "text-white hover:bg-amber-400 hover:font-semibold hover:text-[#14532D]"
-                                            }`}
-                                    >
-                                        <Icon
-                                            className={`h-[18px] w-[18px] shrink-0 ${hasActiveChild && !open ? "text-[#14532D]" : "group-hover:text-[#14532D]"
-                                                }`}
-                                            strokeWidth={1.8}
-                                        />
-                                        <span className={`flex-1 truncate text-left ${collapsed ? "md:hidden" : ""}`}>
-                                            {item.label}
-                                        </span>
-                                        <ChevronDown
-                                            className={`h-4 w-4 shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""
-                                                } ${collapsed ? "md:hidden" : ""}`}
-                                            strokeWidth={2}
-                                        />
-                                    </button>
-
-                                    {open && (
-                                        <div
-                                            className={`mt-0.5 ml-4 border-l border-white/20 pl-2 ${collapsed ? "md:hidden" : ""
-                                                }`}
-                                        >
-                                            {item.children.map((child) => {
-                                                const ChildIcon = child.icon;
-                                                const childActive = isActive(child.href);
-                                                return (
-                                                    <Link
-                                                        key={child.href}
-                                                        href={child.href}
-                                                        title={child.label}
-                                                        onClick={() => setMobileOpen(false)}
-                                                        className={`group mb-0.5 flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-[15px] transition-colors ${childActive
-                                                            ? "bg-amber-400 font-semibold text-[#14532D]"
-                                                            : "text-white/90 hover:bg-amber-400 hover:font-semibold hover:text-[#14532D]"
-                                                            }`}
-                                                    >
-                                                        <ChildIcon
-                                                            className={`h-4 w-4 shrink-0 ${childActive ? "text-[#14532D]" : "group-hover:text-[#14532D]"
-                                                                }`}
-                                                            strokeWidth={1.8}
-                                                        />
-                                                        <span className="truncate">{child.label}</span>
-                                                    </Link>
-                                                );
-                                            })}
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        }
-
-                        // ---------- NORMAL LINK ----------
-                        const active = isActive(item.href);
-                        return (
-                            <Link
-                                key={item.href}
-                                href={item.href}
-                                title={item.label}
-                                onClick={() => setMobileOpen(false)}
-                                className={`group mb-0.5 flex items-center gap-3 rounded-lg px-3 py-2 text-[15px] transition-colors ${collapsed ? "md:justify-center md:px-0" : ""
-                                    } ${active
-                                        ? "bg-amber-400 font-semibold text-[#14532D]"
-                                        : "text-white hover:bg-amber-400 hover:font-semibold hover:text-[#14532D]"
-                                    }`}
-                            >
-                                <Icon
-                                    className={`h-[18px] w-[18px] shrink-0 ${active ? "text-[#14532D]" : "group-hover:text-[#14532D]"
-                                        }`}
-                                    strokeWidth={1.8}
-                                />
-                                <span className={`truncate ${collapsed ? "md:hidden" : ""}`}>{item.label}</span>
-                            </Link>
-                        );
-                    })}
-                </nav>
-
-                <div className={`border-t border-white/10 px-4 py-3 ${collapsed ? "md:px-2" : ""}`}>
-                    <div
-                        className={`flex items-center gap-3 ${collapsed ? "md:flex-col md:justify-center" : ""
+                    <Link
+                        href={role === "ittech" ? "/dashboard/users" : "/dashboard"}
+                        onClick={() => setMobileOpen(false)}
+                        title="Go to Dashboard"
+                        className={`flex flex-col items-center gap-2 text-center hover:opacity-90 ${collapsed ? "md:hidden" : ""
                             }`}
                     >
+                        <img
+                            src="/bcas.jpg"
+                            alt="BCAS"
+                            className="h-14 w-14 rounded-full bg-white object-contain"
+                        />
+                        <p className="text-sm font-semibold uppercase tracking-wider text-white/90">
+                            BCAS Clinic
+                        </p>
+                    </Link>
+
+                    {/* Phone: isara ang drawer */}
+                    <button
+                        type="button"
+                        onClick={() => setMobileOpen(false)}
+                        aria-label="Close menu"
+                        className="absolute right-2 top-2 rounded-lg p-2 hover:bg-white/10 md:hidden"
+                    >
+                        <X className="h-5 w-5" />
+                    </button>
+
+                    {/* Desktop: collapse/expand */}
+                    <button
+                        type="button"
+                        suppressHydrationWarning
+                        onClick={toggleCollapsed}
+                        aria-label={collapsed ? "Expand menu" : "Collapse menu"}
+                        title={collapsed ? "Expand menu" : "Collapse menu"}
+                        className={`hidden rounded-lg p-1.5  hover:bg-amber-500  md:inline-flex ${collapsed ? "" : "md:absolute md:right-2 md:top-2"
+                            }`}
+                    >
+                        <Menu className="h-5 w-5" />
+                    </button>
+                </div>
+
+                {/* Body */}
+                <div className="flex min-h-0 flex-1 flex-col">
+                    {/* Menu */}
+                    <nav className="no-scrollbar flex-1 overflow-y-auto px-2 py-2">
+                        {visibleItems.map((item) => {
+                            const Icon = item.icon;
+
+                            // ---------- DROPDOWN GROUP ----------
+                            if (isGroup(item)) {
+                                const open = openGroup === item.label;
+                                const hasActiveChild = item.children.some((c) => isActive(c.href));
+
+                                return (
+                                    <div key={item.label} className="mb-0.5">
+                                        <button
+                                            type="button"
+                                            title={item.label}
+                                            aria-expanded={open}
+                                            onClick={() => {
+                                                // Kung icons-only, i-expand muna ang sidebar para makita ang dropdown
+                                                if (collapsed) {
+                                                    toggleCollapsed();
+                                                    setOpenGroup(item.label);
+                                                } else {
+                                                    setOpenGroup(open ? null : item.label);
+                                                }
+                                            }}
+                                            className={`group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-[15px] transition-colors md:py-2 ${collapsed ? "md:justify-center md:px-0" : ""
+                                                } ${hasActiveChild && !open
+                                                    ? "bg-amber-400 font-semibold text-[#14532D]"
+                                                    : "text-white hover:bg-amber-400 hover:font-semibold hover:text-[#14532D]"
+                                                }`}
+                                        >
+                                            <Icon
+                                                className={`h-[18px] w-[18px] shrink-0 ${hasActiveChild && !open ? "text-[#14532D]" : "group-hover:text-[#14532D]"
+                                                    }`}
+                                                strokeWidth={1.8}
+                                            />
+                                            <span className={`flex-1 truncate text-left ${collapsed ? "md:hidden" : ""}`}>
+                                                {item.label}
+                                            </span>
+                                            <ChevronDown
+                                                className={`h-4 w-4 shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""
+                                                    } ${collapsed ? "md:hidden" : ""}`}
+                                                strokeWidth={2}
+                                            />
+                                        </button>
+
+                                        {open && (
+                                            <div
+                                                className={`mt-0.5 ml-4 border-l border-white/20 pl-2 ${collapsed ? "md:hidden" : ""
+                                                    }`}
+                                            >
+                                                {item.children.map((child) => {
+                                                    const ChildIcon = child.icon;
+                                                    const childActive = isActive(child.href);
+                                                    return (
+                                                        <Link
+                                                            key={child.href}
+                                                            href={child.href}
+                                                            title={child.label}
+                                                            onClick={() => setMobileOpen(false)}
+                                                            className={`group mb-0.5 flex items-center gap-2.5 rounded-lg px-2 py-2 text-[15px] transition-colors md:py-1.5 ${childActive
+                                                                ? "bg-amber-400 font-semibold text-[#14532D]"
+                                                                : "text-white/90 hover:bg-amber-400 hover:font-semibold hover:text-[#14532D]"
+                                                                }`}
+                                                        >
+                                                            <ChildIcon
+                                                                className={`h-4 w-4 shrink-0 ${childActive ? "text-[#14532D]" : "group-hover:text-[#14532D]"
+                                                                    }`}
+                                                                strokeWidth={1.8}
+                                                            />
+                                                            <span className="truncate">{child.label}</span>
+                                                        </Link>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            }
+
+                            // ---------- NORMAL LINK ----------
+                            const active = isActive(item.href);
+                            return (
+                                <Link
+                                    key={item.href}
+                                    href={item.href}
+                                    title={item.label}
+                                    onClick={() => setMobileOpen(false)}
+                                    className={`group mb-0.5 flex items-center gap-3 rounded-lg px-3 py-2.5 text-[15px] transition-colors md:py-2 ${collapsed ? "md:justify-center md:px-0" : ""
+                                        } ${active
+                                            ? "bg-amber-400 font-semibold text-[#14532D]"
+                                            : "text-white hover:bg-amber-400 hover:font-semibold hover:text-[#14532D]"
+                                        }`}
+                                >
+                                    <Icon
+                                        className={`h-[18px] w-[18px] shrink-0 ${active ? "text-[#14532D]" : "group-hover:text-[#14532D]"
+                                            }`}
+                                        strokeWidth={1.8}
+                                    />
+                                    <span className={`truncate ${collapsed ? "md:hidden" : ""}`}>{item.label}</span>
+                                </Link>
+                            );
+                        })}
+                    </nav>
+
+                    <div className={`border-t border-white/10 px-4 py-3 ${collapsed ? "md:px-2" : ""}`}>
                         <div
-                            aria-hidden="true"
-                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/20 text-sm font-semibold"
+                            className={`flex items-center gap-3 ${collapsed ? "md:flex-col md:justify-center" : ""
+                                }`}
                         >
-                            {username.charAt(0).toUpperCase()}
-                        </div>
-
-                        <div className={`min-w-0 flex-1 ${collapsed ? "md:hidden" : ""}`}>
-                            <p className="truncate text-sm font-semibold" title={username}>
-                                {displayName}
-                            </p>
-                            <span className="mt-0.5 inline-block rounded bg-white/20 px-2 py-0.5 text-xs font-medium">
-                                {roleLabels[role] ?? role}
-                            </span>
-                        </div>
-
-                        <form action={logout} className="shrink-0" title="Sign out ">
-                            <ConfirmSubmit
-                                title="Sign out"
-                                message="Are you sure you want to sign out?"
-                                confirmLabel="Sign out"
-                                className="flex h-9 w-9 items-center justify-center rounded-lg text-white/90 hover:bg-amber-500"
+                            <div
+                                aria-hidden="true"
+                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/20 text-sm font-semibold"
                             >
-                                <LogOut className="h-[18px] w-[18px]" strokeWidth={1.8} />
-                                <span className="sr-only">Sign out</span>
-                            </ConfirmSubmit>
-                        </form>
+                                {username.charAt(0).toUpperCase()}
+                            </div>
+
+                            <div className={`min-w-0 flex-1 ${collapsed ? "md:hidden" : ""}`}>
+                                <p className="truncate text-sm font-semibold" title={username}>
+                                    {displayName}
+                                </p>
+                                <span className="mt-0.5 inline-block rounded bg-white/20 px-2 py-0.5 text-xs font-medium">
+                                    {roleLabels[role] ?? role}
+                                </span>
+                            </div>
+
+                            <form action={logout} className="shrink-0" title="Sign out ">
+                                <ConfirmSubmit
+                                    title="Sign out"
+                                    message="Are you sure you want to sign out?"
+                                    confirmLabel="Sign out"
+                                    className="flex h-9 w-9 items-center justify-center rounded-lg text-white/90 hover:bg-amber-500"
+                                >
+                                    <LogOut className="h-[18px] w-[18px]" strokeWidth={1.8} />
+                                    <span className="sr-only">Sign out</span>
+                                </ConfirmSubmit>
+                            </form>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </aside>
+            </aside>
+        </>
     );
 }

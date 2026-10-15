@@ -14,6 +14,13 @@ type LogRow = {
     created_at: Date;
 };
 
+// Mobile: bawat row ay card, at ang data-label ang nagsisilbing label ng bawat field.
+// md pataas: normal na table.
+const tr =
+    "mb-3 block rounded-lg border border-gray-200 py-2 md:mb-0 md:table-row md:rounded-none md:border-0 md:border-t md:border-gray-100 md:py-0";
+const td =
+    "flex items-start justify-between gap-3 px-4 py-1.5 text-right text-sm before:shrink-0 before:text-left before:text-xs before:font-semibold before:uppercase before:text-gray-500 before:content-[attr(data-label)] md:table-cell md:py-3 md:text-left md:text-base md:before:hidden";
+
 function formatWhen(date: Date) {
     return new Date(date).toLocaleString("en-US", {
         month: "short",
@@ -49,13 +56,15 @@ export default async function SettingsPage() {
       `;
 
     return (
-        <main className="space-y-6 p-6 md:p-8">
+        <main className="min-w-0 space-y-6 p-4 md:p-8">
             <div>
-                <h1 className="text-3xl font-semibold text-[#15664f]">Settings</h1>
-                <p className="mt-1 text-base text-gray-700">Manage clinic system settings and configurations</p>
+                <h1 className="text-2xl font-semibold text-[#15664f] md:text-3xl">Settings</h1>
+                <p className="mt-1 text-sm text-gray-700 md:text-base">
+                    Manage clinic system settings and configurations
+                </p>
             </div>
 
-            <section className="space-y-8 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <section className="space-y-8 rounded-xl border border-gray-200 bg-white p-4 shadow-sm md:p-6">
                 <div>
                     <div className="flex items-center gap-2">
                         <ShieldCheck className="h-6 w-6 text-[#15664f]" />
@@ -93,13 +102,15 @@ export default async function SettingsPage() {
                         </p>
                     </div>
 
-                    <div className="mt-4 overflow-hidden rounded-xl border border-gray-200">
+                    <div className="mt-4 md:overflow-hidden md:rounded-xl md:border md:border-gray-200">
                         {logs.length === 0 ? (
-                            <p className="p-8 text-center text-base text-gray-500">No login activity yet.</p>
+                            <p className="rounded-xl border border-gray-200 p-8 text-center text-base text-gray-500 md:rounded-none md:border-0">
+                                No login activity yet.
+                            </p>
                         ) : (
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left text-base">
-                                    <thead className="bg-[#EEEEEE] text-[#15664f]">
+                            <div className="md:overflow-x-auto">
+                                <table className="block w-full text-left md:table">
+                                    <thead className="hidden bg-[#EEEEEE] text-[#15664f] md:table-header-group">
                                         <tr>
                                             <th className="px-4 py-3 font-medium">Account</th>
                                             <th className="whitespace-nowrap px-4 py-3 font-medium">Date &amp; Time</th>
@@ -107,15 +118,19 @@ export default async function SettingsPage() {
                                             <th className="px-4 py-3 font-medium">Status</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
+                                    <tbody className="block md:table-row-group">
                                         {logs.map((l) => (
-                                            <tr key={l.log_id} className="border-t border-gray-100">
-                                                <td className="px-4 py-3 text-gray-900">{l.username}</td>
-                                                <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                                            <tr key={l.log_id} className={tr}>
+                                                <td data-label="Account" className={`${td} break-all text-gray-900`}>
+                                                    {l.username}
+                                                </td>
+                                                <td data-label="Date & Time" className={`${td} text-gray-700 md:whitespace-nowrap`}>
                                                     {formatWhen(l.created_at)}
                                                 </td>
-                                                <td className="px-4 py-3 text-gray-600">{l.device ?? "—"}</td>
-                                                <td className="px-4 py-3">
+                                                <td data-label="Device" className={`${td} break-words text-gray-600`}>
+                                                    {l.device ?? "—"}
+                                                </td>
+                                                <td data-label="Status" className={td}>
                                                     <span
                                                         className={`rounded-full px-3 py-1 text-sm font-medium ${l.status === "success"
                                                             ? "bg-green-100 text-green-700"

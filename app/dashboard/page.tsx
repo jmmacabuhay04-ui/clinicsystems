@@ -91,6 +91,37 @@ type RecentRow = {
     message: string;
 };
 
+function PatientAvatar({ name, type }: { name: string; type: "student" | "employee" }) {
+    const initials = name
+        .split(" ")
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((w) => w[0])
+        .join("")
+        .toUpperCase();
+
+    return (
+        <span
+            aria-hidden="true"
+            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${type === "employee" ? "bg-amber-400 text-gray-900" : "bg-[#15664f] text-white"
+                }`}
+        >
+            {initials}
+        </span>
+    );
+}
+
+function TypeBadge({ type }: { type: "student" | "employee" }) {
+    return (
+        <span
+            className={`inline-block whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ${type === "employee" ? "bg-amber-300 text-gray-900" : "bg-[#15664f] text-white"
+                }`}
+        >
+            {type === "employee" ? "Employee" : "Student"}
+        </span>
+    );
+}
+
 function RecentTable({
     title,
     detailLabel,
@@ -111,89 +142,101 @@ function RecentTable({
     iconClass: string;
 }) {
     return (
-        <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div className="min-w-0 rounded-xl border border-gray-200 bg-white shadow-sm">
             <div className="flex items-center justify-between gap-2 px-3 py-3">
-                <div className="flex items-center gap-2">
-                    <div className={`rounded-lg p-1.5 ${iconClass}`}>
+                <div className="flex min-w-0 items-center gap-2">
+                    <div className={`shrink-0 rounded-lg p-1.5 ${iconClass}`}>
                         <Icon className="h-4 w-4" strokeWidth={1.8} />
                     </div>
-                    <h2 className="text-base font-semibold text-[#14532D]">{title}</h2>
+                    <h2 className="truncate text-base font-semibold text-[#14532D]">{title}</h2>
                 </div>
                 <Link
                     href={viewAllHref}
-                    className="inline-flex items-center gap-1 text-xs font-medium text-[#15664f] hover:underline"
+                    className="inline-flex shrink-0 items-center gap-1 py-1.5 pl-2 text-xs font-medium text-[#15664f] hover:underline"
                 >
                     View All <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
             </div>
-            <div className="overflow-hidden px-3 pb-3">
+
+            <div className="px-3 pb-3">
                 {rows.length === 0 ? (
                     <p className="p-5 text-center text-sm text-gray-700">{empty}</p>
                 ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm">
-                            <thead className="bg-[#EEEEEE] text-[#15664f]">
-                                <tr>
-                                    <th className="px-3 py-2 font-medium">Name</th>
-                                    <th className="px-3 py-2 font-medium">{detailLabel}</th>
-                                    <th className="px-3 py-2 font-medium">Type</th>
-                                    <th className="whitespace-nowrap px-3 py-2 font-medium">Date</th>
-                                    <th className="px-3 py-2 text-center font-medium">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {rows.map((r) => (
-                                    <tr key={r.key} className="border-t border-gray-100">
-                                        <td className="px-3 py-2 font-medium text-gray-900">
-                                            <div className="flex items-center gap-2">
-                                                <span
-                                                    aria-hidden="true"
-                                                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${r.type === "employee"
-                                                        ? "bg-amber-400 text-gray-900"
-                                                        : "bg-[#15664f] text-white"
-                                                        }`}
-                                                >
-                                                    {r.name
-                                                        .split(" ")
-                                                        .filter(Boolean)
-                                                        .slice(0, 2)
-                                                        .map((w) => w[0])
-                                                        .join("")
-                                                        .toUpperCase()}
-                                                </span>
-                                                <span>{r.name}</span>
+                    <>
+                        {/* MOBILE: card list (walang horizontal scroll) */}
+                        <ul className="space-y-2 md:hidden">
+                            {rows.map((r) => (
+                                <li key={r.key} className="rounded-lg border border-gray-100 p-3">
+                                    <div className="flex items-start gap-3">
+                                        <PatientAvatar name={r.name} type={r.type} />
+                                        <div className="min-w-0 flex-1">
+                                            <p className="break-words text-sm font-medium text-gray-900">{r.name}</p>
+                                            <p className="break-words text-sm text-gray-700">
+                                                <span className="text-gray-500">{detailLabel}: </span>
+                                                {r.detail}
+                                            </p>
+                                            <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                                                <TypeBadge type={r.type} />
+                                                <span className="text-xs text-gray-600">{formatVisitDate(r.date)}</span>
                                             </div>
-                                        </td>
-                                        <td className="px-3 py-2 text-gray-700">{r.detail}</td>
-                                        <td className="px-3 py-2">
-                                            <span
-                                                className={`inline-block whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ${r.type === "employee"
-                                                    ? "bg-amber-300 text-gray-900"
-                                                    : "bg-[#15664f] text-white"
+                                        </div>
+                                    </div>
+                                    <ConfirmLink
+                                        href={r.href}
+                                        title={viewTitle}
+                                        message={r.message}
+                                        className="mt-3 block w-full rounded-md bg-[#15664f] px-3 py-2 text-center text-sm font-medium text-white hover:bg-[#124f3d]"
+                                    >
+                                        View
+                                    </ConfirmLink>
+                                </li>
+                            ))}
+                        </ul>
 
-                                                    }`}
-                                            >
-                                                {r.type === "employee" ? "Employee" : "Student"}
-                                            </span>
-                                        </td>
-                                        <td className="whitespace-nowrap px-3 py-2 text-gray-700">
-                                            {formatVisitDate(r.date)}
-                                        </td>
-                                        <td className="px-3 py-2 text-center">
-                                            <ConfirmLink
-                                                href={r.href}
-                                                title={viewTitle}
-                                                message={r.message}
-                                                className="inline-block rounded-md bg-[#15664f] px-3 py-1 text-xs font-medium text-white hover:bg-[#124f3d]"
-                                            >
-                                                View
-                                            </ConfirmLink>
-                                        </td>
+                        {/* DESKTOP: table */}
+                        <div className="hidden overflow-x-auto md:block">
+                            <table className="w-full text-left text-sm">
+                                <thead className="bg-[#EEEEEE] text-[#15664f]">
+                                    <tr>
+                                        <th className="px-3 py-2 font-medium">Name</th>
+                                        <th className="px-3 py-2 font-medium">{detailLabel}</th>
+                                        <th className="px-3 py-2 font-medium">Type</th>
+                                        <th className="whitespace-nowrap px-3 py-2 font-medium">Date</th>
+                                        <th className="px-3 py-2 text-center font-medium">Action</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                </thead>
+                                <tbody>
+                                    {rows.map((r) => (
+                                        <tr key={r.key} className="border-t border-gray-100">
+                                            <td className="px-3 py-2 font-medium text-gray-900">
+                                                <div className="flex items-center gap-2">
+                                                    <PatientAvatar name={r.name} type={r.type} />
+                                                    <span>{r.name}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-3 py-2 text-gray-700">{r.detail}</td>
+                                            <td className="px-3 py-2">
+                                                <TypeBadge type={r.type} />
+                                            </td>
+                                            <td className="whitespace-nowrap px-3 py-2 text-gray-700">
+                                                {formatVisitDate(r.date)}
+                                            </td>
+                                            <td className="px-3 py-2 text-center">
+                                                <ConfirmLink
+                                                    href={r.href}
+                                                    title={viewTitle}
+                                                    message={r.message}
+                                                    className="inline-block rounded-md bg-[#15664f] px-3 py-1 text-xs font-medium text-white hover:bg-[#124f3d]"
+                                                >
+                                                    View
+                                                </ConfirmLink>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </>
                 )}
             </div>
         </div>
@@ -229,7 +272,7 @@ function DentalList({
                     detail: d.procedure_name,
                     date: d.visit_date,
                     href: viewHref(d),
-                    message: `Open the dental record of ${name}? This contains confidential medical information.`,
+                    message: `Open the dental record of ${name}? This contains confidential medical information and your access will be recorded.`,
                 };
             })}
         />
@@ -308,7 +351,7 @@ function QuickActionsSection({
     className?: string;
 }) {
     return (
-        <div className={`overflow-hidden rounded-xl border border-amber-200 bg-white shadow-sm ${className ?? ""}`}>
+        <div className={`min-w-0 overflow-hidden rounded-xl border border-amber-200 bg-white shadow-sm ${className ?? ""}`}>
             <div className="flex items-center gap-2 bg-amber-50 px-3 py-2.5">
                 <div className="rounded-lg bg-amber-100 p-1.5 text-amber-600">
                     <Zap className="h-4 w-4" strokeWidth={1.8} />
@@ -322,7 +365,7 @@ function QuickActionsSection({
                         <Link
                             key={a.label}
                             href={a.href}
-                            className={`flex items-center gap-3 rounded-xl border px-3 py-2 shadow-sm transition hover:shadow-md ${a.cardClass}`}
+                            className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 shadow-sm transition hover:shadow-md md:py-2 ${a.cardClass}`}
                         >
                             <div
                                 className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white ${a.iconClass}`}
@@ -343,7 +386,7 @@ function QuickActionsSection({
 }
 
 /* ------------------------------------------------------------------ */
-/* NEW: Overview chart, Visit Distribution, Recent Activity            */
+/* Overview chart, Visit Distribution, Recent Activity                 */
 /* ------------------------------------------------------------------ */
 
 const CLINIC_COLOR = "#15664f";
@@ -364,13 +407,13 @@ function CardShell({
     className?: string;
 }) {
     return (
-        <div className={`rounded-xl border border-gray-200 bg-white p-3 shadow-sm ${className ?? ""}`}>
+        <div className={`min-w-0 rounded-xl border border-gray-200 bg-white p-3 shadow-sm ${className ?? ""}`}>
             <div className="mb-2 flex items-center gap-2">
-                <div className="rounded-lg bg-[#dff1ea] p-1.5 text-[#15664f]">
+                <div className="shrink-0 rounded-lg bg-[#dff1ea] p-1.5 text-[#15664f]">
                     <Icon className="h-4 w-4" strokeWidth={1.8} />
                 </div>
                 <div className="min-w-0">
-                    <h2 className="text-base font-semibold leading-tight text-[#14532D]">{title}</h2>
+                    <h2 className="break-words text-base font-semibold leading-tight text-[#14532D]">{title}</h2>
                     {subtitle && <p className="text-xs text-gray-600">{subtitle}</p>}
                 </div>
             </div>
@@ -382,7 +425,7 @@ function CardShell({
 function LegendDot({ color, label }: { color: string; label: string }) {
     return (
         <span className="inline-flex items-center gap-1.5 text-xs text-gray-700">
-            <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
+            <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
             {label}
         </span>
     );
@@ -399,10 +442,10 @@ function VisitsOverviewChart({
 }) {
     const W = 440;
     const H = 210;
-    const L = 30;
+    const L = 32;
     const R = 12;
     const T = 12;
-    const B = 28;
+    const B = 30;
     const plotW = W - L - R;
     const plotH = H - T - B;
     const baseY = T + plotH;
@@ -425,7 +468,7 @@ function VisitsOverviewChart({
 
     return (
         <CardShell title="Clinic & Dental Visits Overview" subtitle="This week (Mon–Sat)" icon={BarChart3}>
-            <div className="mb-2 flex flex-wrap items-center justify-end gap-x-4 gap-y-1">
+            <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 sm:justify-end">
                 {showClinic && <LegendDot color={CLINIC_COLOR} label="Clinic Visits" />}
                 {showDental && <LegendDot color={DENTAL_COLOR} label="Dental Visits" />}
             </div>
@@ -433,55 +476,79 @@ function VisitsOverviewChart({
             {data.length === 0 ? (
                 <p className="py-10 text-center text-sm text-gray-700">No visit data yet.</p>
             ) : (
-                <svg
-                    viewBox={`0 0 ${W} ${H}`}
-                    className="mx-auto h-auto max-h-[180px] w-full"
-                    role="img"
-                    aria-label="Clinic and dental visits for this week, Monday to Saturday"
-                >
-                    {/* grid + y labels */}
-                    {ticks.map((t) => (
-                        <g key={t}>
-                            <line x1={L} x2={W - R} y1={y(t)} y2={y(t)} stroke="#e5e7eb" strokeWidth={1} />
-                            <text x={L - 6} y={y(t) + 3} textAnchor="end" fontSize={10} fill="#6b7280">
-                                {t}
+                <>
+                    <svg
+                        viewBox={`0 0 ${W} ${H}`}
+                        className="mx-auto h-auto max-h-[200px] w-full"
+                        role="img"
+                        aria-label="Clinic and dental visits for this week, Monday to Saturday"
+                    >
+                        {/* grid + y labels */}
+                        {ticks.map((t) => (
+                            <g key={t}>
+                                <line x1={L} x2={W - R} y1={y(t)} y2={y(t)} stroke="#e5e7eb" strokeWidth={1} />
+                                <text x={L - 6} y={y(t) + 4} textAnchor="end" fontSize={12} fill="#6b7280">
+                                    {t}
+                                </text>
+                            </g>
+                        ))}
+
+                        {/* area + line + dots */}
+                        {series
+                            .filter((s) => s.show)
+                            .map((s) => {
+                                const pts = data.map((d, i) => `${x(i)},${y(d[s.key])}`).join(" ");
+                                const area = `${x(0)},${baseY} ${pts} ${x(data.length - 1)},${baseY}`;
+                                return (
+                                    <g key={s.key}>
+                                        <polygon points={area} fill={s.color} opacity={0.12} />
+                                        <polyline
+                                            points={pts}
+                                            fill="none"
+                                            stroke={s.color}
+                                            strokeWidth={2.5}
+                                            strokeLinejoin="round"
+                                            strokeLinecap="round"
+                                        />
+                                        {data.map((d, i) => (
+                                            <circle key={i} cx={x(i)} cy={y(d[s.key])} r={3.5} fill={s.color}>
+                                                <title>{`${d.label}: ${d[s.key]}`}</title>
+                                            </circle>
+                                        ))}
+                                    </g>
+                                );
+                            })}
+
+                        {/* x labels */}
+                        {data.map((d, i) => (
+                            <text key={i} x={x(i)} y={H - 8} textAnchor="middle" fontSize={12} fill="#6b7280">
+                                {d.label}
                             </text>
-                        </g>
-                    ))}
+                        ))}
+                    </svg>
 
-                    {/* area + line + dots */}
-                    {series
-                        .filter((s) => s.show)
-                        .map((s) => {
-                            const pts = data.map((d, i) => `${x(i)},${y(d[s.key])}`).join(" ");
-                            const area = `${x(0)},${baseY} ${pts} ${x(data.length - 1)},${baseY}`;
-                            return (
-                                <g key={s.key}>
-                                    <polygon points={area} fill={s.color} opacity={0.12} />
-                                    <polyline
-                                        points={pts}
-                                        fill="none"
-                                        stroke={s.color}
-                                        strokeWidth={2}
-                                        strokeLinejoin="round"
-                                        strokeLinecap="round"
-                                    />
-                                    {data.map((d, i) => (
-                                        <circle key={i} cx={x(i)} cy={y(d[s.key])} r={3} fill={s.color}>
-                                            <title>{`${d.label}: ${d[s.key]}`}</title>
-                                        </circle>
-                                    ))}
-                                </g>
-                            );
-                        })}
-
-                    {/* x labels */}
-                    {data.map((d, i) => (
-                        <text key={i} x={x(i)} y={H - 8} textAnchor="middle" fontSize={10} fill="#6b7280">
-                            {d.label}
-                        </text>
-                    ))}
-                </svg>
+                    {/* MOBILE: walang hover/tooltip sa touch, kaya ipakita ang bilang kada araw */}
+                    <div
+                        className="mt-2 grid gap-1 text-center sm:hidden"
+                        style={{ gridTemplateColumns: `repeat(${data.length}, minmax(0, 1fr))` }}
+                    >
+                        {data.map((d) => (
+                            <div key={d.label} className="rounded-md bg-gray-50 px-1 py-1">
+                                <p className="text-[10px] text-gray-500">{d.label}</p>
+                                {showClinic && (
+                                    <p className="text-xs font-semibold" style={{ color: CLINIC_COLOR }}>
+                                        {d.clinic}
+                                    </p>
+                                )}
+                                {showDental && (
+                                    <p className="text-xs font-semibold" style={{ color: DENTAL_COLOR }}>
+                                        {d.dental}
+                                    </p>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </>
             )}
         </CardShell>
     );
@@ -509,7 +576,7 @@ function VisitDistribution({
     return (
         <CardShell title="Visit Distribution" subtitle="This week (Mon–Sat)" icon={PieChart}>
             <div className="flex flex-col items-center gap-4 sm:flex-row xl:flex-col 2xl:flex-row">
-                <svg viewBox="0 0 120 120" className="h-28 w-28 shrink-0" role="img" aria-label="Visit distribution">
+                <svg viewBox="0 0 120 120" className="h-32 w-32 shrink-0 sm:h-28 sm:w-28" role="img" aria-label="Visit distribution">
                     <circle cx={60} cy={60} r={R} fill="none" stroke="#f3f4f6" strokeWidth={16} />
                     <g transform="rotate(-90 60 60)">
                         {arcs.map((a) => (
@@ -534,11 +601,11 @@ function VisitDistribution({
                     </text>
                 </svg>
 
-                <ul className="w-full space-y-2 text-sm">
+                <ul className="w-full min-w-0 space-y-2 text-sm">
                     {segments.map((s) => (
                         <li key={s.label} className="flex items-center justify-between gap-3">
                             <LegendDot color={s.color} label={s.label} />
-                            <span className="font-medium text-gray-900">{s.value.toLocaleString("en-US")}</span>
+                            <span className="shrink-0 font-medium text-gray-900">{s.value.toLocaleString("en-US")}</span>
                         </li>
                     ))}
                 </ul>
@@ -568,17 +635,23 @@ function RecentActivity({ items, today }: { items: ActivityItem[]; today: string
             {items.length === 0 ? (
                 <p className="py-10 text-center text-sm text-gray-700">No recent activity.</p>
             ) : (
-                <ul className="space-y-2">
+                <ul className="space-y-3">
                     {items.map((item) => {
                         const m = meta[item.kind];
                         const Icon = m.icon;
                         return (
-                            <li key={item.key} className="flex items-center gap-3">
+                            <li key={item.key} className="flex items-start gap-3 sm:items-center">
                                 <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${m.tile}`}>
                                     <Icon className="h-4 w-4" strokeWidth={1.8} />
                                 </div>
-                                <p className="min-w-0 flex-1 truncate text-sm text-[#15664f]">{m.text(item.name)}</p>
-                                <span className="shrink-0 text-xs text-gray-600">{relativeDay(item.date, today)}</span>
+                                {/* Mobile: puwedeng mag-wrap para mabasa ang buong pangalan. sm pataas: truncate */}
+                                <div className="min-w-0 flex-1">
+                                    <p className="break-words text-sm text-[#15664f] sm:truncate">{m.text(item.name)}</p>
+                                    <p className="text-xs text-gray-600 sm:hidden">{relativeDay(item.date, today)}</p>
+                                </div>
+                                <span className="hidden shrink-0 text-xs text-gray-600 sm:inline">
+                                    {relativeDay(item.date, today)}
+                                </span>
                             </li>
                         );
                     })}
@@ -722,7 +795,7 @@ async function loadDashboard(isDentist: boolean, isDoctor: boolean, showEmployee
           ORDER BY d.visit_date DESC, d.dental_id DESC
           LIMIT 8
         `,
-            // ---- NEW: visits per day for the last 7 days (oldest -> today) ----
+            // ---- visits per day for this week (Mon -> Sat) ----
             prisma.$queryRaw<WeeklyRow[]>`
           SELECT (CAST(date_trunc('week', CAST(${today} AS DATE)) AS DATE) + n) AS day,
                  CAST(
@@ -742,7 +815,7 @@ async function loadDashboard(isDentist: boolean, isDoctor: boolean, showEmployee
           FROM generate_series(0, 5) AS n
           ORDER BY day ASC
         `,
-            // ---- NEW: recent activity feed (role-aware, newest first) ----
+            // ---- recent activity feed (role-aware, newest first) ----
             isDentist
                 ? Promise.resolve([] as ActivityRow[])
                 : prisma.$queryRaw<ActivityRow[]>`
@@ -860,7 +933,6 @@ export default async function DashboardPage() {
 
     const isDoctor = role === "doctor";
     const isDentist = role === "dentist";
-    const isAdmin = role === "admin" || role === "administrator";
 
     // Total Employees: admin, nurse, doctor, dentist
     const showEmployees =
@@ -914,7 +986,7 @@ export default async function DashboardPage() {
             ? "xl:grid-cols-5"
             : "xl:grid-cols-3 2xl:grid-cols-6";
 
-    // Visit Distribution = totals for the same last-7-days window as the overview chart.
+    // Visit Distribution = totals for the same week window as the overview chart.
     const weekClinic = data.weeklyPoints.reduce((sum, p) => sum + p.clinic, 0);
     const weekDental = data.weeklyPoints.reduce((sum, p) => sum + p.dental, 0);
     const distributionSegments = [
@@ -991,13 +1063,13 @@ export default async function DashboardPage() {
     ];
 
     return (
-        <main className="min-w-0 space-y-5 p-4 md:p-6">
+        <main className="min-w-0 space-y-5 p-4 pb-8 md:p-6">
             <div className="flex items-center gap-3">
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-500">
                     <Sun className="h-6 w-6" strokeWidth={1.8} />
                 </div>
-                <div>
-                    <h1 className="text-2xl font-semibold text-[#14532D]">{greetingText}</h1>
+                <div className="min-w-0">
+                    <h1 className="break-words text-xl font-semibold text-[#14532D] sm:text-2xl">{greetingText}</h1>
                     <p className="text-sm text-gray-700">Here&apos;s what&apos;s happening today.</p>
                 </div>
             </div>
@@ -1007,24 +1079,27 @@ export default async function DashboardPage() {
                     return (
                         <div
                             key={stat.label}
-                            className={`flex h-full min-w-0 flex-col overflow-hidden rounded-xl border p-3 shadow-sm ${stat.tone === "amber"
+                            className={`flex min-w-0 flex-col overflow-hidden rounded-xl border p-3 shadow-sm sm:h-full ${stat.tone === "amber"
                                 ? "border-amber-200 bg-amber-50"
                                 : "border-green-200 bg-green-50"
                                 }`}
                         >
-                            <div
-                                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white ${stat.tone === "amber" ? "bg-amber-500" : "bg-[#15664f]"
-                                    }`}
-                            >
-                                <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} />
+                            {/* Mobile: icon at label magkatabi. sm pataas: nakapatong, tulad ng dati */}
+                            <div className="flex items-center gap-3 sm:block">
+                                <div
+                                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white ${stat.tone === "amber" ? "bg-amber-500" : "bg-[#15664f]"
+                                        }`}
+                                >
+                                    <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} />
+                                </div>
+                                <p className="break-words text-sm font-medium leading-4 text-[#14532D] sm:mt-2 sm:min-h-[2rem]">
+                                    {stat.label}
+                                </p>
                             </div>
-                            <p className="mt-2 min-h-[2rem] break-words text-sm font-medium leading-4 text-[#14532D]">
-                                {stat.label}
-                            </p>
-                            <p className="pt-1 text-2xl font-semibold text-[#14532D]">
+                            <p className="pt-2 text-2xl font-semibold text-[#14532D] sm:pt-1">
                                 {stat.value.toLocaleString("en-US")}
                             </p>
-                            <p className="mt-auto pt-0.5 text-xs text-gray-600">{stat.hint}</p>
+                            <p className="pt-0.5 text-xs text-gray-600 sm:mt-auto">{stat.hint}</p>
                         </div>
                     );
                 })}
@@ -1032,7 +1107,7 @@ export default async function DashboardPage() {
 
             <section className="grid gap-4 xl:grid-cols-5">
                 {/* Lists on the left, Quick Actions on the right (same layout for every role) */}
-                <div className="space-y-4 xl:col-span-3">
+                <div className="min-w-0 space-y-4 xl:col-span-3">
                     {!isDentist && (
                         <VisitList
                             title="Today's Clinic Visits"
@@ -1065,7 +1140,7 @@ export default async function DashboardPage() {
                 />
             </section>
 
-            {/* NEW: Overview chart + Visit Distribution + Recent Activity */}
+            {/* Overview chart + Visit Distribution + Recent Activity */}
             <section className="grid gap-4 lg:grid-cols-2 xl:grid-cols-[1.4fr_1fr_1.2fr]">
                 <VisitsOverviewChart
                     data={data.weeklyPoints}
@@ -1073,7 +1148,10 @@ export default async function DashboardPage() {
                     showDental={!isDoctor}
                 />
                 <VisitDistribution segments={distributionSegments} />
-                <RecentActivity items={data.activity} today={data.today} />
+                {/* Sa lg, full width para hindi mag-isa sa kalahating row */}
+                <div className="min-w-0 lg:col-span-2 xl:col-span-1">
+                    <RecentActivity items={data.activity} today={data.today} />
+                </div>
             </section>
         </main>
     );

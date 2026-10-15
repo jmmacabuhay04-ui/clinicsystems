@@ -27,6 +27,37 @@ function formatVisitDate(date: Date) {
     });
 }
 
+function PatientAvatar({ name, type }: { name: string; type: "student" | "employee" }) {
+    const initials = name
+        .split(" ")
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((w) => w[0])
+        .join("")
+        .toUpperCase();
+
+    return (
+        <span
+            aria-hidden="true"
+            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${type === "employee" ? "bg-amber-400 text-gray-900" : "bg-[#15664f] text-white"
+                }`}
+        >
+            {initials}
+        </span>
+    );
+}
+
+function TypeBadge({ type }: { type: "student" | "employee" }) {
+    return (
+        <span
+            className={`inline-block whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ${type === "employee" ? "bg-amber-300 text-gray-900" : "bg-[#15664f] text-white"
+                }`}
+        >
+            {type === "employee" ? "Employee" : "Student"}
+        </span>
+    );
+}
+
 export default async function ClinicVisitsPage({
     searchParams,
 }: {
@@ -89,8 +120,11 @@ export default async function ClinicVisitsPage({
             ? `/dashboard/employee-health-records?employee=${encodeURIComponent(r.ref_number)}&view=history`
             : `/dashboard/student-health-records?student=${encodeURIComponent(r.ref_number)}&view=history`;
 
+    const confirmMessage = (name: string) =>
+        `Open the health record of ${name}? This contains confidential medical information and your access will be recorded.`;
+
     return (
-        <main className="min-w-0 space-y-4 p-4 md:p-6">
+        <main className="min-w-0 space-y-4 p-4 pb-8 md:p-6">
             <div className="flex flex-wrap items-end justify-between gap-3">
                 {/* Left side: Back to Dashboard + title */}
                 <div className="space-y-2">
@@ -111,18 +145,18 @@ export default async function ClinicVisitsPage({
                     </div>
                 </div>
 
-                {/* Right side: Search */}
-                <form method="get" className="flex flex-wrap items-center justify-end gap-2">
+                {/* Right side: Search (full width sa mobile) */}
+                <form method="get" className="flex w-full flex-wrap items-center gap-2 md:w-auto md:justify-end">
                     <input
                         name="q"
                         defaultValue={q}
                         placeholder="Search name, ID or complaint..."
-                        className="w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm sm:w-64"
+                        className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-base placeholder:text-sm md:w-64 md:py-1.5 md:text-sm"
                     />
                     <select
                         name="type"
                         defaultValue={type}
-                        className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm"
+                        className="min-w-0 flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-base md:flex-none md:py-1.5 md:text-sm"
                     >
                         <option value="all">All types</option>
                         <option value="student">Student</option>
@@ -130,7 +164,7 @@ export default async function ClinicVisitsPage({
                     </select>
                     <button
                         type="submit"
-                        className="rounded-md bg-[#15664f] px-4 py-1.5 text-sm font-medium text-white hover:bg-[#124f3d]"
+                        className="rounded-md bg-[#15664f] px-4 py-2 text-sm font-medium text-white hover:bg-[#124f3d] md:py-1.5"
                     >
                         Search
                     </button>
@@ -146,65 +180,100 @@ export default async function ClinicVisitsPage({
                 {rows.length === 0 ? (
                     <p className="p-6 text-center text-sm text-gray-700">No clinic visits found.</p>
                 ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm">
-                            <thead className="bg-[#EEEEEE] text-[#15664f]">
-                                <tr>
-                                    <th className="whitespace-nowrap px-3 py-2 font-medium">ID</th>
-                                    <th className="px-3 py-2 font-medium">Name</th>
-                                    <th className="px-3 py-2 font-medium">Complaint</th>
-                                    <th className="px-3 py-2 font-medium">Type</th>
-                                    <th className="whitespace-nowrap px-3 py-2 font-medium">Date</th>
-                                    <th className="px-3 py-2 text-center font-medium">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {rows.map((r) => {
-                                    const name = `${r.first_name} ${r.last_name}`;
-                                    const isEmp = r.patient_type === "employee";
-                                    return (
-                                        <tr key={`${r.patient_type}-${r.record_id}`} className="border-t border-gray-100">
-                                            <td className="whitespace-nowrap px-3 py-2 text-gray-700">{r.ref_number}</td>
-                                            <td className="px-3 py-2 font-medium text-gray-900">
-                                                <div className="flex items-center gap-2">
-                                                    <span
-                                                        aria-hidden="true"
-                                                        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${isEmp ? "bg-amber-400 text-gray-900" : "bg-[#15664f] text-white"
-                                                            }`}
-                                                    >
-                                                        {name.split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase()}
+                    <>
+                        {/* MOBILE: card list (walang horizontal scroll) */}
+                        <ul className="space-y-2 md:hidden">
+                            {rows.map((r) => {
+                                const name = `${r.first_name} ${r.last_name}`;
+                                return (
+                                    <li
+                                        key={`${r.patient_type}-${r.record_id}`}
+                                        className="rounded-lg border border-gray-100 p-3"
+                                    >
+                                        <div className="flex items-start gap-3">
+                                            <PatientAvatar name={name} type={r.patient_type} />
+                                            <div className="min-w-0 flex-1">
+                                                <p className="break-words text-sm font-medium text-gray-900">{name}</p>
+                                                <p className="text-xs text-gray-600">ID: {r.ref_number}</p>
+                                                <p className="mt-1 break-words text-sm text-gray-700">
+                                                    <span className="text-gray-500">Complaint: </span>
+                                                    {r.complaint}
+                                                </p>
+                                                <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                                                    <TypeBadge type={r.patient_type} />
+                                                    <span className="text-xs text-gray-600">
+                                                        {formatVisitDate(r.visit_date)}
                                                     </span>
-                                                    <span>{name}</span>
                                                 </div>
-                                            </td>
-                                            <td className="px-3 py-2 text-gray-700">{r.complaint}</td>
-                                            <td className="px-3 py-2">
-                                                <span
-                                                    className={`inline-block whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ${isEmp ? "bg-amber-300 text-gray-900" : "bg-[#15664f] text-white"
-                                                        }`}
-                                                >
-                                                    {isEmp ? "Employee" : "Student"}
-                                                </span>
-                                            </td>
-                                            <td className="whitespace-nowrap px-3 py-2 text-gray-700">
-                                                {formatVisitDate(r.visit_date)}
-                                            </td>
-                                            <td className="px-3 py-2 text-center">
-                                                <ConfirmLink
-                                                    href={viewHref(r)}
-                                                    title="View health record"
-                                                    message={`Open the health record of ${name}? This contains confidential medical information and your access will be recorded.`}
-                                                    className="inline-block rounded-md bg-[#15664f] px-3 py-1 text-xs font-medium text-white hover:bg-[#124f3d]"
-                                                >
-                                                    View
-                                                </ConfirmLink>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
+                                            </div>
+                                        </div>
+                                        <ConfirmLink
+                                            href={viewHref(r)}
+                                            title="View health record"
+                                            message={confirmMessage(name)}
+                                            className="mt-3 block w-full rounded-md bg-[#15664f] px-3 py-2 text-center text-sm font-medium text-white hover:bg-[#124f3d]"
+                                        >
+                                            View
+                                        </ConfirmLink>
+                                    </li>
+                                );
+                            })}
+                        </ul>
+
+                        {/* DESKTOP: table */}
+                        <div className="hidden overflow-x-auto md:block">
+                            <table className="w-full text-left text-sm">
+                                <thead className="bg-[#EEEEEE] text-[#15664f]">
+                                    <tr>
+                                        <th className="whitespace-nowrap px-3 py-2 font-medium">ID</th>
+                                        <th className="px-3 py-2 font-medium">Name</th>
+                                        <th className="px-3 py-2 font-medium">Complaint</th>
+                                        <th className="px-3 py-2 font-medium">Type</th>
+                                        <th className="whitespace-nowrap px-3 py-2 font-medium">Date</th>
+                                        <th className="px-3 py-2 text-center font-medium">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {rows.map((r) => {
+                                        const name = `${r.first_name} ${r.last_name}`;
+                                        return (
+                                            <tr
+                                                key={`${r.patient_type}-${r.record_id}`}
+                                                className="border-t border-gray-100"
+                                            >
+                                                <td className="whitespace-nowrap px-3 py-2 text-gray-700">
+                                                    {r.ref_number}
+                                                </td>
+                                                <td className="px-3 py-2 font-medium text-gray-900">
+                                                    <div className="flex items-center gap-2">
+                                                        <PatientAvatar name={name} type={r.patient_type} />
+                                                        <span>{name}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-3 py-2 text-gray-700">{r.complaint}</td>
+                                                <td className="px-3 py-2">
+                                                    <TypeBadge type={r.patient_type} />
+                                                </td>
+                                                <td className="whitespace-nowrap px-3 py-2 text-gray-700">
+                                                    {formatVisitDate(r.visit_date)}
+                                                </td>
+                                                <td className="px-3 py-2 text-center">
+                                                    <ConfirmLink
+                                                        href={viewHref(r)}
+                                                        title="View health record"
+                                                        message={confirmMessage(name)}
+                                                        className="inline-block rounded-md bg-[#15664f] px-3 py-1 text-xs font-medium text-white hover:bg-[#124f3d]"
+                                                    >
+                                                        View
+                                                    </ConfirmLink>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    </>
                 )}
 
                 {/* Pagination */}
@@ -217,7 +286,7 @@ export default async function ClinicVisitsPage({
                             {page > 1 && (
                                 <Link
                                     href={pageHref(page - 1)}
-                                    className="rounded-md border border-gray-300 px-3 py-1 text-[#15664f] hover:bg-gray-50"
+                                    className="rounded-md border border-gray-300 px-3 py-1.5 text-[#15664f] hover:bg-gray-50"
                                 >
                                     Previous
                                 </Link>
@@ -225,7 +294,7 @@ export default async function ClinicVisitsPage({
                             {page < totalPages && (
                                 <Link
                                     href={pageHref(page + 1)}
-                                    className="rounded-md border border-gray-300 px-3 py-1 text-[#15664f] hover:bg-gray-50"
+                                    className="rounded-md border border-gray-300 px-3 py-1.5 text-[#15664f] hover:bg-gray-50"
                                 >
                                     Next
                                 </Link>

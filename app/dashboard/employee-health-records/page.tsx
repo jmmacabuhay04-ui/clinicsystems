@@ -93,9 +93,9 @@ function show(value: number | string | null | undefined, unit = "") {
 
 function Info({ label, value }: { label: string; value: string }) {
     return (
-        <div>
+        <div className="min-w-0">
             <p className="text-xs uppercase tracking-wide text-gray-500">{label}</p>
-            <p className="mt-1 font-medium text-gray-900">{value}</p>
+            <p className="mt-1 break-words font-medium text-gray-900">{value}</p>
         </div>
     );
 }
@@ -111,6 +111,73 @@ function pageList(current: number, last: number): (number | "...")[] {
         out.push(p);
     });
     return out;
+}
+
+function TypeBadges({ v }: { v: VisitItem }) {
+    if (v.kind === "visit") {
+        return (
+            <span className="whitespace-nowrap rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
+                Clinic Visit
+            </span>
+        );
+    }
+    return (
+        <div className="flex flex-wrap items-center gap-2">
+            <span className="whitespace-nowrap rounded-full bg-[#eef6f2] px-2.5 py-0.5 text-xs font-medium text-[#15664f]">
+                Case {v.caseNumber}
+            </span>
+            <span
+                className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLES[v.status ?? ""] ?? "bg-gray-100 text-gray-700"
+                    }`}
+            >
+                {v.status}
+            </span>
+        </div>
+    );
+}
+
+function VisitActions({ v, padded }: { v: VisitItem; padded?: boolean }) {
+    const py = padded ? "py-1 " : "";
+    if (v.kind === "visit") {
+        return (
+            <>
+                <ConfirmLink
+                    href={`${BASE}/edit?record=${v.id}`}
+                    title="Edit visit record"
+                    message={`Edit this visit (${fmt(v.date)} - ${v.complaint})?`}
+                    confirmLabel="Edit"
+                    className={`inline-flex items-center gap-1 ${py}font-medium text-[#15664f] hover:underline`}
+                >
+                    <Pencil className="h-3.5 w-3.5" />
+                    Edit
+                </ConfirmLink>
+                <form action={archiveEmployeeRecord}>
+                    <input type="hidden" name="recordId" value={v.id} />
+                    <ConfirmButton
+                        title="Archive record"
+                        confirmLabel="Archive"
+                        message={`Archive this visit? ${fmt(v.date)} · ${v.complaint}`}
+                        className={`inline-flex items-center gap-1 ${py}font-medium text-amber-700 hover:underline`}
+                    >
+                        <Archive className="h-3.5 w-3.5" />
+                        Archive
+                    </ConfirmButton>
+                </form>
+            </>
+        );
+    }
+    return (
+        <ConfirmLink
+            href={`${CASES}/edit?case=${v.id}`}
+            title="Open case report"
+            message={`Open case ${v.caseNumber} (${v.complaint})? You will be taken to Health Case Reports.`}
+            confirmLabel="Open"
+            className={`inline-flex items-center gap-1 ${py}font-medium text-[#15664f] hover:underline`}
+        >
+            <Pencil className="h-3.5 w-3.5" />
+            Open case
+        </ConfirmLink>
+    );
 }
 
 export default async function EmployeeHealthRecordsPage({ searchParams }: Props) {
@@ -204,6 +271,11 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
 
     const backHref = historyOnly ? "/dashboard" : pageHref(page);
 
+    const viewHref = (e: EmployeeRow) =>
+        `${BASE}?employee=${encodeURIComponent(e.employee_number)}${q ? `&q=${encodeURIComponent(q)}` : ""}&page=${page}`;
+    const viewMessage = (e: EmployeeRow) =>
+        `Open the health record of ${e.first_name} ${e.last_name} (${e.employee_number})? This contains confidential medical information.`;
+
     let records: RecordRow[] = [];
     if (selected) {
         records = await prisma.$queryRaw<RecordRow[]>`
@@ -261,19 +333,19 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
     );
 
     return (
-        <main className="space-y-6 p-6 md:p-8">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-                <h1 className="text-3xl font-semibold text-gray-900">Employee Health Records</h1>
+        <main className="min-w-0 space-y-6 p-4 pb-8 md:p-8">
+            <div className="flex flex-wrap items-center justify-between gap-3 md:gap-4">
+                <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">Employee Health Records</h1>
 
                 {canEditEmployees || canEditRecords ? (
-                    <div className="flex flex-wrap gap-3">
+                    <div className="flex w-full flex-wrap gap-3 sm:w-auto">
                         {canEditEmployees && !selected && (
                             <ConfirmLink
                                 href="/dashboard/employee-health-records/employees/new"
                                 title="Add a new employee?"
                                 message="You will be taken to the form to register a new employee."
                                 confirmLabel="Continue"
-                                className="inline-flex items-center gap-2 rounded-lg bg-amber-400 px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-amber-500"
+                                className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-amber-400 px-4 text-sm font-semibold text-gray-900 hover:bg-amber-500 sm:flex-none"
                             >
                                 <UserPlus className="h-4 w-4" />
                                 Add Employee
@@ -285,7 +357,6 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
                                     selected
                                         ? `${BASE}/new?employee=${encodeURIComponent(selected.employee_number)}`
                                         : `${BASE}/new`
-
                                 }
                                 title="Add a new visit record?"
                                 message={
@@ -294,7 +365,7 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
                                         : "You will be taken to the form to add a new employee health record."
                                 }
                                 confirmLabel="Continue"
-                                className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#15664f] px-4 text-sm font-semibold text-white hover:bg-[#10523f]"
+                                className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-[#15664f] px-4 text-sm font-semibold text-white hover:bg-[#10523f] sm:flex-none"
                             >
                                 <Plus className="h-4 w-4" />
                                 Add Record
@@ -308,35 +379,81 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
                 )}
             </div>
 
-            {
-                !selected && (
-                    <form method="get" action={BASE} className="relative max-w-md">
-                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                        <input
-                            name="q"
-                            defaultValue={q}
-                            placeholder="Search by employee number or name..."
-                            suppressHydrationWarning
-                            className="h-11 w-full rounded-lg border border-gray-300 bg-white pl-10 pr-3 text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20"
-                        />
-                    </form>
-                )
-            }
-            {
-                !selected && (
-                    <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                        <p className="border-b border-gray-100 px-4 py-3 text-sm text-gray-600">
-                            {q ? `Search results for “${q}”` : "Recently registered employees"}
-                        </p>
+            {!selected && (
+                <form method="get" action={BASE} className="relative w-full md:max-w-md">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                    <input
+                        name="q"
+                        defaultValue={q}
+                        placeholder="Search by employee number or name..."
+                        suppressHydrationWarning
+                        className="h-11 w-full rounded-lg border border-gray-300 bg-white pl-10 pr-3 text-base text-gray-900 outline-none placeholder:text-sm focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20 md:text-sm"
+                    />
+                </form>
+            )}
 
-                        {employees.length === 0 ? (
-                            <p className="p-8 text-center text-sm text-gray-500">No employees found.</p>
-                        ) : (
-                            <div className="overflow-x-auto">
+            {!selected && (
+                <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                    <p className="border-b border-gray-100 px-4 py-3 text-sm text-gray-600">
+                        {q ? `Search results for “${q}”` : "Recently registered employees"}
+                    </p>
+
+                    {employees.length === 0 ? (
+                        <p className="p-6 text-center text-sm text-gray-500 md:p-8">No employees found.</p>
+                    ) : (
+                        <>
+                            {/* MOBILE: card list (walang horizontal scroll) */}
+                            <ul className="space-y-2 p-3 md:hidden">
+                                {employees.map((e) => {
+                                    const name = `${e.last_name}, ${e.first_name}${e.middle_name ? ` ${e.middle_name}` : ""}`;
+                                    return (
+                                        <li key={e.employee_id} className="rounded-lg border border-gray-100 p-3">
+                                            <p className="break-words text-sm font-semibold text-gray-900">{name}</p>
+                                            <p className="text-xs text-gray-500">{e.employee_number}</p>
+                                            <dl className="mt-2 space-y-1">
+                                                <div className="flex gap-2 text-sm">
+                                                    <dt className="w-24 shrink-0 text-gray-500">Department</dt>
+                                                    <dd className="min-w-0 flex-1 break-words text-gray-900">
+                                                        {e.department ?? "—"}
+                                                    </dd>
+                                                </div>
+                                                <div className="flex gap-2 text-sm">
+                                                    <dt className="w-24 shrink-0 text-gray-500">Position</dt>
+                                                    <dd className="min-w-0 flex-1 break-words text-gray-900">
+                                                        {e.position ?? "—"}
+                                                    </dd>
+                                                </div>
+                                                <div className="flex gap-2 text-sm">
+                                                    <dt className="w-24 shrink-0 text-gray-500">Contact</dt>
+                                                    <dd className="min-w-0 flex-1 break-words text-gray-900">
+                                                        {e.contact_number ?? "—"}
+                                                    </dd>
+                                                </div>
+                                                <div className="flex gap-2 text-sm">
+                                                    <dt className="w-24 shrink-0 text-gray-500">Email</dt>
+                                                    <dd className="min-w-0 flex-1 break-all text-gray-900">
+                                                        {e.email ?? "—"}
+                                                    </dd>
+                                                </div>
+                                            </dl>
+                                            <ConfirmLink
+                                                href={viewHref(e)}
+                                                title="View health record"
+                                                message={viewMessage(e)}
+                                                className="mt-3 block w-full rounded-md bg-[#15664f] px-3 py-2 text-center text-sm font-medium text-white hover:bg-[#124f3d]"
+                                            >
+                                                View record
+                                            </ConfirmLink>
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+
+                            {/* DESKTOP: table */}
+                            <div className="hidden overflow-x-auto md:block">
                                 <table className="w-full text-left text-sm">
                                     <thead className="bg-[#EEEEEE] text-[#15664f]">
                                         <tr>
-
                                             <th className="px-4 py-3 font-medium">Department</th>
                                             <th className="px-4 py-3 font-medium">Position</th>
                                             <th className="whitespace-nowrap px-4 py-3 font-medium">Employee Number</th>
@@ -346,7 +463,6 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
                                             <th className="whitespace-nowrap px-4 py-3 font-medium">Contact Number</th>
                                             <th className="px-4 py-3 font-medium">Email</th>
                                             <th className="px-4 py-3 font-medium">Actions</th>
-
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -366,9 +482,9 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
                                                 <td className="px-4 py-3 text-gray-700">{e.email ?? "—"}</td>
                                                 <td className="whitespace-nowrap px-4 py-3">
                                                     <ConfirmLink
-                                                        href={`${BASE}?employee=${encodeURIComponent(e.employee_number)}${q ? `&q=${encodeURIComponent(q)}` : ""}&page=${page}`}
+                                                        href={viewHref(e)}
                                                         title="View health record"
-                                                        message={`Open the health record of ${e.first_name} ${e.last_name} (${e.employee_number})? This contains confidential medical information.`}
+                                                        message={viewMessage(e)}
                                                         className="font-medium text-[#15664f] hover:underline"
                                                     >
                                                         View record
@@ -379,171 +495,213 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
                                     </tbody>
                                 </table>
                             </div>
-                        )}
+                        </>
+                    )}
 
-                        {employees.length > 0 && (
-                            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 px-4 py-3">
-                                <p className="text-sm text-gray-500">
-                                    Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} of {total} employees
-                                </p>
+                    {employees.length > 0 && (
+                        <div className="flex flex-col gap-3 border-t border-gray-100 px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                            <p className="text-sm text-gray-500">
+                                Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} of {total} employees
+                            </p>
 
-                                {totalPages > 1 && (
-                                    <nav className="flex items-center gap-1" aria-label="Pagination">
-                                        {page > 1 ? (
-                                            <Link
-                                                href={pageHref(page - 1)}
-                                                className="rounded-lg border border-gray-300 px-3 py-1.5 font-medium text-[#15664f] hover:bg-[#eef6f2]"
-                                            >
-                                                Previous
-                                            </Link>
-                                        ) : (
-                                            <span className="rounded-lg border border-gray-200 px-3 py-1.5 text-gray-400">
-                                                Previous
-                                            </span>
-                                        )}
-
-                                        {pageList(page, totalPages).map((p, i) =>
-                                            p === "..." ? (
-                                                <span key={`gap-${i}`} className="px-2 text-gray-400">
-                                                    …
-                                                </span>
-                                            ) : p === page ? (
-                                                <span
-                                                    key={p}
-                                                    aria-current="page"
-                                                    className="rounded-lg bg-[#15664f] px-3 py-1.5 font-semibold text-white"
-                                                >
-                                                    {p}
-                                                </span>
-                                            ) : (
-                                                <Link
-                                                    key={p}
-                                                    href={pageHref(p)}
-                                                    className="rounded-lg border border-gray-300 px-3 py-1.5 font-medium text-gray-700 hover:bg-[#eef6f2]"
-                                                >
-                                                    {p}
-                                                </Link>
-                                            )
-                                        )}
-
-                                        {page < totalPages ? (
-                                            <Link
-                                                href={pageHref(page + 1)}
-                                                className="rounded-lg border border-gray-300 px-3 py-1.5 font-medium text-[#15664f] hover:bg-[#eef6f2]"
-                                            >
-                                                Next
-                                            </Link>
-                                        ) : (
-                                            <span className="rounded-lg border border-gray-200 px-3 py-1.5 text-gray-400">
-                                                Next
-                                            </span>
-                                        )}
-                                    </nav>
-                                )}
-                            </div>
-                        )}
-                    </section>
-                )
-            }
-
-            {
-                selected && (
-                    <>
-                        <Link
-                            href={backHref}
-                            className="inline-flex items-center gap-1 text-sm font-medium text-[#15664f] hover:underline"
-                        >
-                            <ArrowLeft className="h-4 w-4" />
-                            {historyOnly ? "Back to dashboard" : "Back to employee list"}
-                        </Link>
-
-                        {!historyOnly && (
-                            <>
-                                <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                                    <div className="grid gap-x-6 gap-y-5 sm:grid-cols-3 lg:grid-cols-6">
-                                        <Info label="Department" value={show(selected.department)} />
-                                        <Info label="Position" value={show(selected.position)} />
-                                        <Info label="Employee Number" value={selected.employee_number} />
-                                        <Info label="Last Name" value={selected.last_name} />
-                                        <Info label="First Name" value={selected.first_name} />
-                                        <Info label="Middle Name" value={show(selected.middle_name)} />
-                                        <Info label="Date of Birth" value={fmt(selected.date_of_birth, "long")} />
-                                        <Info label="Gender" value={show(selected.gender)} />
-                                        <Info label="Contact Number" value={show(selected.contact_number)} />
-                                        <Info label="Email Address" value={show(selected.email)} />
-                                    </div>
-
-                                    {canEditEmployees && (
-                                        <div className="mt-6 flex flex-wrap gap-3 border-t border-gray-100 pt-5">
-                                            <ConfirmLink
-                                                href={`${BASE}/employees/edit?employee=${encodeURIComponent(selected.employee_number)}`}
-                                                title="Edit employee details"
-                                                message={`Edit the details of ${selected.first_name} ${selected.last_name} (${selected.employee_number})? Changes will replace the current information.`}
-                                                confirmLabel="Edit"
-                                                className="inline-flex h-10 items-center gap-2 rounded-lg border border-[#15664f] px-4 text-sm font-medium text-[#15664f] hover:bg-[#15664f]/5"
-                                            >
-                                                <Pencil className="h-4 w-4" />
-                                                Edit employee details
-                                            </ConfirmLink>
-                                            <form action={archiveEmployee}>
-                                                <input type="hidden" name="employeeId" value={selected.employee_id} />
-                                                <ConfirmButton
-                                                    title="Archive employee"
-                                                    confirmLabel="Archive"
-                                                    message={`Archive ${selected.last_name}, ${selected.first_name}? Their portal login will stop working until restored.`}
-                                                    className="inline-flex h-10 items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 text-sm font-medium text-amber-800 hover:bg-amber-100"
-                                                >
-                                                    <Archive className="h-4 w-4" />
-                                                    Archive this employee
-                                                </ConfirmButton>
-                                            </form>
-                                        </div>
+                            {totalPages > 1 && (
+                                <nav className="flex items-center justify-between gap-1 sm:justify-end" aria-label="Pagination">
+                                    {page > 1 ? (
+                                        <Link
+                                            href={pageHref(page - 1)}
+                                            className="rounded-lg border border-gray-300 px-3 py-2 font-medium text-[#15664f] hover:bg-[#eef6f2] sm:py-1.5"
+                                        >
+                                            Previous
+                                        </Link>
+                                    ) : (
+                                        <span className="rounded-lg border border-gray-200 px-3 py-2 text-gray-400 sm:py-1.5">
+                                            Previous
+                                        </span>
                                     )}
-                                </section>
 
-                                <section>
-                                    <h2 className="mb-3 text-lg font-semibold text-gray-900">Vital Signs</h2>
-                                    <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
-                                        {[
-                                            { label: "Height", value: show(latest?.height_cm, " cm") },
-                                            { label: "Weight", value: show(latest?.weight_kg, " kg") },
-                                            { label: "Heart Rate", value: show(latest?.heart_rate, " bpm") },
-                                            { label: "Blood Pressure", value: show(latest?.blood_pressure) },
-                                            { label: "Temperature", value: show(latest?.temperature, " °C") },
-                                            {
-                                                label: "Last Updated",
-                                                value: records[0] ? fmt(records[0].visit_date) : "—",
-                                            },
-                                        ].map((item) => (
-                                            <div
-                                                key={item.label}
-                                                className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+                                    {/* Mobile: "Page x of y" lang. sm pataas: buong listahan ng numero */}
+                                    <span className="px-2 text-sm text-gray-600 sm:hidden">
+                                        Page {page} of {totalPages}
+                                    </span>
+
+                                    {pageList(page, totalPages).map((p, i) =>
+                                        p === "..." ? (
+                                            <span key={`gap-${i}`} className="hidden px-2 text-gray-400 sm:inline">
+                                                …
+                                            </span>
+                                        ) : p === page ? (
+                                            <span
+                                                key={p}
+                                                aria-current="page"
+                                                className="hidden rounded-lg bg-[#15664f] px-3 py-1.5 font-semibold text-white sm:inline"
                                             >
-                                                <p className="text-sm text-gray-600">{item.label}</p>
-                                                <p className="mt-2 text-xl font-semibold text-gray-900">{item.value}</p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </section>
-                            </>
-                        )}
+                                                {p}
+                                            </span>
+                                        ) : (
+                                            <Link
+                                                key={p}
+                                                href={pageHref(p)}
+                                                className="hidden rounded-lg border border-gray-300 px-3 py-1.5 font-medium text-gray-700 hover:bg-[#eef6f2] sm:inline"
+                                            >
+                                                {p}
+                                            </Link>
+                                        )
+                                    )}
 
-                        <section>
-                            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                                <h2 className="text-lg font-semibold text-gray-900">Visit History</h2>
-                                <p className="text-sm text-gray-500">
-                                    {historyOnly
-                                        ? `${selected.last_name}, ${selected.first_name} (${selected.employee_number})`
-                                        : "Clinic visits and health case reports combined, newest first."}
+                                    {page < totalPages ? (
+                                        <Link
+                                            href={pageHref(page + 1)}
+                                            className="rounded-lg border border-gray-300 px-3 py-2 font-medium text-[#15664f] hover:bg-[#eef6f2] sm:py-1.5"
+                                        >
+                                            Next
+                                        </Link>
+                                    ) : (
+                                        <span className="rounded-lg border border-gray-200 px-3 py-2 text-gray-400 sm:py-1.5">
+                                            Next
+                                        </span>
+                                    )}
+                                </nav>
+                            )}
+                        </div>
+                    )}
+                </section>
+            )}
+
+            {selected && (
+                <>
+                    <Link
+                        href={backHref}
+                        className="inline-flex items-center gap-1 py-1 text-sm font-medium text-[#15664f] hover:underline"
+                    >
+                        <ArrowLeft className="h-4 w-4" />
+                        {historyOnly ? "Back to dashboard" : "Back to employee list"}
+                    </Link>
+
+                    {!historyOnly && (
+                        <>
+                            <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm md:p-6">
+                                <div className="grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-3 sm:gap-x-6 sm:gap-y-5 lg:grid-cols-6">
+                                    <Info label="Department" value={show(selected.department)} />
+                                    <Info label="Position" value={show(selected.position)} />
+                                    <Info label="Employee Number" value={selected.employee_number} />
+                                    <Info label="Last Name" value={selected.last_name} />
+                                    <Info label="First Name" value={selected.first_name} />
+                                    <Info label="Middle Name" value={show(selected.middle_name)} />
+                                    <Info label="Date of Birth" value={fmt(selected.date_of_birth, "long")} />
+                                    <Info label="Gender" value={show(selected.gender)} />
+                                    <Info label="Contact Number" value={show(selected.contact_number)} />
+                                    <Info label="Email Address" value={show(selected.email)} />
+                                </div>
+
+                                {canEditEmployees && (
+                                    <div className="mt-6 flex flex-col gap-3 border-t border-gray-100 pt-5 sm:flex-row sm:flex-wrap">
+                                        <ConfirmLink
+                                            href={`${BASE}/employees/edit?employee=${encodeURIComponent(selected.employee_number)}`}
+                                            title="Edit employee details"
+                                            message={`Edit the details of ${selected.first_name} ${selected.last_name} (${selected.employee_number})? Changes will replace the current information.`}
+                                            confirmLabel="Edit"
+                                            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[#15664f] px-4 text-sm font-medium text-[#15664f] hover:bg-[#15664f]/5"
+                                        >
+                                            <Pencil className="h-4 w-4" />
+                                            Edit employee details
+                                        </ConfirmLink>
+                                        <form action={archiveEmployee} className="flex">
+                                            <input type="hidden" name="employeeId" value={selected.employee_id} />
+                                            <ConfirmButton
+                                                title="Archive employee"
+                                                confirmLabel="Archive"
+                                                message={`Archive ${selected.last_name}, ${selected.first_name}? Their portal login will stop working until restored.`}
+                                                className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 text-sm font-medium text-amber-800 hover:bg-amber-100"
+                                            >
+                                                <Archive className="h-4 w-4" />
+                                                Archive this employee
+                                            </ConfirmButton>
+                                        </form>
+                                    </div>
+                                )}
+                            </section>
+
+                            <section>
+                                <h2 className="mb-3 text-base font-semibold text-gray-900 md:text-lg">Vital Signs</h2>
+                                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-6">
+                                    {[
+                                        { label: "Height", value: show(latest?.height_cm, " cm") },
+                                        { label: "Weight", value: show(latest?.weight_kg, " kg") },
+                                        { label: "Heart Rate", value: show(latest?.heart_rate, " bpm") },
+                                        { label: "Blood Pressure", value: show(latest?.blood_pressure) },
+                                        { label: "Temperature", value: show(latest?.temperature, " °C") },
+                                        {
+                                            label: "Last Updated",
+                                            value: records[0] ? fmt(records[0].visit_date) : "—",
+                                        },
+                                    ].map((item) => (
+                                        <div
+                                            key={item.label}
+                                            className="min-w-0 rounded-xl border border-gray-200 bg-white p-3 shadow-sm sm:p-4"
+                                        >
+                                            <p className="text-sm text-gray-600">{item.label}</p>
+                                            <p className="mt-1 break-words text-lg font-semibold text-gray-900 sm:mt-2 sm:text-xl">
+                                                {item.value}
+                                            </p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </section>
+                        </>
+                    )}
+
+                    <section>
+                        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                            <h2 className="text-base font-semibold text-gray-900 md:text-lg">Visit History</h2>
+                            <p className="break-words text-sm text-gray-500">
+                                {historyOnly
+                                    ? `${selected.last_name}, ${selected.first_name} (${selected.employee_number})`
+                                    : "Clinic visits and health case reports combined, newest first."}
+                            </p>
+                        </div>
+                        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                            {visits.length === 0 ? (
+                                <p className="p-6 text-center text-sm text-gray-500 md:p-8">
+                                    No clinic visits or case reports recorded yet.
                                 </p>
-                            </div>
-                            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                                {visits.length === 0 ? (
-                                    <p className="p-8 text-center text-sm text-gray-500">
-                                        No clinic visits or case reports recorded yet.
-                                    </p>
-                                ) : (
-                                    <div className="overflow-x-auto">
+                            ) : (
+                                <>
+                                    {/* MOBILE: card list (walang horizontal scroll) */}
+                                    <ul className="space-y-2 p-3 md:hidden">
+                                        {visits.map((v) => (
+                                            <li key={v.key} className="rounded-lg border border-gray-100 p-3">
+                                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                                    <TypeBadges v={v} />
+                                                    <span className="text-xs text-gray-600">{fmt(v.date)}</span>
+                                                </div>
+                                                <p className="mt-2 break-words text-sm font-semibold text-gray-900">
+                                                    {v.complaint}
+                                                </p>
+                                                <dl className="mt-1 space-y-1">
+                                                    <div className="flex gap-2 text-sm">
+                                                        <dt className="w-20 shrink-0 text-gray-500">Action</dt>
+                                                        <dd className="min-w-0 flex-1 break-words text-gray-900">
+                                                            {v.detail || "—"}
+                                                        </dd>
+                                                    </div>
+                                                    <div className="flex gap-2 text-sm">
+                                                        <dt className="w-20 shrink-0 text-gray-500">Staff</dt>
+                                                        <dd className="min-w-0 flex-1 break-words text-gray-900">
+                                                            {v.staff || "—"}
+                                                        </dd>
+                                                    </div>
+                                                </dl>
+                                                {canEditRecords && (
+                                                    <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-gray-100 pt-2 text-sm">
+                                                        <VisitActions v={v} padded />
+                                                    </div>
+                                                )}
+                                            </li>
+                                        ))}
+                                    </ul>
+
+                                    {/* DESKTOP: table */}
+                                    <div className="hidden overflow-x-auto md:block">
                                         <table className="w-full text-left text-sm">
                                             <thead className="bg-[#EEEEEE] text-[#15664f]">
                                                 <tr>
@@ -562,24 +720,7 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
                                                             {fmt(v.date)}
                                                         </td>
                                                         <td className="whitespace-nowrap px-4 py-3">
-                                                            {v.kind === "visit" ? (
-                                                                <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
-                                                                    Clinic Visit
-                                                                </span>
-                                                            ) : (
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className="rounded-full bg-[#eef6f2] px-2.5 py-0.5 text-xs font-medium text-[#15664f]">
-                                                                        Case {v.caseNumber}
-                                                                    </span>
-                                                                    <span
-                                                                        className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLES[v.status ?? ""] ??
-                                                                            "bg-gray-100 text-gray-700"
-                                                                            }`}
-                                                                    >
-                                                                        {v.status}
-                                                                    </span>
-                                                                </div>
-                                                            )}
+                                                            <TypeBadges v={v} />
                                                         </td>
                                                         <td className="px-4 py-3 text-gray-900">{v.complaint}</td>
                                                         <td className="px-4 py-3 text-gray-900">{v.detail || "—"}</td>
@@ -587,43 +728,7 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
                                                         {canEditRecords && (
                                                             <td className="whitespace-nowrap px-4 py-3">
                                                                 <div className="flex items-center gap-3">
-                                                                    {v.kind === "visit" ? (
-                                                                        <>
-                                                                            <ConfirmLink
-                                                                                href={`${BASE}/edit?record=${v.id}`}
-                                                                                title="Edit visit record"
-                                                                                message={`Edit this visit (${fmt(v.date)} - ${v.complaint})?`}
-                                                                                confirmLabel="Edit"
-                                                                                className="inline-flex items-center gap-1 font-medium text-[#15664f] hover:underline"
-                                                                            >
-                                                                                <Pencil className="h-3.5 w-3.5" />
-                                                                                Edit
-                                                                            </ConfirmLink>
-                                                                            <form action={archiveEmployeeRecord}>
-                                                                                <input type="hidden" name="recordId" value={v.id} />
-                                                                                <ConfirmButton
-                                                                                    title="Archive record"
-                                                                                    confirmLabel="Archive"
-                                                                                    message={`Archive this visit? ${fmt(v.date)} · ${v.complaint}`}
-                                                                                    className="inline-flex items-center gap-1 font-medium text-amber-700 hover:underline"
-                                                                                >
-                                                                                    <Archive className="h-3.5 w-3.5" />
-                                                                                    Archive
-                                                                                </ConfirmButton>
-                                                                            </form>
-                                                                        </>
-                                                                    ) : (
-                                                                        <ConfirmLink
-                                                                            href={`${CASES}/edit?case=${v.id}`}
-                                                                            title="Open case report"
-                                                                            message={`Open case ${v.caseNumber} (${v.complaint})? You will be taken to Health Case Reports.`}
-                                                                            confirmLabel="Open"
-                                                                            className="inline-flex items-center gap-1 font-medium text-[#15664f] hover:underline"
-                                                                        >
-                                                                            <Pencil className="h-3.5 w-3.5" />
-                                                                            Open case
-                                                                        </ConfirmLink>
-                                                                    )}
+                                                                    <VisitActions v={v} />
                                                                 </div>
                                                             </td>
                                                         )}
@@ -632,12 +737,12 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
                                             </tbody>
                                         </table>
                                     </div>
-                                )}
-                            </div>
-                        </section>
-                    </>
-                )
-            }
-        </main >
+                                </>
+                            )}
+                        </div>
+                    </section>
+                </>
+            )}
+        </main>
     );
 }

@@ -41,6 +41,13 @@ const statusStyles: Record<string, { label: string; className: string }> = {
     received: { label: "Received", className: "bg-green-100 text-green-700" },
 };
 
+// Mobile: bawat row ay card, at ang data-label ang nagsisilbing label ng bawat field.
+// md pataas: normal na table.
+const tr =
+    "mb-3 block rounded-lg border border-gray-200 py-2 md:mb-0 md:table-row md:rounded-none md:border-0 md:border-b md:border-gray-100 md:py-0 md:last:border-0";
+const td =
+    "flex items-start justify-between gap-3 px-3 py-1.5 text-right before:shrink-0 before:text-left before:text-xs before:font-semibold before:uppercase before:text-gray-500 before:content-[attr(data-label)] md:table-cell md:px-0 md:py-4 md:pr-4 md:text-left md:before:hidden";
+
 function to12Hour(value: string) {
     const [h, m] = value.split(":").map(Number);
     const suffix = h >= 12 ? "PM" : "AM";
@@ -102,11 +109,13 @@ export default async function ReferralSlipsPage({ searchParams }: Props) {
                 : "Today's Teacher Referrals";
 
     return (
-        <main className="space-y-6 p-6 md:p-8">
+        <main className="min-w-0 space-y-6 p-4 md:p-8">
             <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-semibold text-[#15664f]">Referral Slips</h1>
-                    <p className="mt-1 text-gray-700">Manage teacher referrals and gate passes</p>
+                    <h1 className="text-2xl font-semibold text-[#15664f] md:text-3xl">Referral Slips</h1>
+                    <p className="mt-1 text-sm text-gray-700 md:text-base">
+                        Manage teacher referrals and gate passes
+                    </p>
                 </div>
                 {!canEdit && (
                     <span className="rounded-full bg-gray-200 px-3 py-1 text-xs font-medium text-gray-600">
@@ -115,7 +124,7 @@ export default async function ReferralSlipsPage({ searchParams }: Props) {
                 )}
             </div>
 
-            <div className="flex flex-wrap gap-6 border-b border-gray-200">
+            <div className="flex flex-wrap gap-x-6 gap-y-1 border-b border-gray-200">
                 {tabs.map((t) => {
                     const active = tab === t.key;
                     return (
@@ -135,7 +144,7 @@ export default async function ReferralSlipsPage({ searchParams }: Props) {
 
             <div className="grid gap-6 xl:grid-cols-2">
                 {canEdit && tab !== "all" && (
-                    <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                    <section className="min-w-0 rounded-xl border border-gray-200 bg-white p-4 shadow-sm md:p-6">
                         <h2 className="mb-5 text-lg font-semibold text-[#15664f]">
                             {tab === "gate" ? "Issue Gate Pass — Clinic to Gate" : "Issue Referral Slip — Teacher to Clinic"}
                         </h2>
@@ -148,7 +157,7 @@ export default async function ReferralSlipsPage({ searchParams }: Props) {
                     </section>
                 )}
 
-                <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                <section className="min-w-0 rounded-xl border border-gray-200 bg-white p-4 shadow-sm md:p-6">
                     <h2 className="mb-4 text-lg font-semibold text-[#15664f]">
                         {listTitle} ({slips.length})
                     </h2>
@@ -156,9 +165,9 @@ export default async function ReferralSlipsPage({ searchParams }: Props) {
                     {slips.length === 0 ? (
                         <p className="py-8 text-center text-sm text-gray-700">No slips to show.</p>
                     ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left text-sm">
-                                <thead className="text-[#15664f]">
+                        <div className="md:overflow-x-auto">
+                            <table className="block w-full text-left text-sm md:table">
+                                <thead className="hidden text-[#15664f] md:table-header-group">
                                     <tr className="border-b border-gray-200">
                                         <th className="whitespace-nowrap pb-3 pr-4 font-medium">Time</th>
                                         <th className="pb-3 pr-4 font-medium">Student</th>
@@ -169,7 +178,7 @@ export default async function ReferralSlipsPage({ searchParams }: Props) {
                                         {canEdit && <th className="pb-3 font-medium">Actions</th>}
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <tbody className="block md:table-row-group">
                                     {slips.map((s) => {
                                         const badge = statusStyles[s.status] ?? {
                                             label: s.status,
@@ -179,23 +188,30 @@ export default async function ReferralSlipsPage({ searchParams }: Props) {
                                             .filter(Boolean)
                                             .join(" ");
                                         return (
-                                            <tr key={s.slip_id} className="border-b border-gray-100 last:border-0">
-                                                <td className="whitespace-nowrap py-4 pr-4 text-gray-700">
-                                                    {to12Hour(s.time_issued)}
-                                                    {tab === "all" && (
-                                                        <p className="text-xs text-gray-400">{formatDate(s.slip_date)}</p>
-                                                    )}
+                                            <tr key={s.slip_id} className={tr}>
+                                                <td data-label="Time" className={`${td} text-gray-700 md:whitespace-nowrap`}>
+                                                    <div>
+                                                        {to12Hour(s.time_issued)}
+                                                        {tab === "all" && (
+                                                            <p className="text-xs text-gray-400">{formatDate(s.slip_date)}</p>
+                                                        )}
+                                                    </div>
                                                 </td>
-                                                <td className="py-4 pr-4">
-                                                    <p className="font-semibold text-gray-900">
-                                                        {s.first_name} {s.last_name}
-                                                    </p>
-                                                    <p className="text-xs text-gray-500">{classInfo || s.student_number}</p>
+                                                <td data-label="Student" className={td}>
+                                                    <div className="min-w-0">
+                                                        <p className="break-words font-semibold text-gray-900">
+                                                            {s.first_name} {s.last_name}
+                                                        </p>
+                                                        <p className="text-xs text-gray-500">{classInfo || s.student_number}</p>
+                                                    </div>
                                                 </td>
-                                                <td className="py-4 pr-4 text-gray-700">
+                                                <td
+                                                    data-label={tab === "gate" ? "Reason" : "Teacher"}
+                                                    className={`${td} break-words text-gray-700`}
+                                                >
                                                     {s.slip_type === "gate" ? s.reason : (s.teacher_name ?? "—")}
                                                 </td>
-                                                <td className="py-4 pr-4">
+                                                <td data-label="Status" className={td}>
                                                     <span
                                                         className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${badge.className}`}
                                                     >
@@ -203,8 +219,8 @@ export default async function ReferralSlipsPage({ searchParams }: Props) {
                                                     </span>
                                                 </td>
                                                 {canEdit && (
-                                                    <td className="whitespace-nowrap py-4">
-                                                        <div className="flex items-center gap-3">
+                                                    <td data-label="Actions" className={`${td} md:whitespace-nowrap md:pr-0`}>
+                                                        <div className="flex flex-wrap items-center justify-end gap-3 md:justify-start">
                                                             {s.status === "pending" && (
                                                                 <form action={markReceived}>
                                                                     <input type="hidden" name="slipId" value={s.slip_id} />
