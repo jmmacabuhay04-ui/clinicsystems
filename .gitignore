@@ -43,3 +43,6 @@ next-env.d.ts
 /lib/generated/prisma
 *.dump
 *.dump.enc
+
+.vercel
+.env*

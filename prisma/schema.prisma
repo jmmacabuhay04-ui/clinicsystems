@@ -8,17 +8,22 @@ datasource db {
 }
 
 model User {
-  user_id         Int                  @id @default(autoincrement())
-  username        String               @unique @db.VarChar(50)
-  password        String               @db.VarChar(255)
-  role            String               @default("staff") @db.VarChar(20)
-  session_minutes Int                  @default(60)
-  two_factor      Boolean              @default(false)
-  created_at      DateTime             @default(now())
-  reset_tokens    PasswordResetToken[]
+  user_id              Int                  @id @default(autoincrement())
+  username             String               @unique @db.VarChar(50)
+  password             String               @db.VarChar(255)
+  role                 String               @default("staff") @db.VarChar(20)
+  created_at           DateTime             @default(now())
+  session_minutes      Int                  @default(60)
+  two_factor           Boolean              @default(false)
+  full_name            String?              @db.VarChar(100)
+  must_change_password Boolean              @default(false)
+  avatar               String?
+  avatar_url           String?
+  reset_tokens         PasswordResetToken[]
 
   @@map("users")
 }
+
 model PasswordResetToken {
   id         Int       @id @default(autoincrement())
   user_id    Int
@@ -32,20 +37,27 @@ model PasswordResetToken {
 }
 
 model Student {
-  student_id     Int            @id @default(autoincrement())
-  student_number String         @unique @db.VarChar(20)
-  last_name      String         @db.VarChar(50)
-  first_name     String         @db.VarChar(50)
-  middle_name    String?        @db.VarChar(50)
-  grade_level    String?        @db.VarChar(30)
-  program        String?        @db.VarChar(100)
-  password       String         @db.VarChar(255)
-  date_of_birth  DateTime?      @db.Date
-  gender         String?        @db.VarChar(10)
-  archived_at    DateTime?
-  archived_by    Int?
-  created_at     DateTime       @default(now())
-  health_records HealthRecord[]
+  student_id               Int                        @id @default(autoincrement())
+  student_number           String                     @unique @db.VarChar(20)
+  first_name               String                     @db.VarChar(50)
+  last_name                String                     @db.VarChar(50)
+  password                 String                     @db.VarChar(255)
+  created_at               DateTime                   @default(now())
+  date_of_birth            DateTime?                  @db.Date
+  gender                   String?                    @db.VarChar(10)
+  grade_level              String?                    @db.VarChar(30)
+  middle_name              String?                    @db.VarChar(50)
+  program                  String?                    @db.VarChar(100)
+  archived_at              DateTime?
+  archived_by              Int?
+  must_change_password     Boolean                    @default(false)
+  contact_number           String?                    @db.VarChar(20)
+  email                    String?                    @db.VarChar(120)
+  dental_health_forms      dental_health_forms?
+  health_declarations      health_declarations?
+  health_records           HealthRecord[]
+  portal_password_requests portal_password_requests[]
+  student_health_forms     student_health_forms?
 
   @@map("students")
 }
@@ -63,9 +75,9 @@ model HealthRecord {
   blood_pressure  String?   @db.VarChar(10)
   temperature     Float?
   recorded_by     Int?
+  created_at      DateTime  @default(now())
   archived_at     DateTime?
   archived_by     Int?
-  created_at      DateTime  @default(now())
   student         Student   @relation(fields: [student_id], references: [student_id], onDelete: Cascade)
 
   @@index([student_id])
@@ -75,7 +87,7 @@ model HealthRecord {
 model HealthCaseReport {
   case_id     Int       @id @default(autoincrement())
   case_number String    @unique @db.VarChar(20)
-  student_id  Int
+  student_id  Int?
   complaint   String    @db.VarChar(255)
   report_date DateTime  @db.Date
   staff_name  String?   @db.VarChar(100)
@@ -85,6 +97,7 @@ model HealthCaseReport {
   archived_at DateTime?
   archived_by Int?
   created_at  DateTime  @default(now())
+  employee_id Int?
 
   @@index([student_id])
   @@map("health_case_reports")
@@ -108,22 +121,22 @@ model VisitorLog {
 }
 
 model DentalRecord {
-  dental_id      Int       @id @default(autoincrement())
+  dental_id      Int        @id @default(autoincrement())
   student_id     Int?
-  employee_id    Int?
-  visit_date     DateTime  @db.Date
-  procedure_name String    @db.VarChar(150)
-  tooth          String?   @db.VarChar(50)
-  dentist_name   String?   @db.VarChar(100)
-  status         String    @default("completed") @db.VarChar(20)
+  visit_date     DateTime   @db.Date
+  procedure_name String     @db.VarChar(150)
+  tooth          String?    @db.VarChar(50)
+  dentist_name   String?    @db.VarChar(100)
+  status         String     @default("completed") @db.VarChar(20)
   notes          String?
   recorded_by    Int?
   archived_at    DateTime?
   archived_by    Int?
-  created_at     DateTime  @default(now())
+  created_at     DateTime   @default(now())
+  employee_id    Int?
+  employees      employees? @relation(fields: [employee_id], references: [employee_id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([student_id])
-  @@index([employee_id])
   @@map("dental_records")
 }
 
@@ -145,8 +158,8 @@ model ReferralSlip {
 
   @@index([student_id])
   @@map("referral_slips")
-
 }
+
 model ClinicStaff {
   staff_id    Int       @id @default(autoincrement())
   full_name   String    @db.VarChar(100)
@@ -157,9 +170,11 @@ model ClinicStaff {
   status      String    @default("active") @db.VarChar(20)
   recorded_by Int?
   created_at  DateTime  @default(now())
+  archived_at DateTime? @db.Timestamp(6)
 
   @@map("clinic_staff")
 }
+
 model LoginLog {
   log_id     Int      @id @default(autoincrement())
   username   String   @db.VarChar(50)
@@ -170,6 +185,7 @@ model LoginLog {
   @@index([username])
   @@map("login_logs")
 }
+
 model RecordAccessLog {
   id          Int      @id @default(autoincrement())
   actor_id    Int?
@@ -180,8 +196,11 @@ model RecordAccessLog {
   action      String   @default("view")
   detail      String?
   ip          String?
-  created_at  DateTime @default(now())
+  created_at  DateTime @default(now()) @db.Timestamp(6)
 
+  @@index([actor_id], map: "idx_access_logs_actor")
+  @@index([created_at(sort: Desc)], map: "idx_access_logs_created")
+  @@index([record_type, record_id], map: "idx_access_logs_record")
   @@map("record_access_logs")
 }
 
@@ -190,11 +209,11 @@ model LoginLockout {
   scope        String
   lock_key     String
   fails        Int       @default(0)
-  locked_until DateTime?
-  first_fail   DateTime  @default(now())
-  updated_at   DateTime  @default(now())
+  locked_until DateTime? @db.Timestamp(6)
+  first_fail   DateTime  @default(now()) @db.Timestamp(6)
+  updated_at   DateTime  @default(now()) @db.Timestamp(6)
 
-  @@unique([scope, lock_key])
+  @@unique([scope, lock_key], map: "idx_lockout_key")
   @@map("login_lockouts")
 }
 
@@ -206,7 +225,229 @@ model IdentityVerification {
   verified_by      Int
   verified_by_name String?
   note             String?
-  created_at       DateTime @default(now())
+  created_at       DateTime @default(now()) @db.Timestamp(6)
 
+  @@index([subject_type, subject_id], map: "idx_identity_subject")
   @@map("identity_verifications")
+}
+
+model dental_health_forms {
+  form_id     Int       @id @default(autoincrement())
+  student_id  Int       @unique
+  level       String?   @db.VarChar(50)
+  section     String?   @db.VarChar(50)
+  age         Int?
+  sex         String?   @db.VarChar(10)
+  chart       Json      @default("{}")
+  periodontal Json      @default("{}")
+  occlusion   Json      @default("{}")
+  treatment   Json      @default("{}")
+  remarks     String?
+  exam_date   DateTime? @db.Date
+  examined_by String?   @db.VarChar(100)
+  updated_by  String?   @db.VarChar(100)
+  created_at  DateTime  @default(now())
+  updated_at  DateTime?
+  students    Student   @relation(fields: [student_id], references: [student_id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model employee_health_forms {
+  form_id            Int       @id @default(autoincrement())
+  employee_id        Int       @unique
+  sex                String?   @db.VarChar(10)
+  date_of_birth      DateTime? @db.Date
+  birthplace         String?   @db.VarChar(150)
+  nationality        String?   @db.VarChar(50)
+  religion           String?   @db.VarChar(50)
+  address            String?   @db.VarChar(255)
+  contact_number     String?   @db.VarChar(30)
+  father_name        String?   @db.VarChar(100)
+  father_occupation  String?   @db.VarChar(100)
+  father_contact     String?   @db.VarChar(30)
+  mother_name        String?   @db.VarChar(100)
+  mother_occupation  String?   @db.VarChar(100)
+  mother_contact     String?   @db.VarChar(30)
+  hospital_choice    String?   @db.VarChar(150)
+  hospital_address   String?   @db.VarChar(255)
+  hospital_contact   String?   @db.VarChar(30)
+  doctor_name        String?   @db.VarChar(100)
+  emergency_person   String?   @db.VarChar(100)
+  emergency_contact  String?   @db.VarChar(30)
+  emergency_relation String?   @db.VarChar(50)
+  emergency_address  String?   @db.VarChar(255)
+  past_history       Json      @default("{}")
+  past_others        String?
+  family_history     Json      @default("{}")
+  psychological      Json      @default("{}")
+  other_medical      Json      @default("{}")
+  review_of_system   Json      @default("{}")
+  consent_name       String?   @db.VarChar(100)
+  consent_date       DateTime? @db.Date
+  updated_by         String?   @db.VarChar(100)
+  created_at         DateTime  @default(now())
+  updated_at         DateTime?
+  employees          employees @relation(fields: [employee_id], references: [employee_id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model employee_health_records {
+  record_id       Int       @id @default(autoincrement())
+  employee_id     Int
+  visit_date      DateTime  @db.Date
+  complaint       String    @db.VarChar(200)
+  action_taken    String?
+  attending_staff String?   @db.VarChar(100)
+  height_cm       Float?
+  weight_kg       Float?
+  heart_rate      Int?
+  blood_pressure  String?   @db.VarChar(20)
+  temperature     Float?
+  recorded_by     String?   @db.VarChar(100)
+  archived_at     DateTime?
+  archived_by     String?   @db.VarChar(100)
+  created_at      DateTime  @default(now())
+  employees       employees @relation(fields: [employee_id], references: [employee_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([employee_id], map: "idx_emp_health_employee")
+}
+
+model employee_lab_exams {
+  lab_id              Int       @id @default(autoincrement())
+  employee_id         Int
+  exam_date           DateTime  @db.Date
+  findings            String?
+  recommendations     String?
+  physician_signature String?   @db.VarChar(100)
+  recorded_by         String?   @db.VarChar(100)
+  created_at          DateTime  @default(now())
+  employees           employees @relation(fields: [employee_id], references: [employee_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([employee_id], map: "idx_emp_lab_employee")
+}
+
+model employee_physical_exams {
+  exam_id             Int       @id @default(autoincrement())
+  employee_id         Int
+  exam_date           DateTime  @db.Date
+  findings            Json      @default("{}")
+  physician_signature String?   @db.VarChar(100)
+  recorded_by         String?   @db.VarChar(100)
+  created_at          DateTime  @default(now())
+  employees           employees @relation(fields: [employee_id], references: [employee_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([employee_id], map: "idx_emp_phys_employee")
+}
+
+model employees {
+  employee_id              Int                        @id @default(autoincrement())
+  employee_number          String                     @unique @db.VarChar(20)
+  last_name                String                     @db.VarChar(50)
+  first_name               String                     @db.VarChar(50)
+  middle_name              String?                    @db.VarChar(50)
+  department               String?                    @db.VarChar(100)
+  position                 String?                    @db.VarChar(100)
+  date_of_birth            DateTime?                  @db.Date
+  gender                   String?                    @db.VarChar(10)
+  password                 String                     @db.VarChar(255)
+  archived_at              DateTime?
+  archived_by              String?                    @db.VarChar(100)
+  created_at               DateTime                   @default(now())
+  must_change_password     Boolean                    @default(false)
+  contact_number           String?                    @db.VarChar(20)
+  email                    String?                    @db.VarChar(120)
+  dental_records           DentalRecord[]
+  employee_health_forms    employee_health_forms?
+  employee_health_records  employee_health_records[]
+  employee_lab_exams       employee_lab_exams[]
+  employee_physical_exams  employee_physical_exams[]
+  portal_password_requests portal_password_requests[]
+}
+
+model health_declarations {
+  declaration_id         Int       @id @default(autoincrement())
+  student_id             Int       @unique
+  school_year            String?   @db.VarChar(20)
+  grade_section          String?   @db.VarChar(100)
+  residence_address      String?   @db.VarChar(255)
+  emergency_name         String?   @db.VarChar(100)
+  emergency_relationship String?   @db.VarChar(50)
+  emergency_numbers      String?   @db.VarChar(100)
+  going_home             String?   @db.VarChar(50)
+  going_home_other       String?   @db.VarChar(150)
+  symptoms               Json      @default("{}")
+  symptom_notes          String?
+  vaccination_submitted  Boolean   @default(false)
+  medical_cert_submitted Boolean   @default(false)
+  medicines              String?
+  certified_by           String?   @db.VarChar(100)
+  declaration_date       DateTime? @db.Date
+  updated_by             String?   @db.VarChar(100)
+  created_at             DateTime  @default(now())
+  updated_at             DateTime?
+  students               Student   @relation(fields: [student_id], references: [student_id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model password_reset_requests {
+  id                Int       @id @default(autoincrement())
+  user_id           Int
+  new_password_hash String
+  otp_hash          String
+  attempts          Int       @default(0)
+  expires_at        DateTime  @db.Timestamp(6)
+  created_at        DateTime? @default(now()) @db.Timestamp(6)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model portal_password_requests {
+  request_id  Int        @id @default(autoincrement())
+  student_id  Int?
+  note        String?
+  status      String     @default("pending") @db.VarChar(20)
+  handled_by  String?    @db.VarChar(100)
+  handled_at  DateTime?  @db.Timestamp(6)
+  created_at  DateTime   @default(now()) @db.Timestamp(6)
+  employee_id Int?
+  employees   employees? @relation(fields: [employee_id], references: [employee_id], onDelete: Cascade, onUpdate: NoAction)
+  students    Student?   @relation(fields: [student_id], references: [student_id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model student_health_forms {
+  form_id              Int       @id @default(autoincrement())
+  student_id           Int       @unique
+  sex                  String?   @db.VarChar(10)
+  date_of_birth        DateTime? @db.Date
+  birthplace           String?   @db.VarChar(150)
+  nationality          String?   @db.VarChar(50)
+  religion             String?   @db.VarChar(50)
+  address              String?   @db.VarChar(255)
+  contact_number       String?   @db.VarChar(30)
+  father_name          String?   @db.VarChar(100)
+  father_occupation    String?   @db.VarChar(100)
+  father_contact       String?   @db.VarChar(30)
+  mother_name          String?   @db.VarChar(100)
+  mother_occupation    String?   @db.VarChar(100)
+  mother_contact       String?   @db.VarChar(30)
+  guardian_name        String?   @db.VarChar(100)
+  guardian_occupation  String?   @db.VarChar(100)
+  guardian_contact     String?   @db.VarChar(30)
+  hospital_choice      String?   @db.VarChar(150)
+  hospital_address     String?   @db.VarChar(255)
+  hospital_contact     String?   @db.VarChar(30)
+  doctor_name          String?   @db.VarChar(100)
+  emergency_person     String?   @db.VarChar(100)
+  emergency_contact    String?   @db.VarChar(30)
+  emergency_relation   String?   @db.VarChar(50)
+  emergency_address    String?   @db.VarChar(255)
+  past_history         Json      @default("{}")
+  past_others          String?
+  family_history       Json      @default("{}")
+  psychological        Json      @default("{}")
+  other_medical        Json      @default("{}")
+  review_of_system     Json      @default("{}")
+  consent_name         String?   @db.VarChar(100)
+  consent_relationship String?   @db.VarChar(50)
+  consent_date         DateTime? @db.Date
+  updated_by           String?   @db.VarChar(100)
+  created_at           DateTime  @default(now())
+  updated_at           DateTime?
+  students             Student   @relation(fields: [student_id], references: [student_id], onDelete: Cascade, onUpdate: NoAction)
 }
