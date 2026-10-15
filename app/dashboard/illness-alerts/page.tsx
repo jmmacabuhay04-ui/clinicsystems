@@ -57,6 +57,13 @@ const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const BASE = "/dashboard/illness-alerts";
 const CASES_BASE = "/dashboard/health-case-reports";
 
+// Mobile: bawat row ay card, at ang data-label ang nagsisilbing label ng bawat field.
+// md pataas: normal na table.
+const tr =
+    "mb-3 block rounded-lg border border-gray-200 py-2 md:mb-0 md:table-row md:rounded-none md:border-0 md:border-t md:border-gray-100 md:py-0";
+const td =
+    "flex items-start justify-between gap-3 px-4 py-1.5 text-right before:shrink-0 before:text-left before:text-xs before:font-semibold before:uppercase before:text-gray-500 before:content-[attr(data-label)] md:table-cell md:py-3 md:text-left md:before:hidden";
+
 function keyOf(d: Date) {
     return d.toISOString().slice(0, 10);
 }
@@ -275,20 +282,22 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
     ];
 
     return (
-        <main className="space-y-6 p-6 md:p-8">
+        <main className="min-w-0 space-y-6 p-4 md:p-8">
             <div className="flex flex-wrap items-start justify-between gap-4">
-                <h1 className="text-3xl font-semibold text-[#15664f]">Weekly Illness Alert Dashboard</h1>
+                <h1 className="text-2xl font-semibold text-[#15664f] md:text-3xl">
+                    Weekly Illness Alert Dashboard
+                </h1>
 
                 <WeekPicker weeks={weeks} current={weekStart} />
             </div>
 
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-2 md:gap-3">
                 {(["safe", "warning", "outbreak"] as const).map((key) => {
                     const active = level === key;
                     return (
                         <span
                             key={key}
-                            className={`rounded-lg px-4 py-2 text-sm font-medium ${active
+                            className={`rounded-lg px-3 py-2 text-sm font-medium md:px-4 ${active
                                 ? "bg-[#15664f] text-[#ffffff]"
                                 : "border border-gray-200 bg-white text-[#15664f]"
                                 }`}
@@ -301,8 +310,8 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
 
             <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 {stats.map((s) => (
-                    <div key={s.label} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-                        <p className="text-lg text-[#15664f]">{s.label}</p>
+                    <div key={s.label} className="min-w-0 rounded-xl border border-gray-200 bg-white p-4 shadow-sm md:p-5">
+                        <p className="text-base text-[#15664f] md:text-lg">{s.label}</p>
                         <p className="mt-2 break-words text-2xl font-semibold text-[#15664f]">{s.value}</p>
                         {s.hint ? <p className="mt-1 text-xs text-gray-700">{s.hint}</p> : null}
                     </div>
@@ -311,16 +320,16 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
 
             <section className={`flex items-start gap-3 rounded-xl border p-4 ${current.banner}`}>
                 <Icon className={`mt-0.5 h-5 w-5 shrink-0 ${current.iconColor}`} />
-                <div>
+                <div className="min-w-0">
                     <p className="font-semibold">{current.title}</p>
                     <p className="mt-1 text-sm">{current.note}</p>
                 </div>
             </section>
 
             <section className="grid gap-6 xl:grid-cols-2">
-                <div>
+                <div className="min-w-0">
                     <h2 className="mb-3 text-lg font-semibold text-[#15664f]">Illness Breakdown</h2>
-                    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm md:p-6">
                         {breakdown.length === 0 ? (
                             <p className="py-8 text-center text-sm text-gray-700">No cases this week.</p>
                         ) : (
@@ -330,8 +339,8 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                                     const barWidth = totalCases > 0 ? (b.count / totalCases) * 100 : 0;
                                     return (
                                         <div key={b.illness}>
-                                            <div className="flex items-center justify-between gap-4 text-sm">
-                                                <span className="font-medium text-[#15664f]">{b.illness}</span>
+                                            <div className="flex flex-col gap-0.5 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                                                <span className="break-words font-medium text-[#15664f]">{b.illness}</span>
                                                 <span className="shrink-0 text-gray-700">
                                                     {b.count} case{b.count === 1 ? "" : "s"} ({pct.toFixed(1)}% of students)
                                                 </span>
@@ -349,18 +358,18 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                         )}
 
                         <div className="mt-6 space-y-2 border-t border-gray-100 pt-4 text-sm">
-                            <div className="flex justify-between gap-4">
+                            <div className="flex flex-col gap-0.5 sm:flex-row sm:justify-between sm:gap-4">
                                 <span className="text-gray-700">Warning Threshold</span>
-                                <span className="text-right font-medium text-amber-600">
+                                <span className="font-medium text-amber-600 sm:text-right">
                                     {totalStudents > 0 ? ((WARNING_PER_DAY / totalStudents) * 100).toFixed(1) : "0.0"}%
                                     <span className="ml-1 text-xs font-normal text-gray-700">
                                         ({WARNING_PER_DAY} persons per day)
                                     </span>
                                 </span>
                             </div>
-                            <div className="flex justify-between gap-4">
+                            <div className="flex flex-col gap-0.5 sm:flex-row sm:justify-between sm:gap-4">
                                 <span className="text-gray-700">Outbreak Threshold</span>
-                                <span className="text-right font-medium text-red-600">
+                                <span className="font-medium text-red-600 sm:text-right">
                                     {totalStudents > 0 ? ((OUTBREAK_PER_DAY / totalStudents) * 100).toFixed(1) : "0.0"}%
                                     <span className="ml-1 text-xs font-normal text-gray-700">
                                         ({OUTBREAK_PER_DAY} persons per day)
@@ -371,9 +380,9 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                     </div>
                 </div>
 
-                <div>
+                <div className="min-w-0">
                     <h2 className="mb-3 text-lg font-semibold text-[#15664f]">Daily Case Trend</h2>
-                    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm md:p-6">
                         <div className="flex gap-4">
                             {/* Bars area */}
                             <div className="relative h-56 flex-1">
@@ -396,9 +405,9 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                                     </span>
                                 </div>
 
-                                <div className="absolute inset-0 flex items-end gap-4 border-b border-gray-200">
+                                <div className="absolute inset-0 flex items-end gap-2 border-b border-gray-200 sm:gap-4">
                                     {daily.map((d) => (
-                                        <div key={d.name} className="flex h-full flex-1 flex-col items-center justify-end">
+                                        <div key={d.name} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end">
                                             <span className="mb-1 text-sm font-semibold text-gray-700">{d.count}</span>
                                             <div
                                                 className={`w-full max-w-14 rounded-t ${barColor[d.level]}`}
@@ -411,9 +420,9 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                         </div>
 
                         {/* Day labels */}
-                        <div className="mt-2 flex gap-4">
+                        <div className="mt-2 flex gap-2 sm:gap-4">
                             {daily.map((d) => (
-                                <span key={d.name} className="flex-1 text-center text-sm text-gray-700">
+                                <span key={d.name} className="min-w-0 flex-1 text-center text-xs text-gray-700 sm:text-sm">
                                     {d.name}
                                 </span>
                             ))}
@@ -431,13 +440,15 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                 <h2 className="mb-3 text-lg font-semibold text-[#15664f]">
                     Weekly Case Log ({cases.length})
                 </h2>
-                <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                <div className="rounded-xl bg-white md:overflow-hidden md:border md:border-gray-200 md:shadow-sm">
                     {cases.length === 0 ? (
-                        <p className="p-8 text-center text-sm text-gray-700">No cases recorded this week.</p>
+                        <p className="rounded-xl border border-gray-200 p-8 text-center text-sm text-gray-700 md:rounded-none md:border-0">
+                            No cases recorded this week.
+                        </p>
                     ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left text-sm">
-                                <thead className="bg-[#EEEEEE] text-gray-700">
+                        <div className="md:overflow-x-auto">
+                            <table className="block w-full text-left text-sm md:table">
+                                <thead className="hidden bg-[#EEEEEE] text-gray-700 md:table-header-group">
                                     <tr>
                                         <th className="whitespace-nowrap px-4 py-3 font-medium">Date</th>
                                         <th className="whitespace-nowrap px-4 py-3 font-medium">ID Number</th>
@@ -447,34 +458,38 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                                         <th className="px-4 py-3 font-medium">Attending Staff</th>
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <tbody className="block md:table-row-group">
                                     {cases.map((c) => (
-                                        <tr key={c.key} className="border-t border-gray-100">
-                                            <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                                        <tr key={c.key} className={tr}>
+                                            <td data-label="Date" className={`${td} text-gray-700 md:whitespace-nowrap`}>
                                                 {formatDay(c.date)}
                                             </td>
-                                            <td className="px-4 py-3 font-medium text-gray-900">
+                                            <td data-label="ID Number" className={`${td} font-medium text-gray-900`}>
                                                 {c.id_number ?? "—"}
                                             </td>
-                                            <td className="px-4 py-3 text-gray-900">
-                                                {c.last_name}, {c.first_name}
-                                                <span
-                                                    className={`ml-2 rounded-full px-2 py-0.5 text-xs font-medium ${c.patient_type === "employee"
-                                                        ? "bg-amber-300 text-gray-900"
-                                                        : "bg-[#15664f]  text-white"
-                                                        }`}
-                                                >
-                                                    {c.patient_type === "employee" ? "Employee" : "Student"}
-                                                </span>
+                                            <td data-label="Patient" className={`${td} text-gray-900`}>
+                                                <div className="min-w-0">
+                                                    {c.last_name}, {c.first_name}
+                                                    <span
+                                                        className={`ml-2 rounded-full px-2 py-0.5 text-xs font-medium ${c.patient_type === "employee"
+                                                            ? "bg-amber-300 text-gray-900"
+                                                            : "bg-[#15664f]  text-white"
+                                                            }`}
+                                                    >
+                                                        {c.patient_type === "employee" ? "Employee" : "Student"}
+                                                    </span>
+                                                </div>
                                             </td>
-                                            <td className="px-4 py-3 text-gray-900">{c.complaint}</td>
-                                            <td className="whitespace-nowrap px-4 py-3">
+                                            <td data-label="Illness" className={`${td} break-words text-gray-900`}>
+                                                {c.complaint}
+                                            </td>
+                                            <td data-label="Source" className={`${td} md:whitespace-nowrap`}>
                                                 {c.source === "visit" ? (
                                                     <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
                                                         Clinic Visit
                                                     </span>
                                                 ) : (
-                                                    <span className="flex flex-wrap items-center gap-1.5">
+                                                    <span className="flex flex-wrap items-center justify-end gap-1.5 md:justify-start">
                                                         <Link
                                                             href={`${CASES_BASE}?q=${encodeURIComponent(c.reference ?? "")}`}
                                                             className="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800 hover:bg-blue-200"
@@ -492,7 +507,9 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                                                     </span>
                                                 )}
                                             </td>
-                                            <td className="px-4 py-3 text-gray-700">{c.staff ?? "—"}</td>
+                                            <td data-label="Staff" className={`${td} text-gray-700`}>
+                                                {c.staff ?? "—"}
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>

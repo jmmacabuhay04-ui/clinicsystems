@@ -39,6 +39,16 @@ const notices: Record<string, { tone: "green" | "red"; text: string }> = {
     deletefailed: { tone: "red", text: "Could not delete the account." },
 };
 
+// Mobile: bawat row ay card, at ang data-label ang nagsisilbing label ng bawat field.
+// md pataas: normal na table. (Pinapasa sa shadcn Table components bilang className.)
+const tr =
+    "mb-3 block rounded-lg border border-gray-200 py-2 md:mb-0 md:table-row md:rounded-none md:border-0 md:border-b";
+const td =
+    "flex items-start justify-between gap-3 px-4 py-1.5 text-right before:shrink-0 before:text-left before:text-xs before:font-semibold before:uppercase before:text-gray-500 before:content-[attr(data-label)] md:table-cell md:py-4 md:text-left md:before:hidden";
+// Para sa mga cell na may form: nasa ilalim ng label ang laman sa mobile.
+const tdBlock = "block px-4 py-2 md:table-cell md:py-4";
+const mobileLabel = "mb-1 text-xs font-semibold uppercase text-gray-500 md:hidden";
+
 export default async function UsersPage({ searchParams }: Props) {
     const session = await getSession();
     if (!session) redirect("/login");
@@ -61,7 +71,7 @@ export default async function UsersPage({ searchParams }: Props) {
             {/* FIX 1: mas malapad na container (dating max-w-6xl) */}
             <div className="mx-auto w-full min-w-0 max-w-[1600px] space-y-6">
                 <div className="flex items-center justify-between">
-                    <h1 className="text-3xl font-semibold text-[#15664f]">Manage Accounts</h1>
+                    <h1 className="text-2xl font-semibold text-[#15664f] md:text-3xl">Manage Accounts</h1>
                 </div>
 
                 {notice && (
@@ -84,9 +94,9 @@ export default async function UsersPage({ searchParams }: Props) {
                     </div>
                 )}
 
-                {/* FIX 2: mas makitid ang New Account card (dating 320px) + minmax(0,1fr) para hindi lumabas ang table */}
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-[280px_minmax(0,1fr)]">
-                    <Card>
+                {/* Nakasalansan hanggang lg para may sapat na lapad ang table sa tablet */}
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
+                    <Card className="min-w-0">
                         <CardHeader>
                             <CardTitle>New Account</CardTitle>
                         </CardHeader>
@@ -99,9 +109,9 @@ export default async function UsersPage({ searchParams }: Props) {
                         <CardHeader>
                             <CardTitle>All Accounts ({users.length})</CardTitle>
                         </CardHeader>
-                        <CardContent className="overflow-x-auto">
-                            <Table>
-                                <TableHeader>
+                        <CardContent className="px-3 md:overflow-x-auto md:px-6">
+                            <Table className="block md:table">
+                                <TableHeader className="hidden md:table-header-group">
                                     <TableRow>
                                         <TableHead>ID</TableHead>
                                         <TableHead>Email</TableHead>
@@ -111,20 +121,27 @@ export default async function UsersPage({ searchParams }: Props) {
                                         {canReset && <TableHead>Actions</TableHead>}
                                     </TableRow>
                                 </TableHeader>
-                                <TableBody>
+                                <TableBody className="block md:table-row-group">
                                     {users.map((u, i) => (
                                         <Fragment key={u.user_id}>
-                                            <TableRow>
-                                                <TableCell>{i + 1}</TableCell>
-                                                <TableCell className="font-medium">{u.username}</TableCell>
-                                                <TableCell>
+                                            <TableRow className={tr}>
+                                                <TableCell data-label="ID" className={td}>
+                                                    {i + 1}
+                                                </TableCell>
+                                                <TableCell data-label="Email" className={`${td} break-all font-medium`}>
+                                                    {u.username}
+                                                </TableCell>
+                                                <TableCell data-label="Role" className={td}>
                                                     <RoleBadge role={u.role} />
                                                 </TableCell>
-                                                <TableCell>{u.created_at.toISOString().slice(0, 10)}</TableCell>
-                                                <TableCell>
+                                                <TableCell data-label="Created" className={td}>
+                                                    {u.created_at.toISOString().slice(0, 10)}
+                                                </TableCell>
+                                                <TableCell className={tdBlock}>
+                                                    <p className={mobileLabel}>Reset Password</p>
                                                     {u.user_id === otpUserId ? (
                                                         /* STEP 2: enter OTP */
-                                                        <form action={verifyResetOtp} className="flex items-center gap-2">
+                                                        <form action={verifyResetOtp} className="flex flex-wrap items-center gap-2">
                                                             <input type="hidden" name="userId" value={u.user_id} />
                                                             <input
                                                                 name="otp"
@@ -135,7 +152,7 @@ export default async function UsersPage({ searchParams }: Props) {
                                                                 required
                                                                 autoComplete="one-time-code"
                                                                 suppressHydrationWarning
-                                                                className="h-9 w-28 rounded-lg border border-amber-400 bg-white px-2 text-center text-sm tracking-widest outline-none focus:border-[#15664f]"
+                                                                className="h-9 w-32 rounded-lg border border-amber-400 bg-white px-2 text-center text-base tracking-widest outline-none focus:border-[#15664f] md:text-sm"
                                                             />
                                                             <ConfirmSubmit
                                                                 title="Verify OTP?"
@@ -153,7 +170,6 @@ export default async function UsersPage({ searchParams }: Props) {
                                                         /* STEP 1: new password */
                                                         <form action={resetUserPassword} className="flex items-center gap-2">
                                                             <input type="hidden" name="userId" value={u.user_id} />
-                                                            {/* FIX 3: w-40 -> w-32 para lumuwag ang table */}
                                                             <input
                                                                 name="password"
                                                                 type="password"
@@ -162,13 +178,13 @@ export default async function UsersPage({ searchParams }: Props) {
                                                                 required
                                                                 autoComplete="new-password"
                                                                 suppressHydrationWarning
-                                                                className="h-9 w-32 rounded-lg border border-gray-300 bg-white px-2 text-sm outline-none focus:border-[#15664f]"
+                                                                className="h-9 min-w-0 flex-1 rounded-lg border border-gray-300 bg-white px-2 text-base outline-none focus:border-[#15664f] md:w-32 md:flex-none md:text-sm"
                                                             />
                                                             <ConfirmSubmit
                                                                 title="Send OTP to account owner?"
                                                                 message={`A 6-digit OTP will be emailed to ${u.username}. The password will only change after you enter the OTP they give you.`}
                                                                 confirmLabel="Send OTP"
-                                                                className="h-9 whitespace-nowrap rounded-lg bg-[#15664f] px-3 text-sm font-semibold text-white hover:bg-[#10523f]"
+                                                                className="h-9 shrink-0 whitespace-nowrap rounded-lg bg-[#15664f] px-3 text-sm font-semibold text-white hover:bg-[#10523f]"
                                                             >
                                                                 Reset
                                                             </ConfirmSubmit>
@@ -177,7 +193,8 @@ export default async function UsersPage({ searchParams }: Props) {
                                                 </TableCell>
 
                                                 {canReset && (
-                                                    <TableCell>
+                                                    <TableCell className={tdBlock}>
+                                                        <p className={mobileLabel}>Actions</p>
                                                         <div className="flex items-center gap-2">
                                                             <Link
                                                                 href={`/dashboard/users?edit=${u.user_id}`}
@@ -202,8 +219,8 @@ export default async function UsersPage({ searchParams }: Props) {
                                             </TableRow>
 
                                             {canReset && u.user_id === editId && (
-                                                <TableRow className="bg-muted/50">
-                                                    <TableCell colSpan={6}>
+                                                <TableRow className="mb-3 block rounded-lg border border-gray-200 bg-muted/50 md:mb-0 md:table-row md:rounded-none md:border-0">
+                                                    <TableCell colSpan={6} className="block md:table-cell">
                                                         <form action={updateUser} className="flex flex-wrap items-center gap-3">
                                                             <input type="hidden" name="userId" value={u.user_id} />
                                                             <input
@@ -212,12 +229,12 @@ export default async function UsersPage({ searchParams }: Props) {
                                                                 defaultValue={u.username}
                                                                 required
                                                                 suppressHydrationWarning
-                                                                className="h-9 w-64 rounded-lg border border-gray-300 bg-white px-2 text-sm outline-none hover:border-[#15664f] focus:border-[#15664f]"
+                                                                className="h-9 w-full rounded-lg border border-gray-300 bg-white px-2 text-base outline-none hover:border-[#15664f] focus:border-[#15664f] sm:w-64 md:text-sm"
                                                             />
                                                             <select
                                                                 name="role"
                                                                 defaultValue={u.role}
-                                                                className="h-9 rounded-lg border border-gray-300 bg-white px-2 text-sm outline-none hover:border-[#15664f] focus:border-[#15664f]"
+                                                                className="h-9 rounded-lg border border-gray-300 bg-white px-2 text-base outline-none hover:border-[#15664f] focus:border-[#15664f] md:text-sm"
                                                             >
                                                                 <option value="admin">Administrator</option>
                                                                 <option value="ittech">IT Technician</option>

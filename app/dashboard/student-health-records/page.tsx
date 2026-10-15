@@ -75,6 +75,13 @@ const STATUS_STYLES: Record<string, string> = {
     resolved: "bg-green-100 text-green-700",
 };
 
+// Mobile: bawat row ay card, at ang data-label ang nagsisilbing label ng bawat field.
+// md pataas: normal na table.
+const tr =
+    "mb-3 block rounded-lg border border-gray-200 py-2 md:mb-0 md:table-row md:rounded-none md:border-0 md:border-t md:border-gray-100 md:py-0";
+const td =
+    "flex items-start justify-between gap-3 px-4 py-1.5 text-right before:shrink-0 before:text-left before:text-xs before:font-semibold before:uppercase before:text-gray-500 before:content-[attr(data-label)] md:table-cell md:py-3 md:text-left md:before:hidden";
+
 function formatDate(date: Date | null, month: "short" | "long" = "short") {
     if (!date) return "—";
     return new Date(date).toLocaleDateString("en-US", {
@@ -314,9 +321,9 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
         })();
 
     return (
-        <main className="space-y-6 p-6 md:p-8">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-                <h1 className="text-3xl font-semibold text-[#15664f]">Student Health Records</h1>
+        <main className="min-w-0 space-y-6 p-4 md:p-8">
+            <div className="flex flex-wrap items-center justify-between gap-3 md:gap-4">
+                <h1 className="text-2xl font-semibold text-[#15664f] md:text-3xl">Student Health Records</h1>
                 {canEdit ? (
                     <div className="flex flex-wrap items-center gap-3">
                         {canAddStudent && !selected && (
@@ -364,7 +371,7 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
                         autoComplete="off"
                         placeholder="Search by student number or name..."
                         suppressHydrationWarning
-                        className="h-11 w-full rounded-lg border border-gray-300 bg-white pl-10 pr-3 text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20"
+                        className="h-11 w-full rounded-lg border border-gray-300 bg-white pl-10 pr-3 text-base text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20 md:text-sm"
                     />
                 </form>
             )}
@@ -385,9 +392,9 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
                         <p className="p-8 text-center text-sm text-gray-700">No students found.</p>
                     ) : (
                         <>
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left text-sm">
-                                    <thead className="bg-[#EEEEEE] text-[#15664f]">
+                            <div className="p-3 md:overflow-x-auto md:p-0">
+                                <table className="block w-full text-left text-sm md:table">
+                                    <thead className="hidden bg-[#EEEEEE] text-[#15664f] md:table-header-group">
                                         <tr>
                                             <th className="whitespace-nowrap px-4 py-3 font-medium">Grade/Level</th>
                                             <th className="px-4 py-3 font-medium">Program</th>
@@ -400,20 +407,34 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
                                             <th className="px-4 py-3 font-medium">Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
+                                    <tbody className="block md:table-row-group">
                                         {results.map((s) => (
-                                            <tr key={s.student_id} className="border-t border-gray-100">
-                                                <td className="px-4 py-3 text-gray-600">{show(s.grade_level)}</td>
-                                                <td className="px-4 py-3 text-gray-600">{show(s.program)}</td>
-                                                <td className="px-4 py-3 font-medium text-gray-900">{s.student_number}</td>
-                                                <td className="px-4 py-3 text-gray-900">{s.last_name}</td>
-                                                <td className="px-4 py-3 text-gray-900">{s.first_name}</td>
-                                                <td className="px-4 py-3 text-gray-900">{show(s.middle_name)}</td>
-                                                <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                                            <tr key={s.student_id} className={tr}>
+                                                <td data-label="Grade/Level" className={`${td} text-gray-600`}>
+                                                    {show(s.grade_level)}
+                                                </td>
+                                                <td data-label="Program" className={`${td} text-gray-600`}>
+                                                    {show(s.program)}
+                                                </td>
+                                                <td data-label="Student No." className={`${td} font-medium text-gray-900`}>
+                                                    {s.student_number}
+                                                </td>
+                                                <td data-label="Last Name" className={`${td} text-gray-900`}>
+                                                    {s.last_name}
+                                                </td>
+                                                <td data-label="First Name" className={`${td} text-gray-900`}>
+                                                    {s.first_name}
+                                                </td>
+                                                <td data-label="Middle Name" className={`${td} text-gray-900`}>
+                                                    {show(s.middle_name)}
+                                                </td>
+                                                <td data-label="Contact" className={`${td} text-gray-700 md:whitespace-nowrap`}>
                                                     {show(s.contact_number)}
                                                 </td>
-                                                <td className="px-4 py-3 text-gray-700">{show(s.email)}</td>
-                                                <td className="whitespace-nowrap px-4 py-3">
+                                                <td data-label="Email" className={`${td} break-all text-gray-700`}>
+                                                    {show(s.email)}
+                                                </td>
+                                                <td data-label="Actions" className={`${td} md:whitespace-nowrap`}>
                                                     <div className="flex items-center gap-3">
                                                         <ConfirmLink
                                                             href={`${BASE}?student=${encodeURIComponent(s.student_number)}${q ? `&q=${encodeURIComponent(q)}` : ""}${currentPage > 1 ? `&page=${currentPage}` : ""}`}
@@ -423,7 +444,6 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
                                                         >
                                                             View record
                                                         </ConfirmLink>
-
                                                     </div>
                                                 </td>
                                             </tr>
@@ -439,7 +459,7 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
                                 </p>
 
                                 {totalPages > 1 && (
-                                    <nav className="flex items-center gap-1" aria-label="Pagination">
+                                    <nav className="flex flex-wrap items-center gap-1" aria-label="Pagination">
                                         {currentPage > 1 ? (
                                             <Link
                                                 href={pageHref(currentPage - 1)}
@@ -511,8 +531,8 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
 
                     {!historyOnly && (
                         <>
-                            <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+                            <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm md:p-6">
+                                <div className="grid gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 xl:grid-cols-6">
                                     {profile.map((item) => (
                                         <div key={item.label} className="min-w-0">
                                             <p className="text-xs uppercase tracking-wide text-gray-500">{item.label}</p>
@@ -552,11 +572,13 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
 
                             <section>
                                 <h2 className="mb-3 text-lg font-semibold text-gray-900">Vital Signs</h2>
-                                <div className="grid gap-4 sm:grid-cols-3 xl:grid-cols-6">
+                                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-6">
                                     {vitals.map((v) => (
-                                        <div key={v.label} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                                        <div key={v.label} className="min-w-0 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
                                             <p className="text-sm text-gray-500">{v.label}</p>
-                                            <p className="mt-2 text-xl font-semibold text-gray-900">{v.value}</p>
+                                            <p className="mt-2 break-words text-lg font-semibold text-gray-900 md:text-xl">
+                                                {v.value}
+                                            </p>
                                         </div>
                                     ))}
                                 </div>
@@ -579,9 +601,9 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
                                     No clinic visits or case reports recorded yet.
                                 </p>
                             ) : (
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-left text-sm">
-                                        <thead className="bg-[#EEEEEE] text-[#15664f]">
+                                <div className="p-3 md:overflow-x-auto md:p-0">
+                                    <table className="block w-full text-left text-sm md:table">
+                                        <thead className="hidden bg-[#EEEEEE] text-[#15664f] md:table-header-group">
                                             <tr>
                                                 <th className="whitespace-nowrap px-4 py-3 font-medium">Date</th>
                                                 <th className="whitespace-nowrap px-4 py-3 font-medium">Type</th>
@@ -591,19 +613,19 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
                                                 {canEdit && <th className="px-4 py-3 font-medium">Actions</th>}
                                             </tr>
                                         </thead>
-                                        <tbody>
+                                        <tbody className="block md:table-row-group">
                                             {visits.map((v) => (
-                                                <tr key={v.key} className="border-t border-gray-100">
-                                                    <td className="whitespace-nowrap px-4 py-3 text-gray-900">
+                                                <tr key={v.key} className={tr}>
+                                                    <td data-label="Date" className={`${td} text-gray-900 md:whitespace-nowrap`}>
                                                         {formatDate(v.date)}
                                                     </td>
-                                                    <td className="whitespace-nowrap px-4 py-3">
+                                                    <td data-label="Type" className={`${td} md:whitespace-nowrap`}>
                                                         {v.kind === "visit" ? (
                                                             <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
                                                                 Clinic Visit
                                                             </span>
                                                         ) : (
-                                                            <div className="flex items-center gap-2">
+                                                            <div className="flex flex-wrap items-center justify-end gap-2 md:justify-start">
                                                                 <span className="rounded-full bg-[#eef6f2] px-2.5 py-0.5 text-xs font-medium text-[#15664f]">
                                                                     Case {v.caseNumber}
                                                                 </span>
@@ -617,12 +639,18 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
                                                             </div>
                                                         )}
                                                     </td>
-                                                    <td className="px-4 py-3 text-gray-900">{v.complaint}</td>
-                                                    <td className="px-4 py-3 text-gray-900">{v.detail ?? "—"}</td>
-                                                    <td className="px-4 py-3 text-gray-900">{v.staff ?? "—"}</td>
+                                                    <td data-label="Complaint" className={`${td} break-words text-gray-900`}>
+                                                        {v.complaint}
+                                                    </td>
+                                                    <td data-label="Notes" className={`${td} break-words text-gray-900`}>
+                                                        {v.detail ?? "—"}
+                                                    </td>
+                                                    <td data-label="Staff" className={`${td} text-gray-900`}>
+                                                        {v.staff ?? "—"}
+                                                    </td>
                                                     {canEdit && (
-                                                        <td className="whitespace-nowrap px-4 py-3">
-                                                            <div className="flex items-center gap-3">
+                                                        <td data-label="Actions" className={`${td} md:whitespace-nowrap`}>
+                                                            <div className="flex flex-wrap items-center justify-end gap-3 md:justify-start">
                                                                 {v.kind === "visit" ? (
                                                                     <>
                                                                         <ConfirmLink

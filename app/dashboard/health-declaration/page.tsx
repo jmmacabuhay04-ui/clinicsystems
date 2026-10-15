@@ -61,7 +61,7 @@ function val(value: string | null | undefined) {
 
 function Row({ label, value }: { label: string; value: string }) {
     return (
-        <p className="text-sm">
+        <p className="break-words text-sm">
             <span className="font-semibold text-gray-700">{label}:</span>{" "}
             <span className="text-gray-900">{value}</span>
         </p>
@@ -70,10 +70,26 @@ function Row({ label, value }: { label: string; value: string }) {
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
     return (
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="min-w-0 rounded-xl border border-gray-200 bg-white p-4 shadow-sm md:p-6">
             <h3 className="text-sm font-bold uppercase tracking-wide text-gray-800">{title}</h3>
-            <div className="mt-4">{children}</div>
+            <div className="mt-3 md:mt-4">{children}</div>
         </div>
+    );
+}
+
+function CheckRow({ checked, label }: { checked: boolean; label: string }) {
+    return (
+        <p className="flex items-center gap-2">
+            <span
+                className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px] font-bold ${checked
+                    ? "border-[#15664f] bg-[#15664f] text-white"
+                    : "border-gray-300 bg-white text-transparent"
+                    }`}
+            >
+                ✓
+            </span>
+            <span className="text-gray-700">{label}</span>
+        </p>
     );
 }
 
@@ -118,7 +134,7 @@ export default async function HealthDeclarationPage({ searchParams }: Props) {
         GOING_HOME.find((option) => option.key === form?.going_home)?.label ?? "—";
 
     return (
-        <main className="space-y-6 p-6 md:p-8">
+        <main className="min-w-0 space-y-6 p-4 pb-8 md:p-8">
             <style
                 dangerouslySetInnerHTML={{
                     __html: `@media print {
@@ -129,15 +145,15 @@ export default async function HealthDeclarationPage({ searchParams }: Props) {
                 }}
             />
 
-            <div className="no-print flex flex-wrap items-start justify-between gap-4">
-                <div>
-                    <h1 className="text-3xl font-semibold text-[#15664f]">Health Declaration</h1>
-                    <p className="mt-1 text-gray-700">
+            <div className="no-print flex flex-wrap items-start justify-between gap-3 md:gap-4">
+                <div className="min-w-0">
+                    <h1 className="text-2xl font-semibold text-[#15664f] md:text-3xl">Health Declaration</h1>
+                    <p className="mt-1 text-sm text-gray-700 md:text-base">
                         Student Information and Health Status Declaration.
                     </p>
                 </div>
                 {selected && canEdit && (
-                    <div className="flex gap-3">
+                    <div className="flex flex-wrap gap-3">
                         <PrintButton />
                         <ConfirmLink
                             href={`${BASE}/edit?student=${encodeURIComponent(selected.student_number)}`}
@@ -164,8 +180,8 @@ export default async function HealthDeclarationPage({ searchParams }: Props) {
                 </p>
             )}
 
-            <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
-                <aside className="no-print rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            <div className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)] lg:gap-6">
+                <aside className="no-print min-w-0 rounded-xl border border-gray-200 bg-white p-3 shadow-sm md:p-4">
                     <form method="get" className="relative">
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                         <input
@@ -174,53 +190,85 @@ export default async function HealthDeclarationPage({ searchParams }: Props) {
                             autoComplete="off"
                             placeholder="Search student..."
                             suppressHydrationWarning
-                            className="h-10 w-full rounded-lg border border-gray-300 bg-white pl-9 pr-3 text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20"
+                            className="h-10 w-full rounded-lg border border-gray-300 bg-white pl-9 pr-3 text-base text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20 md:text-sm"
                         />
                     </form>
 
-                    <div className="mt-4 max-h-[560px] space-y-1 overflow-y-auto">
-                        {students.length === 0 && (
-                            <p className="p-3 text-sm text-gray-700">No students found.</p>
-                        )}
-                        {students.map((s) => {
-                            const active = s.student_number === studentNumber;
-                            return (
-                                <ConfirmLink
-                                    key={s.student_id}
-                                    href={`${BASE}?q=${encodeURIComponent(q)}&student=${encodeURIComponent(s.student_number)}`}
-                                    title="View health declaration"
-                                    message={`Open the health declaration of ${s.first_name} ${s.last_name} (${s.student_number})? This contains confidential medical information.`}
-                                    className={`block w-full rounded-lg px-3 py-2 text-left text-sm ${active ? "bg-[#15664f] text-white" : "text-gray-700 hover:bg-gray-100"}`}
-                                >
-                                    <span className="block font-medium">
-                                        {s.last_name}, {s.first_name}
-                                    </span>
-                                    <span className={`block text-xs ${active ? "text-white/80" : "text-gray-500"}`}>
-                                        {s.student_number}
-                                    </span>
-                                </ConfirmLink>
-                            );
-                        })}
+                    {/* Mas maikli ang listahan sa mobile para hindi mahaba ang scroll bago makita ang form */}
+                    <div className="mt-3 max-h-60 overflow-auto rounded-lg border border-gray-200 lg:mt-4 lg:max-h-[560px]">
+                        <table className="w-full border-collapse text-left text-sm">
+                            <thead className="sticky top-0 z-10 bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+                                <tr>
+                                    <th className="px-3 py-2 font-semibold">Student</th>
+                                    <th className="hidden px-3 py-2 font-semibold sm:table-cell lg:hidden">Grade</th>
+                                    <th className="hidden px-3 py-2 font-semibold sm:table-cell lg:hidden">Program</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {students.length === 0 && (
+                                    <tr>
+                                        <td colSpan={3} className="p-3 text-sm text-gray-700">
+                                            No students found.
+                                        </td>
+                                    </tr>
+                                )}
+                                {students.map((s) => {
+                                    const active = s.student_number === studentNumber;
+                                    return (
+                                        <tr
+                                            key={s.student_id}
+                                            className={`relative ${active ? "bg-[#15664f] text-white" : "text-gray-700 hover:bg-gray-100"}`}
+                                        >
+                                            <td className="px-3 py-2.5 align-top">
+                                                {/* after:absolute after:inset-0 ginagawang clickable ang buong row */}
+                                                <ConfirmLink
+                                                    href={`${BASE}?q=${encodeURIComponent(q)}&student=${encodeURIComponent(s.student_number)}`}
+                                                    title="View health declaration"
+                                                    message={`Open the health declaration of ${s.first_name} ${s.last_name} (${s.student_number})? This contains confidential medical information.`}
+                                                    className="block after:absolute after:inset-0"
+                                                >
+                                                    <span className="block break-words font-medium">
+                                                        {s.last_name}, {s.first_name}
+                                                    </span>
+                                                    <span className={`block text-xs ${active ? "text-white/80" : "text-gray-500"}`}>
+                                                        {s.student_number}
+                                                        {/* Sa pinakamaliit na screen, nasa ilalim ng pangalan ang grade */}
+                                                        <span className="sm:hidden lg:inline">
+                                                            {s.grade_level ? ` · ${s.grade_level}` : ""}
+                                                        </span>
+                                                    </span>
+                                                </ConfirmLink>
+                                            </td>
+                                            <td className="hidden px-3 py-2.5 align-top sm:table-cell lg:hidden">
+                                                {s.grade_level ?? "—"}
+                                            </td>
+                                            <td className="hidden px-3 py-2.5 align-top sm:table-cell lg:hidden">
+                                                {s.program ?? "—"}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
                     </div>
                 </aside>
 
-                <section className="space-y-6">
+                <section className="min-w-0 space-y-4 lg:space-y-6">
                     {!selected && (
-                        <div className="rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center">
-                            <p className="text-gray-700">
-                                Select a student on the left to view the declaration.
+                        <div className="rounded-xl border border-dashed border-gray-300 bg-white p-6 text-center md:p-12">
+                            <p className="text-sm text-gray-700 md:text-base">
+                                Select a student <span className="lg:hidden">from the list above</span>
+                                <span className="hidden lg:inline">on the left</span> to view the declaration.
                             </p>
                         </div>
                     )}
 
                     {selected && !form && (
-                        <div className="rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center">
-                            <p className="text-gray-500">No declaration yet for this student.</p>
+                        <div className="rounded-xl border border-dashed border-gray-300 bg-white p-6 text-center md:p-12">
+                            <p className="text-sm text-gray-500 md:text-base">No declaration yet for this student.</p>
                             {canEdit && (
                                 <Link
-                                    href={`${BASE}/edit?student=${encodeURIComponent(
-                                        selected.student_number
-                                    )}`}
+                                    href={`${BASE}/edit?student=${encodeURIComponent(selected.student_number)}`}
                                     className="mt-4 inline-flex h-10 items-center rounded-lg bg-[#15664f] px-5 text-sm font-semibold text-white hover:bg-[#10523f]"
                                 >
                                     Fill Out Form
@@ -232,8 +280,8 @@ export default async function HealthDeclarationPage({ searchParams }: Props) {
                     {selected && form && (
                         <>
                             <PrintHeader />
-                            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                                <h2 className="text-center text-lg font-bold uppercase tracking-wide text-gray-900">
+                            <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm md:p-6">
+                                <h2 className="text-center text-base font-bold uppercase tracking-wide text-gray-900 md:text-lg">
                                     Student Information and Health Status Declaration
                                 </h2>
                                 {form.school_year && (
@@ -241,7 +289,7 @@ export default async function HealthDeclarationPage({ searchParams }: Props) {
                                         School Year {form.school_year}
                                     </p>
                                 )}
-                                <div className="mt-5 grid gap-x-8 gap-y-2 md:grid-cols-2">
+                                <div className="mt-4 grid gap-x-8 gap-y-2 md:mt-5 md:grid-cols-2">
                                     <Row
                                         label="Learner's Full Name"
                                         value={`${selected.first_name}${selected.middle_name ? ` ${selected.middle_name}` : ""
@@ -286,7 +334,7 @@ export default async function HealthDeclarationPage({ searchParams }: Props) {
                                             {present.map((item) => (
                                                 <li key={item.key} className="flex items-start gap-2">
                                                     <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-red-600" />
-                                                    {item.label}
+                                                    <span className="min-w-0 break-words">{item.label}</span>
                                                 </li>
                                             ))}
                                         </ul>
@@ -294,7 +342,7 @@ export default async function HealthDeclarationPage({ searchParams }: Props) {
                                 )}
 
                                 {form.symptom_notes && (
-                                    <p className="mt-4 whitespace-pre-wrap text-sm text-gray-900">
+                                    <p className="mt-4 whitespace-pre-wrap break-words text-sm text-gray-900">
                                         <span className="font-semibold text-gray-700">Notes:</span>{" "}
                                         {form.symptom_notes}
                                     </p>
@@ -303,40 +351,20 @@ export default async function HealthDeclarationPage({ searchParams }: Props) {
 
                             <Card title="Requirements Submitted">
                                 <div className="space-y-2 text-sm">
-                                    <p className="flex items-center gap-2">
-                                        <span
-                                            className={`flex h-4 w-4 items-center justify-center rounded border text-[10px] font-bold ${form.vaccination_submitted
-                                                ? "border-[#15664f] bg-[#15664f] text-white"
-                                                : "border-gray-300 bg-white text-transparent"
-                                                }`}
-                                        >
-                                            ✓
-                                        </span>
-                                        <span className="text-gray-700">Vaccination record</span>
-                                    </p>
-                                    <p className="flex items-center gap-2">
-                                        <span
-                                            className={`flex h-4 w-4 items-center justify-center rounded border text-[10px] font-bold ${form.medical_cert_submitted
-                                                ? "border-[#15664f] bg-[#15664f] text-white"
-                                                : "border-gray-300 bg-white text-transparent"
-                                                }`}
-                                        >
-                                            ✓
-                                        </span>
-                                        <span className="text-gray-700">Medical certification</span>
-                                    </p>
+                                    <CheckRow checked={form.vaccination_submitted} label="Vaccination record" />
+                                    <CheckRow checked={form.medical_cert_submitted} label="Medical certification" />
                                 </div>
 
-                                <p className="mt-4 whitespace-pre-wrap text-sm text-gray-900">
+                                <p className="mt-4 whitespace-pre-wrap break-words text-sm text-gray-900">
                                     <span className="font-semibold text-gray-700">Medicines:</span>{" "}
                                     {val(form.medicines)}
                                 </p>
                             </Card>
 
                             <Card title="Certification of Parent / Guardian">
-                                <div className="flex flex-wrap items-end justify-between gap-6 text-sm">
+                                <div className="flex flex-col gap-4 text-sm sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-6">
                                     <div className="text-center">
-                                        <p className="font-semibold text-gray-900 underline">
+                                        <p className="break-words font-semibold text-gray-900 underline">
                                             {val(form.certified_by)}
                                         </p>
                                         <p className="text-xs text-gray-600">

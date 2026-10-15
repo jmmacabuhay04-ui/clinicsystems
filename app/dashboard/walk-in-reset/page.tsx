@@ -106,7 +106,7 @@ export default async function WalkInResetPage({
 
     return (
         <div className="min-h-screen">
-            <div className="mx-auto max-w-3xl space-y-4 p-6">
+            <div className="mx-auto max-w-3xl min-w-0 space-y-4 p-4 md:p-6">
                 <div>
                     <h1 className="text-2xl font-semibold text-[#15664f]">Walk-in Password Reset</h1>
                     <p className="mt-1 text-sm text-gray-700">
@@ -159,14 +159,14 @@ export default async function WalkInResetPage({
                                 defaultValue={q}
                                 placeholder={`Search ${type} by name...`}
 
-                                className="flex-1 rounded-lg border border-gray-500 px-3 py-2 text-sm"
+                                className="min-w-0 flex-1 rounded-lg border border-gray-500 px-3 py-2 text-base md:text-sm"
                             />
                             <button
                                 type="submit"
                                 className={
                                     type === "employee"
-                                        ? "rounded-lg bg-amber-400  px-3 py-1.5 text-xs font-medium text-neutral-900 hover:bg-amber-500"
-                                        : "rounded-lg bg-[#15664f] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#15664f]/80"
+                                        ? "shrink-0 rounded-lg bg-amber-400  px-3 py-1.5 text-xs font-medium text-neutral-900 hover:bg-amber-500"
+                                        : "shrink-0 rounded-lg bg-[#15664f] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#15664f]/80"
                                 }
                             >
                                 Search
@@ -181,19 +181,22 @@ export default async function WalkInResetPage({
 
                         {results.length > 0 ? (
                             <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
-                                <table className="min-w-full divide-y divide-gray-200 text-sm">
-                                    <tbody className="divide-y divide-gray-100">
+                                <table className="block w-full text-sm md:table md:min-w-full md:divide-y md:divide-gray-200">
+                                    <tbody className="block divide-y divide-gray-100 md:table-row-group">
                                         {results.map((person) => (
-                                            <tr key={person.id} className="hover:bg-gray-50">
-                                                <td className="px-4 py-3 font-medium text-gray-900">
-                                                    {person.full_name}
+                                            <tr
+                                                key={person.id}
+                                                className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-gray-50 md:table-row md:p-0"
+                                            >
+                                                <td className="min-w-0 font-medium text-gray-900 md:table-cell md:px-4 md:py-3">
+                                                    <span className="break-words">{person.full_name}</span>
                                                     {person.ref_no ? (
-                                                        <span className="ml-2 text-xs text-gray-500">
+                                                        <span className="block text-xs text-gray-500 sm:ml-2 sm:inline">
                                                             {person.ref_no}
                                                         </span>
                                                     ) : null}
                                                 </td>
-                                                <td className="px-4 py-3 text-right">
+                                                <td className="shrink-0 text-right md:table-cell md:px-4 md:py-3">
                                                     <ConfirmLink
                                                         href={`/dashboard/walk-in-reset?type=${type}&id=${person.id}`}
                                                         title="Reset this password?"
@@ -224,7 +227,7 @@ export default async function WalkInResetPage({
                             <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
                                 {type === "student" ? "Student" : "Employee"}
                             </p>
-                            <p className="mt-1 text-lg font-semibold text-gray-900">
+                            <p className="mt-1 break-words text-lg font-semibold text-gray-900">
                                 {selected.full_name}
                             </p>
                             {selected.ref_no ? (
@@ -253,7 +256,7 @@ export default async function WalkInResetPage({
                             <select
                                 name="idPresented"
                                 required
-                                className="mt-1 w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm"
+                                className="mt-1 w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-base md:text-sm"
                             >
                                 <option value="">-- Select --</option>
                                 <option value="School ID">School ID</option>
@@ -270,7 +273,7 @@ export default async function WalkInResetPage({
                                 type="text"
                                 name="note"
                                 placeholder="e.g. ID number, or who identified them"
-                                className="mt-1 w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm"
+                                className="mt-1 w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-base md:text-sm"
                             />
                         </div>
 
@@ -295,7 +298,7 @@ export default async function WalkInResetPage({
                                         required
                                         autoComplete="off"
                                         data-lpignore="true"
-                                        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                                        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-base md:text-sm"
                                     />
                                 </div>
                                 <div>
@@ -308,7 +311,7 @@ export default async function WalkInResetPage({
                                         required
                                         autoComplete="off"
                                         data-lpignore="true"
-                                        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                                        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-base md:text-sm"
                                     />
                                 </div>
                             </div>
@@ -328,11 +331,11 @@ export default async function WalkInResetPage({
                                 autoComplete="new-password"
                                 data-lpignore="true"
                                 placeholder="Type your own login password"
-                                className="mt-1 w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm"
+                                className="mt-1 w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-base md:text-sm"
                             />
                         </div>
 
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
                             <button
                                 type="submit"
                                 className="rounded-lg bg-[#15664f] px-5 py-2.5 text-sm font-medium text-white hover:bg-[#0f4d3b]"

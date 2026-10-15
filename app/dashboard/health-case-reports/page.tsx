@@ -54,6 +54,36 @@ function fullName(c: CaseRow) {
     return `${c.last_name ?? ""}, ${c.first_name ?? ""}`;
 }
 
+function CaseActions({ c, padded }: { c: CaseRow; padded?: boolean }) {
+    const py = padded ? "py-1 " : "";
+    return (
+        <>
+            <ConfirmLink
+                href={`${BASE}/edit?case=${c.case_id}`}
+                title="Edit case report"
+                message={`Edit case ${c.case_number} (${c.complaint}) of ${fullName(c)}?`}
+                confirmLabel="Edit"
+                className={`inline-flex items-center gap-1 ${py}font-medium text-[#15664f] hover:underline`}
+            >
+                <Pencil className="h-3.5 w-3.5" />
+                Edit
+            </ConfirmLink>
+            <form action={archiveCase}>
+                <input type="hidden" name="caseId" value={c.case_id} />
+                <ConfirmButton
+                    title="Archive case report"
+                    confirmLabel="Archive"
+                    message={`Archive case ${c.case_number} (${c.complaint})? It will move to Archive Records.`}
+                    className={`inline-flex items-center gap-1 ${py}font-medium text-amber-700 hover:underline`}
+                >
+                    <Archive className="h-3.5 w-3.5" />
+                    Archive
+                </ConfirmButton>
+            </form>
+        </>
+    );
+}
+
 export default async function HealthCaseReportsPage({ searchParams }: Props) {
     const session = await getSession();
     if (!session) redirect("/login");
@@ -97,9 +127,9 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
     };
 
     return (
-        <main className="space-y-6 p-6 md:p-8">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-                <h1 className="text-3xl font-semibold text-[#15664f]">Health Case Reports</h1>
+        <main className="min-w-0 space-y-6 p-4 pb-8 md:p-8">
+            <div className="flex flex-wrap items-center justify-between gap-3 md:gap-4">
+                <h1 className="text-2xl font-semibold text-[#15664f] md:text-3xl">Health Case Reports</h1>
 
                 {canEdit ? (
                     <ConfirmLink
@@ -108,7 +138,7 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
                         message="Create a new health case report? This will be counted in the Weekly Illness Alert Dashboard."
                         confirmLabel="Continue"
                         icon={<Plus className="h-5 w-5" />}
-                        className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#15664f] px-4 text-sm font-semibold text-white hover:bg-[#10523f]"
+                        className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#15664f] px-4 text-sm font-semibold text-white hover:bg-[#10523f] sm:w-auto"
                     >
                         <Plus className="h-4 w-4" />
                         New Case Report
@@ -120,14 +150,15 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
                 )}
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            {/* 2x2 sa mobile, isang hilera sa sm pataas */}
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                 {tabs.map((tab) => {
                     const active = status === tab.key;
                     return (
                         <Link
                             key={tab.label}
                             href={tabHref(tab.key)}
-                            className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${active
+                            className={`rounded-full px-4 py-2 text-center text-sm font-medium transition-colors ${active
                                 ? "bg-[#15664f] text-white"
                                 : "border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
                                 }`}
@@ -138,7 +169,7 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
                 })}
             </div>
 
-            <form method="get" action={BASE} className="relative max-w-md">
+            <form method="get" action={BASE} className="relative w-full md:max-w-md">
                 {status && <input type="hidden" name="status" value={status} />}
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <input
@@ -146,100 +177,146 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
                     defaultValue={q}
                     placeholder="Search by name, ID no., case no., or complaint..."
                     suppressHydrationWarning
-                    className="h-11 w-full rounded-lg border border-gray-300 bg-white pl-10 pr-3 text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20"
+                    className="h-11 w-full rounded-lg border border-gray-300 bg-white pl-10 pr-3 text-base text-gray-900 outline-none placeholder:text-sm focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20 md:text-sm"
                 />
             </form>
 
             <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                 {reports.length === 0 ? (
-                    <p className="p-8 text-center text-sm text-gray-500">No case reports found.</p>
+                    <p className="p-6 text-center text-sm text-gray-500 md:p-8">No case reports found.</p>
                 ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm">
-                            <thead className="bg-gray-50 text-gray-700">
-                                <tr>
-                                    <th className="whitespace-nowrap px-4 py-3 font-medium">Case No.</th>
-                                    <th className="whitespace-nowrap px-4 py-3 font-medium">ID No.</th>
-                                    <th className="px-4 py-3 font-medium">Patient</th>
-                                    <th className="px-4 py-3 font-medium">Complaint</th>
-                                    <th className="whitespace-nowrap px-4 py-3 font-medium">Date</th>
-                                    <th className="px-4 py-3 font-medium">Staff</th>
-                                    <th className="px-4 py-3 font-medium">Status</th>
-                                    {canEdit && <th className="px-4 py-3 font-medium">Actions</th>}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {reports.map((c) => {
-                                    const badge = statusStyles[c.status] ?? {
-                                        label: c.status,
-                                        className: "bg-gray-100 text-gray-700",
-                                    };
-                                    const isEmployee = c.patient_type === "employee";
-                                    return (
-                                        <tr key={c.case_id} className="border-t border-gray-100">
-                                            <td className="whitespace-nowrap px-4 py-3 font-semibold text-gray-900">
-                                                {c.case_number}
-                                            </td>
-                                            <td className="whitespace-nowrap px-4 py-3 text-gray-700">
-                                                {c.id_number ?? "—"}
-                                            </td>
-                                            <td className="px-4 py-3 text-gray-900">
-                                                {fullName(c)}
-                                                <span
-                                                    className={`ml-2 rounded-full px-2 py-0.5 text-xs font-medium ${isEmployee
-                                                        ? "bg-amber-300 text-gray-900"
-                                                        : "bg-[#15664f]  text-white"
-                                                        }`}
-                                                >
-                                                    {isEmployee ? "Employee" : "Student"}
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-3 text-gray-900">{c.complaint}</td>
-                                            <td className="whitespace-nowrap px-4 py-3 text-gray-600">
-                                                {formatDate(c.report_date)}
-                                            </td>
-                                            <td className="px-4 py-3 text-gray-600">{c.staff_name ?? "—"}</td>
-                                            <td className="px-4 py-3">
-                                                <span
-                                                    className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${badge.className}`}
-                                                >
-                                                    {badge.label}
-                                                </span>
-                                            </td>
-                                            {canEdit && (
-                                                <td className="whitespace-nowrap px-4 py-3">
-                                                    <div className="flex items-center gap-3">
-                                                        <ConfirmLink
-                                                            href={`${BASE}/edit?case=${c.case_id}`}
-                                                            title="Edit case report"
-                                                            message={`Edit case ${c.case_number} (${c.complaint}) of ${fullName(c)}?`}
-                                                            confirmLabel="Edit"
-                                                            className="inline-flex items-center gap-1 font-medium text-[#15664f] hover:underline"
-                                                        >
-                                                            <Pencil className="h-3.5 w-3.5" />
-                                                            Edit
-                                                        </ConfirmLink>
-                                                        <form action={archiveCase}>
-                                                            <input type="hidden" name="caseId" value={c.case_id} />
-                                                            <ConfirmButton
-                                                                title="Archive case report"
-                                                                confirmLabel="Archive"
-                                                                message={`Archive case ${c.case_number} (${c.complaint})? It will move to Archive Records.`}
-                                                                className="inline-flex items-center gap-1 font-medium text-amber-700 hover:underline"
-                                                            >
-                                                                <Archive className="h-3.5 w-3.5" />
-                                                                Archive
-                                                            </ConfirmButton>
-                                                        </form>
-                                                    </div>
+                    <>
+                        {/* MOBILE: card list (walang horizontal scroll) */}
+                        <ul className="space-y-2 p-3 md:hidden">
+                            {reports.map((c) => {
+                                const badge = statusStyles[c.status] ?? {
+                                    label: c.status,
+                                    className: "bg-gray-100 text-gray-700",
+                                };
+                                const isEmployee = c.patient_type === "employee";
+                                return (
+                                    <li key={c.case_id} className="rounded-lg border border-gray-100 p-3">
+                                        <div className="flex items-start justify-between gap-2">
+                                            <p className="text-sm font-semibold text-gray-900">{c.case_number}</p>
+                                            <span
+                                                className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${badge.className}`}
+                                            >
+                                                {badge.label}
+                                            </span>
+                                        </div>
+
+                                        <div className="mt-1 flex flex-wrap items-center gap-2">
+                                            <p className="break-words text-sm text-gray-900">{fullName(c)}</p>
+                                            <span
+                                                className={`rounded-full px-2 py-0.5 text-xs font-medium ${isEmployee
+                                                    ? "bg-amber-300 text-gray-900"
+                                                    : "bg-[#15664f] text-white"
+                                                    }`}
+                                            >
+                                                {isEmployee ? "Employee" : "Student"}
+                                            </span>
+                                        </div>
+
+                                        <dl className="mt-2 space-y-1">
+                                            <div className="flex gap-2 text-sm">
+                                                <dt className="w-20 shrink-0 text-gray-500">ID No.</dt>
+                                                <dd className="min-w-0 flex-1 break-words text-gray-900">
+                                                    {c.id_number ?? "—"}
+                                                </dd>
+                                            </div>
+                                            <div className="flex gap-2 text-sm">
+                                                <dt className="w-20 shrink-0 text-gray-500">Complaint</dt>
+                                                <dd className="min-w-0 flex-1 break-words text-gray-900">{c.complaint}</dd>
+                                            </div>
+                                            <div className="flex gap-2 text-sm">
+                                                <dt className="w-20 shrink-0 text-gray-500">Date</dt>
+                                                <dd className="min-w-0 flex-1 text-gray-900">{formatDate(c.report_date)}</dd>
+                                            </div>
+                                            <div className="flex gap-2 text-sm">
+                                                <dt className="w-20 shrink-0 text-gray-500">Staff</dt>
+                                                <dd className="min-w-0 flex-1 break-words text-gray-900">
+                                                    {c.staff_name ?? "—"}
+                                                </dd>
+                                            </div>
+                                        </dl>
+
+                                        {canEdit && (
+                                            <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-gray-100 pt-2 text-sm">
+                                                <CaseActions c={c} padded />
+                                            </div>
+                                        )}
+                                    </li>
+                                );
+                            })}
+                        </ul>
+
+                        {/* DESKTOP: table */}
+                        <div className="hidden overflow-x-auto md:block">
+                            <table className="w-full text-left text-sm">
+                                <thead className="bg-gray-50 text-gray-700">
+                                    <tr>
+                                        <th className="whitespace-nowrap px-4 py-3 font-medium">Case No.</th>
+                                        <th className="whitespace-nowrap px-4 py-3 font-medium">ID No.</th>
+                                        <th className="px-4 py-3 font-medium">Patient</th>
+                                        <th className="px-4 py-3 font-medium">Complaint</th>
+                                        <th className="whitespace-nowrap px-4 py-3 font-medium">Date</th>
+                                        <th className="px-4 py-3 font-medium">Staff</th>
+                                        <th className="px-4 py-3 font-medium">Status</th>
+                                        {canEdit && <th className="px-4 py-3 font-medium">Actions</th>}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {reports.map((c) => {
+                                        const badge = statusStyles[c.status] ?? {
+                                            label: c.status,
+                                            className: "bg-gray-100 text-gray-700",
+                                        };
+                                        const isEmployee = c.patient_type === "employee";
+                                        return (
+                                            <tr key={c.case_id} className="border-t border-gray-100">
+                                                <td className="whitespace-nowrap px-4 py-3 font-semibold text-gray-900">
+                                                    {c.case_number}
                                                 </td>
-                                            )}
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
+                                                <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                                                    {c.id_number ?? "—"}
+                                                </td>
+                                                <td className="px-4 py-3 text-gray-900">
+                                                    {fullName(c)}
+                                                    <span
+                                                        className={`ml-2 rounded-full px-2 py-0.5 text-xs font-medium ${isEmployee
+                                                            ? "bg-amber-300 text-gray-900"
+                                                            : "bg-[#15664f] text-white"
+                                                            }`}
+                                                    >
+                                                        {isEmployee ? "Employee" : "Student"}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-3 text-gray-900">{c.complaint}</td>
+                                                <td className="whitespace-nowrap px-4 py-3 text-gray-600">
+                                                    {formatDate(c.report_date)}
+                                                </td>
+                                                <td className="px-4 py-3 text-gray-600">{c.staff_name ?? "—"}</td>
+                                                <td className="px-4 py-3">
+                                                    <span
+                                                        className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${badge.className}`}
+                                                    >
+                                                        {badge.label}
+                                                    </span>
+                                                </td>
+                                                {canEdit && (
+                                                    <td className="whitespace-nowrap px-4 py-3">
+                                                        <div className="flex items-center gap-3">
+                                                            <CaseActions c={c} />
+                                                        </div>
+                                                    </td>
+                                                )}
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    </>
                 )}
             </section>
         </main>

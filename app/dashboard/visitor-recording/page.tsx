@@ -15,6 +15,13 @@ type VisitorRow = {
     time_out: string | null;
 };
 
+// Mobile: bawat row ay card, at ang data-label ang nagsisilbing label ng bawat field.
+// md pataas: normal na table.
+const tr =
+    "mb-3 block rounded-lg border border-gray-200 py-2 md:mb-0 md:table-row md:rounded-none md:border-0 md:border-t md:border-gray-100 md:py-0";
+const td =
+    "flex items-start justify-between gap-3 px-4 py-1.5 text-right before:shrink-0 before:text-left before:text-xs before:font-semibold before:uppercase before:text-gray-500 before:content-[attr(data-label)] md:table-cell md:py-3 md:text-left md:before:hidden";
+
 function to12Hour(value: string | null) {
     if (!value) return "-";
     const [h, m] = value.split(":").map(Number);
@@ -54,9 +61,9 @@ export default async function VisitorRecordingPage() {
   `;
 
     return (
-        <main className="space-y-6 p-6 md:p-8">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-                <h1 className="text-3xl font-semibold text-[#15664f]">Visitor Recording</h1>
+        <main className="min-w-0 space-y-6 p-4 md:p-8">
+            <div className="flex flex-wrap items-center justify-between gap-3 md:gap-4">
+                <h1 className="text-2xl font-semibold text-[#15664f] md:text-3xl">Visitor Recording</h1>
                 {!canEdit && (
                     <span className="rounded-full bg-gray-200 px-3 py-1 text-xs font-medium text-gray-600">
                         View only
@@ -65,20 +72,20 @@ export default async function VisitorRecordingPage() {
             </div>
 
             <div className="grid gap-6 xl:grid-cols-2">
-                <div className="space-y-4">
+                <div className="min-w-0 space-y-4">
                     <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3">
                         <p className="font-medium text-[#15664f]">{longDate}</p>
                     </div>
 
                     {canEdit && (
-                        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm md:p-6">
                             <h2 className="mb-5 text-lg font-semibold text-[#15664f]">Visitor Check-In</h2>
                             <VisitorForm today={today} timeNow={timeNow} />
                         </div>
                     )}
                 </div>
 
-                <div>
+                <div className="min-w-0">
                     <h2 className="mb-3 text-lg font-semibold text-[#15664f]">
                         Today&apos;s Visitors ({visitors.length})
                     </h2>
@@ -86,9 +93,9 @@ export default async function VisitorRecordingPage() {
                         {visitors.length === 0 ? (
                             <p className="p-8 text-center text-sm text-gray-500">No visitors logged today.</p>
                         ) : (
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left text-sm">
-                                    <thead className="bg-[#EEEEEE] text-[#15664f]">
+                            <div className="p-3 md:overflow-x-auto md:p-0">
+                                <table className="block w-full text-left text-sm md:table">
+                                    <thead className="hidden bg-[#EEEEEE] text-[#15664f] md:table-header-group">
                                         <tr>
                                             <th className="px-4 py-3 font-medium">Name</th>
                                             <th className="px-4 py-3 font-medium">Purpose</th>
@@ -96,15 +103,19 @@ export default async function VisitorRecordingPage() {
                                             <th className="whitespace-nowrap px-4 py-3 font-medium">Time Out</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
+                                    <tbody className="block md:table-row-group">
                                         {visitors.map((v) => (
-                                            <tr key={v.visitor_id} className="border-t border-gray-100">
-                                                <td className="px-4 py-3 font-medium text-gray-900">{v.visitor_name}</td>
-                                                <td className="px-4 py-3 text-gray-700">{v.purpose}</td>
-                                                <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                                            <tr key={v.visitor_id} className={tr}>
+                                                <td data-label="Name" className={`${td} break-words font-medium text-gray-900`}>
+                                                    {v.visitor_name}
+                                                </td>
+                                                <td data-label="Purpose" className={`${td} break-words text-gray-700`}>
+                                                    {v.purpose}
+                                                </td>
+                                                <td data-label="Time In" className={`${td} text-gray-700 md:whitespace-nowrap`}>
                                                     {to12Hour(v.time_in)}
                                                 </td>
-                                                <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                                                <td data-label="Time Out" className={`${td} text-gray-700 md:whitespace-nowrap`}>
                                                     {v.time_out ? (
                                                         to12Hour(v.time_out)
                                                     ) : canEdit ? (

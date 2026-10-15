@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Pencil, Search } from "lucide-react";
 import { prisma } from "@/lib/prisma";
@@ -69,20 +68,20 @@ function CheckList({
     checked: Record<string, boolean>;
 }) {
     return (
-        <div>
+        <div className="min-w-0">
             <h3 className="text-sm font-bold uppercase tracking-wide text-gray-800">{title}</h3>
             <div className="mt-3 space-y-2 text-sm text-gray-700">
                 {items.map((item) => (
-                    <p key={item.key} className="flex items-center gap-2">
+                    <p key={item.key} className="flex items-start gap-2">
                         <span
-                            className={`flex h-4 w-4 items-center justify-center rounded border text-[10px] font-bold ${checked[item.key]
+                            className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px] font-bold ${checked[item.key]
                                 ? "border-[#15664f] bg-[#15664f] text-white"
                                 : "border-gray-300 bg-white text-transparent"
                                 }`}
                         >
                             ✓
                         </span>
-                        {item.label}
+                        <span className="min-w-0 break-words">{item.label}</span>
                     </p>
                 ))}
             </div>
@@ -144,7 +143,7 @@ export default async function DentalHealthFormPage({ searchParams }: Props) {
     const tx = form?.treatment ?? {};
 
     return (
-        <main className="space-y-6 p-6 md:p-8">
+        <main className="min-w-0 space-y-6 p-4 pb-8 md:p-8">
             <style
                 dangerouslySetInnerHTML={{
                     __html: `@media print {
@@ -155,22 +154,19 @@ export default async function DentalHealthFormPage({ searchParams }: Props) {
                 }}
             />
 
-            <div className="no-print flex flex-wrap items-start justify-between gap-4">
-                <div>
-                    <h1 className="text-3xl font-semibold text-[#15664f]">Dental Health Form</h1>
+            <div className="no-print flex flex-wrap items-start justify-between gap-3 md:gap-4">
+                <div className="min-w-0">
+                    <h1 className="text-2xl font-semibold text-[#15664f] md:text-3xl">Dental Health Form</h1>
 
-                    <p className="mt-1 text-gray-700">
+                    <p className="mt-1 text-sm text-gray-700 md:text-base">
                         Student&apos;s Dental Health Record — tooth chart, findings, and treatment needed.
                     </p>
-
                 </div>
 
                 {selected && (
-                    <div className="flex gap-3">
-
+                    <div className="flex flex-wrap gap-3">
                         <PrintButton />
                         {canEdit && (
-
                             <ConfirmLink
                                 href={`${BASE}/edit?student=${encodeURIComponent(selected.student_number)}`}
                                 title={form ? "Edit form" : "Fill out form"}
@@ -181,7 +177,6 @@ export default async function DentalHealthFormPage({ searchParams }: Props) {
                                 <Pencil className="h-4 w-4" />
                                 {form ? "Edit Form" : "Fill Out Form"}
                             </ConfirmLink>
-
                         )}
                     </div>
                 )}
@@ -197,8 +192,8 @@ export default async function DentalHealthFormPage({ searchParams }: Props) {
                     View only. You can view this form but cannot edit or print it.
                 </p>
             )}
-            <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
-                <aside className="no-print rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            <div className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)] lg:gap-6">
+                <aside className="no-print min-w-0 rounded-xl border border-gray-200 bg-white p-3 shadow-sm md:p-4">
                     <form method="get" className="relative">
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                         <input
@@ -207,11 +202,12 @@ export default async function DentalHealthFormPage({ searchParams }: Props) {
                             autoComplete="off"
                             placeholder="Search student..."
                             suppressHydrationWarning
-                            className="h-10 w-full rounded-lg border border-gray-300 bg-white pl-9 pr-3 text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20"
+                            className="h-10 w-full rounded-lg border border-gray-300 bg-white pl-9 pr-3 text-base text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20 md:text-sm"
                         />
                     </form>
 
-                    <div className="mt-4 max-h-[560px] space-y-1 overflow-y-auto">
+                    {/* Mas maikli ang listahan sa mobile para hindi mahaba ang scroll bago makita ang form */}
+                    <div className="mt-3 max-h-60 space-y-1 overflow-y-auto lg:mt-4 lg:max-h-[560px]">
                         {students.length === 0 && (
                             <p className="p-3 text-sm text-gray-500">No students found.</p>
                         )}
@@ -223,9 +219,9 @@ export default async function DentalHealthFormPage({ searchParams }: Props) {
                                     href={`${BASE}?q=${encodeURIComponent(q)}&student=${encodeURIComponent(s.student_number)}`}
                                     title="View dental health record"
                                     message={`Open the dental health record of ${s.first_name} ${s.last_name} (${s.student_number})? This contains confidential medical information.`}
-                                    className={`block w-full rounded-lg px-3 py-2 text-left text-sm ${active ? "bg-[#15664f] text-white" : "text-gray-700 hover:bg-gray-100"}`}
+                                    className={`block w-full rounded-lg px-3 py-2.5 text-left text-sm lg:py-2 ${active ? "bg-[#15664f] text-white" : "text-gray-700 hover:bg-gray-100"}`}
                                 >
-                                    <span className="block font-medium">
+                                    <span className="block break-words font-medium">
                                         {s.last_name}, {s.first_name}
                                     </span>
                                     <span className={`block text-xs ${active ? "text-white/80" : "text-gray-500"}`}>
@@ -237,11 +233,13 @@ export default async function DentalHealthFormPage({ searchParams }: Props) {
                     </div>
                 </aside>
 
-                <section className="space-y-6">
+                <section className="min-w-0 space-y-4 lg:space-y-6">
                     {!selected && (
-                        <div className="rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center">
-                            <p className="text-gray-500">
-                                Select a student on the left to view their dental health record.
+                        <div className="rounded-xl border border-dashed border-gray-300 bg-white p-6 text-center md:p-12">
+                            <p className="text-sm text-gray-500 md:text-base">
+                                Select a student {" "}
+                                <span className="lg:hidden">from the list above</span>
+                                <span className="hidden lg:inline">on the left</span> to view their dental health record.
                             </p>
                         </div>
                     )}
@@ -249,12 +247,12 @@ export default async function DentalHealthFormPage({ searchParams }: Props) {
                     {selected && (
                         <>
                             <PrintHeader />
-                            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                                <h2 className="text-center text-lg font-bold uppercase tracking-wide text-gray-900">
+                            <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm md:p-6">
+                                <h2 className="text-center text-base font-bold uppercase tracking-wide text-gray-900 md:text-lg">
                                     Student&apos;s Dental Health Record
                                 </h2>
-                                <div className="mt-5 grid gap-x-8 gap-y-3 text-sm md:grid-cols-2">
-                                    <p>
+                                <div className="mt-4 grid gap-x-8 gap-y-2 text-sm md:mt-5 md:grid-cols-2 md:gap-y-3">
+                                    <p className="break-words">
                                         <span className="font-semibold text-gray-700">Name:</span>{" "}
                                         <span className="text-gray-900">{fullName(selected)}</span>
                                     </p>
@@ -262,13 +260,13 @@ export default async function DentalHealthFormPage({ searchParams }: Props) {
                                         <span className="font-semibold text-gray-700">Date of Birth:</span>{" "}
                                         <span className="text-gray-900">{fmtDate(selected.date_of_birth)}</span>
                                     </p>
-                                    <p>
+                                    <p className="break-words">
                                         <span className="font-semibold text-gray-700">Level:</span>{" "}
                                         <span className="text-gray-900">
                                             {form?.level || selected.grade_level || "—"}
                                         </span>
                                     </p>
-                                    <p>
+                                    <p className="break-words">
                                         <span className="font-semibold text-gray-700">Section:</span>{" "}
                                         <span className="text-gray-900">
                                             {form?.section || selected.program || "—"}
@@ -288,29 +286,34 @@ export default async function DentalHealthFormPage({ searchParams }: Props) {
                             </div>
 
                             {!form ? (
-                                <div className="rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center">
-                                    <p className="text-gray-500">
+                                <div className="rounded-xl border border-dashed border-gray-300 bg-white p-6 text-center md:p-12">
+                                    <p className="text-sm text-gray-500 md:text-base">
                                         No dental health record yet for this student.
                                     </p>
                                     {canEdit && (
-                                        <ConfirmLink
-                                            href={`${BASE}/edit?student=${encodeURIComponent(selected.student_number)}`}
-                                            title={form ? "Edit form" : "Fill out form"}
-                                            message={`${form ? "Edit" : "Fill out"} the form of ${selected.first_name} ${selected.last_name} (${selected.student_number})?`}
-                                            confirmLabel={form ? "Edit" : "Continue"}
-                                            className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#15664f] px-4 text-sm font-semibold text-white hover:bg-[#10523f]"
-                                        >
-                                            <Pencil className="h-4 w-4" />
-                                            {form ? "Edit Form" : "Fill Out Form"}
-                                        </ConfirmLink>
+                                        <div className="mt-4 flex justify-center">
+                                            <ConfirmLink
+                                                href={`${BASE}/edit?student=${encodeURIComponent(selected.student_number)}`}
+                                                title="Fill out form"
+                                                message={`Fill out the form of ${selected.first_name} ${selected.last_name} (${selected.student_number})?`}
+                                                confirmLabel="Continue"
+                                                className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#15664f] px-4 text-sm font-semibold text-white hover:bg-[#10523f]"
+                                            >
+                                                <Pencil className="h-4 w-4" />
+                                                Fill Out Form
+                                            </ConfirmLink>
+                                        </div>
                                     )}
                                 </div>
                             ) : (
                                 <>
-                                    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                                        <ToothGrid chart={chart} readOnly />
+                                    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm md:p-6">
+                                        {/* Kung malapad ang tooth chart, puwedeng i-scroll pakaliwa/pakanan sa mobile */}
+                                        <div className="overflow-x-auto">
+                                            <ToothGrid chart={chart} readOnly />
+                                        </div>
 
-                                        <div className="mt-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                                        <div className="mt-5 rounded-lg border border-gray-200 bg-gray-50 p-3 md:mt-6 md:p-4">
                                             <h3 className="text-sm font-bold uppercase tracking-wide text-gray-800">
                                                 Legend
                                             </h3>
@@ -325,8 +328,8 @@ export default async function DentalHealthFormPage({ searchParams }: Props) {
                                         </div>
                                     </div>
 
-                                    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                                        <div className="grid gap-8 md:grid-cols-3">
+                                    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm md:p-6">
+                                        <div className="grid gap-6 md:grid-cols-3 md:gap-8">
                                             <CheckList
                                                 title="Periodontal Condition"
                                                 items={PERIODONTAL}
@@ -337,15 +340,15 @@ export default async function DentalHealthFormPage({ searchParams }: Props) {
                                         </div>
                                     </div>
 
-                                    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                                    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm md:p-6">
                                         <h3 className="text-sm font-bold uppercase tracking-wide text-gray-800">
                                             Remarks
                                         </h3>
-                                        <p className="mt-2 whitespace-pre-wrap text-sm text-gray-900">
+                                        <p className="mt-2 whitespace-pre-wrap break-words text-sm text-gray-900">
                                             {form.remarks || "—"}
                                         </p>
 
-                                        <div className="mt-6 flex flex-wrap items-end justify-between gap-6 border-t border-gray-200 pt-5 text-sm">
+                                        <div className="mt-5 flex flex-col gap-4 border-t border-gray-200 pt-4 text-sm sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-6 md:mt-6 md:pt-5">
                                             <p>
                                                 <span className="font-semibold text-gray-700">
                                                     Date of Examination:
@@ -353,7 +356,7 @@ export default async function DentalHealthFormPage({ searchParams }: Props) {
                                                 <span className="text-gray-900">{fmtDate(form.exam_date)}</span>
                                             </p>
                                             <div className="text-center">
-                                                <p className="font-semibold text-gray-900 underline">
+                                                <p className="break-words font-semibold text-gray-900 underline">
                                                     {form.examined_by || "—"}
                                                 </p>
                                                 <p className="text-xs text-gray-600">Examined by · School Dentist</p>
