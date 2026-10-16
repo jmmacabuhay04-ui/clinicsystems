@@ -1,25 +1,32 @@
+
 import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
-const accounts = [
-    { username: "admin@bcas.edu.ph", password: "admin123", role: "admin" },
-    { username: "jgarcia@bcas.edu.ph", password: "doctor123", role: "doctor" },
-    { username: "alim@bcas.edu.ph", password: "dentist123", role: "dentist" },
-];
-
 async function main() {
-    for (const acc of accounts) {
-        const hashed = await bcrypt.hash(acc.password, 12);
-        await prisma.user.upsert({
-            where: { username: acc.username },
-            update: { password: hashed, role: acc.role },
-            create: { username: acc.username, password: hashed, role: acc.role },
-        });
-        console.log(`Ready: ${acc.username} (${acc.role})`);
+    const username = process.env.SEED_ADMIN_USERNAME;
+    const password = process.env.SEED_ADMIN_PASSWORD;
+
+    if (!username || !password || password.length < 12) {
+        throw new Error(
+            "Set SEED_ADMIN_USERNAME and SEED_ADMIN_PASSWORD (at least 12 characters).",
+        );
     }
+
+    const hashed = await bcrypt.hash(password, 12);
+    await prisma.user.upsert({
+        where: { username },
+        update: { role: "admin" },
+        create: { username, password: hashed, role: "admin" },
+    });
+    console.log(`Ready: ${username} (admin)`);
 }
 
-main().finally(() => prisma.$disconnect());
+main()
+    .catch((e) => {
+        console.error(e);
+        process.exit(1);
+    })
+    .finally(() => prisma.$disconnect());
