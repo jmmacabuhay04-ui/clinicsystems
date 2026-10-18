@@ -247,29 +247,61 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
                     </form>
 
                     {/* Mas maikli ang listahan sa mobile para hindi mahaba ang scroll bago makita ang form */}
-                    <div className="mt-3 max-h-60 space-y-1 overflow-y-auto lg:mt-4 lg:max-h-[560px]">
-                        {employees.length === 0 && (
-                            <p className="p-3 text-sm text-gray-500">No employees found.</p>
-                        )}
-                        {employees.map((e) => {
-                            const active = e.employee_number === employeeNumber;
-                            return (
-                                <ConfirmLink
-                                    key={e.employee_id}
-                                    href={`${BASE}?q=${encodeURIComponent(q)}&employee=${encodeURIComponent(e.employee_number)}`}
-                                    title="View health form"
-                                    message={`Open the health form of ${e.first_name} ${e.last_name} (${e.employee_number})? This contains confidential medical information.`}
-                                    className={`block w-full rounded-lg px-3 py-2.5 text-left text-sm lg:py-2 ${active ? "bg-[#15664f] text-white" : "text-gray-700 hover:bg-gray-100"}`}
-                                >
-                                    <span className="block break-words font-medium">
-                                        {e.last_name}, {e.first_name}
-                                    </span>
-                                    <span className={`block text-xs ${active ? "text-white/80" : "text-gray-500"}`}>
-                                        {e.employee_number}
-                                    </span>
-                                </ConfirmLink>
-                            );
-                        })}
+                    <div className="mt-3 max-h-60 overflow-auto rounded-lg border border-gray-200 lg:mt-4 lg:max-h-[560px]">
+                        <table className="w-full border-collapse text-left text-sm">
+                            <thead className="sticky top-0 z-10 bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+                                <tr>
+                                    <th className="px-3 py-2 font-semibold">Employee</th>
+                                    <th className="hidden px-3 py-2 font-semibold sm:table-cell lg:hidden">Department</th>
+                                    <th className="hidden px-3 py-2 font-semibold sm:table-cell lg:hidden">Position</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {employees.length === 0 && (
+                                    <tr>
+                                        <td colSpan={3} className="p-3 text-sm text-gray-500">
+                                            No employees found.
+                                        </td>
+                                    </tr>
+                                )}
+                                {employees.map((e) => {
+                                    const active = e.employee_number === employeeNumber;
+                                    return (
+                                        <tr
+                                            key={e.employee_id}
+                                            className={`relative ${active ? "bg-[#15664f] text-white" : "text-gray-700 hover:bg-gray-100"}`}
+                                        >
+                                            <td className="px-3 py-2.5 align-top">
+                                                {/* after:absolute after:inset-0 ginagawang clickable ang buong row */}
+                                                <ConfirmLink
+                                                    href={`${BASE}?q=${encodeURIComponent(q)}&employee=${encodeURIComponent(e.employee_number)}`}
+                                                    title="View health form"
+                                                    message={`Open the health form of ${e.first_name} ${e.last_name} (${e.employee_number})? This contains confidential medical information.`}
+                                                    className="block w-full text-left after:absolute after:inset-0"
+                                                >
+                                                    <span className="block break-words font-medium">
+                                                        {e.last_name}, {e.first_name}
+                                                    </span>
+                                                    <span className={`block text-xs ${active ? "text-white/80" : "text-gray-500"}`}>
+                                                        {e.employee_number}
+                                                        {/* Sa pinakamaliit na screen, nasa ilalim ng pangalan ang position */}
+                                                        <span className="sm:hidden lg:inline">
+                                                            {e.position ? ` · ${e.position}` : ""}
+                                                        </span>
+                                                    </span>
+                                                </ConfirmLink>
+                                            </td>
+                                            <td className="hidden px-3 py-2.5 align-top sm:table-cell lg:hidden">
+                                                {e.department ?? "—"}
+                                            </td>
+                                            <td className="hidden px-3 py-2.5 align-top sm:table-cell lg:hidden">
+                                                {e.position ?? "—"}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
                     </div>
                 </aside>
 
