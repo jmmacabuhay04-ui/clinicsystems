@@ -14,7 +14,7 @@ export default async function StudentDentalPage() {
     const fullName = `${student.first_name} ${student.last_name}`;
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-[#e7f3e2]">
             <StudentNav fullName={fullName} initials={initialsOf(student.first_name, student.last_name)} />
 
             <main className="mx-auto max-w-5xl space-y-4 p-6">

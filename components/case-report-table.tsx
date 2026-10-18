@@ -60,20 +60,20 @@ export default async function CaseReportTable({ patientType, patientId }: Props)
     return (
         <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-900">Health Case Reports</h2>
+                <h2 className="text-lg font-semibold text-[#15664f]">Health Case Reports</h2>
                 {rows.length > 0 && (
-                    <span className="text-sm text-gray-500">{rows.length} total</span>
+                    <span className="text-sm text-gray-700">{rows.length} total</span>
                 )}
             </div>
 
             {rows.length === 0 ? (
-                <p className="text-sm text-gray-500">No health case reports on file.</p>
+                <p className="text-sm text-gray-700">No health case reports on file.</p>
             ) : (
                 <div className="space-y-3">
                     {rows.map((c) => (
-                        <div key={c.case_id} className="rounded-lg border border-gray-100 p-4">
+                        <div key={c.case_id} className="rounded-lg border border-gray-200 p-4 shadow-sm">
                             <div className="flex flex-wrap items-center gap-2">
-                                <p className="font-semibold text-gray-900">
+                                <p className="font-semibold text-gray-700">
                                     {formatDate(c.report_date)}
                                 </p>
                                 <span className="rounded-full bg-[#eef6f2] px-2.5 py-0.5 text-xs font-medium text-[#15664f]">
@@ -86,12 +86,12 @@ export default async function CaseReportTable({ patientType, patientId }: Props)
                                     {c.status}
                                 </span>
                             </div>
-                            <p className="mt-1 text-sm text-gray-600">
+                            <p className="mt-1 text-sm text-gray-700">
                                 {c.complaint}
                                 {c.staff_name && ` · Seen by ${c.staff_name}`}
                             </p>
                             {c.notes && (
-                                <p className="mt-1 text-sm text-gray-500">{c.notes}</p>
+                                <p className="mt-1 text-sm text-gray-600">{c.notes}</p>
                             )}
                         </div>
                     ))}

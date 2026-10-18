@@ -67,7 +67,7 @@ export default async function UsersPage({ searchParams }: Props) {
     const notice = reset ? notices[reset] : null;
 
     return (
-        <main className="min-h-screen min-w-0 bg-muted p-4 md:p-6">
+        <main className="min-h-screen min-w-0 bg-[] p-4 md:p-6">
             {/* FIX 1: mas malapad na container (dating max-w-6xl) */}
             <div className="mx-auto w-full min-w-0 max-w-[1600px] space-y-6">
                 <div className="flex items-center justify-between">

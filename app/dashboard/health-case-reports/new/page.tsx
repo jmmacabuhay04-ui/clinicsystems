@@ -20,11 +20,11 @@ export default async function NewCaseReportPage() {
     return (
         <main className="space-y-6 p-6 md:p-8">
             <Link
-                href={BASE}
+                href="/dashboard"
                 className="inline-flex items-center gap-1 text-sm font-medium text-[#15664f] hover:underline"
             >
                 <ArrowLeft className="h-4 w-4" />
-                Back to Health Case Reports
+                Back to dashboard
             </Link>
 
             <h1 className="text-3xl font-semibold text-gray-900">New Case Report</h1>

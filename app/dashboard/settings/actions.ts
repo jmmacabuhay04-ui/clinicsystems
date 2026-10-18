@@ -9,6 +9,7 @@ const BASE = "/dashboard/settings";
 
 export type PasswordState = { error?: string; success?: string };
 export type SessionState = { error?: string; success?: string };
+export type AvatarState = { error?: string; success?: string };
 
 export async function changePassword(
     _prev: PasswordState,
@@ -78,4 +79,47 @@ export async function saveSessionSettings(
 
     revalidatePath(BASE);
     return { success: "Session settings saved." };
+}
+
+export async function saveAvatar(
+    _prev: AvatarState,
+    formData: FormData
+): Promise<AvatarState> {
+    const session = await getSession();
+    if (!session) return { error: "Your session has expired. Please sign in again." };
+
+    const data = String(formData.get("avatar") ?? "");
+
+    if (!data) return { error: "Choose a photo first." };
+    if (!/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(data)) {
+        return { error: "Invalid image. Please choose a JPG or PNG photo." };
+    }
+    if (data.length > 300_000) {
+        return { error: "The image is too large. Please choose a smaller one." };
+    }
+
+    try {
+        await prisma.user.update({
+            where: { user_id: session.userId },
+            data: { avatar: data },
+        });
+    } catch (err) {
+        console.error("Save avatar error:", err);
+        return { error: "Could not save the picture. Please try again." };
+    }
+
+    revalidatePath("/dashboard", "layout");
+    return { success: "Profile picture updated." };
+}
+
+export async function removeAvatar() {
+    const session = await getSession();
+    if (!session) return;
+
+    await prisma.user.update({
+        where: { user_id: session.userId },
+        data: { avatar: null },
+    });
+
+    revalidatePath("/dashboard", "layout");
 }

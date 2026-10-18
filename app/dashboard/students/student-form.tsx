@@ -1,13 +1,11 @@
 "use client";
-
 import { useActionState } from "react";
 import { createStudent, updateStudent, type StudentState } from "./actions";
-import PasswordInput from "@/components/password-input";
 import ConfirmSubmit from "@/components/confirm-submit";
 import ConfirmLink from "@/components/confirm-link";
 import BirthdateField from "@/components/birthdate-field";
-
-
+import PhotoUpload from "@/components/photo-upload";
+import PasswordInput from "@/components/password-input";
 const initialState: StudentState = {};
 
 const inputClass =
@@ -35,6 +33,7 @@ export type StudentValues = {
     // Optional so the new/edit pages keep working until they pass these too.
     contactNumber?: string;
     email?: string;
+    photoUrl?: string;
 };
 
 type Props = {
@@ -164,6 +163,7 @@ export default function StudentForm({ mode, student, cancelHref }: Props) {
                             className={inputClass}
                         />
                     </Field>
+                    <PhotoUpload defaultUrl={v.photoUrl} />
                 </div>
             </section>
 

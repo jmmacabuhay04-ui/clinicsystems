@@ -263,16 +263,21 @@ export async function archiveEmployee(formData: FormData) {
     const employeeId = Number(formData.get("employeeId"));
     if (!employeeId) return;
 
-    await prisma.$executeRaw`
+    const rows = await prisma.$queryRaw<{ employee_number: string }[]>`
     UPDATE employees
     SET archived_at = NOW(), archived_by = ${session.username}
     WHERE employee_id = ${employeeId} AND archived_at IS NULL
+    RETURNING employee_number
   `;
 
     await logAccess(actorOf(session), "employee_health_record", employeeId, "update", "Employee archived.");
 
     revalidatePath(BASE);
-    redirect(BASE);
+
+    // Babalik sa page na may ?employee=<number>. Dahil archived na, hindi na
+    // siya "active", kaya lalabas ang "No active employee found..." na message.
+    const number = rows[0]?.employee_number;
+    redirect(number ? `${BASE}?employee=${encodeURIComponent(number)}` : BASE);
 }
 
 export async function restoreEmployee(formData: FormData) {

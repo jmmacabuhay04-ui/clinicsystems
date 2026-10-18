@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import ConfirmButton from "@/components/confirm-button";
 import { archiveRecord } from "./record-actions";
-import { archiveStudent } from "./student-actions";
+import { archiveStudent } from "../students/student-actions";
 import { canManageRecords, canManageStudents } from "@/lib/permissions";
 import ConfirmLink from "@/components/confirm-link";
 import { logAccess } from "@/lib/access-log";
@@ -326,19 +326,7 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
                 <h1 className="text-2xl font-semibold text-[#15664f] md:text-3xl">Student Health Records</h1>
                 {canEdit ? (
                     <div className="flex flex-wrap items-center gap-3">
-                        {canAddStudent && !selected && (
-                            <ConfirmLink
-                                href={`${BASE}/students/new`}
-                                title="Add student"
-                                message="Register a new student and create their student portal account?"
-                                confirmLabel="Continue"
-                                icon={<UserPlus className="h-5 w-5" />}
-                                className="inline-flex h-10 items-center gap-2 rounded-lg bg-amber-400 px-4 text-sm font-semibold text-gray-900 hover:bg-amber-500"
-                            >
-                                <UserPlus className="h-4 w-4" />
-                                Add Student
-                            </ConfirmLink>
-                        )}
+
                         <ConfirmLink
                             href={addHref}
                             title="Add visit record"
@@ -384,9 +372,6 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
 
             {!selected && !selectedNumber && (
                 <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                    <div className="border-b border-gray-100 px-4 py-3 text-sm text-gray-500">
-                        {q ? `Search results for "${q}"` : "Recently registered students"}
-                    </div>
 
                     {results.length === 0 ? (
                         <p className="p-8 text-center text-sm text-gray-700">No students found.</p>
@@ -459,57 +444,59 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
                                 </p>
 
                                 {totalPages > 1 && (
-                                    <nav className="flex flex-wrap items-center gap-1" aria-label="Pagination">
-                                        {currentPage > 1 ? (
-                                            <Link
-                                                href={pageHref(currentPage - 1)}
-                                                className="rounded-lg border border-gray-300 px-3 py-1.5 font-medium text-[#15664f] hover:bg-[#eef6f2]"
-                                            >
-                                                Previous
-                                            </Link>
-                                        ) : (
-                                            <span className="rounded-lg border border-gray-200 px-3 py-1.5 text-gray-400">
-                                                Previous
-                                            </span>
-                                        )}
-
-                                        {pageItems.map((item, i) =>
-                                            item === "…" ? (
-                                                <span key={`gap-${i}`} className="px-2 text-gray-400">
-                                                    …
-                                                </span>
-                                            ) : item === currentPage ? (
-                                                <span
-                                                    key={item}
-                                                    aria-current="page"
-                                                    className="rounded-lg bg-[#15664f] px-3 py-1.5 font-semibold text-white"
-                                                >
-                                                    {item}
-                                                </span>
-                                            ) : (
+                                    <div className="flex flex-wrap items-center justify-end gap-3 border-t border-gray-100 px-4 py-3 text-sm text-gray-600">
+                                        <nav className="flex flex-wrap items-center gap-1" aria-label="Pagination">
+                                            {currentPage > 1 ? (
                                                 <Link
-                                                    key={item}
-                                                    href={pageHref(item)}
-                                                    className="rounded-lg border border-gray-300 px-3 py-1.5 font-medium text-gray-700 hover:bg-[#eef6f2]"
+                                                    href={pageHref(currentPage - 1)}
+                                                    className="rounded-lg border border-gray-300 px-3 py-1.5 font-medium text-[#15664f] hover:bg-[#eef6f2]"
                                                 >
-                                                    {item}
+                                                    Previous
                                                 </Link>
-                                            )
-                                        )}
+                                            ) : (
+                                                <span className="rounded-lg border border-gray-200 px-3 py-1.5 text-gray-400">
+                                                    Previous
+                                                </span>
+                                            )}
 
-                                        {currentPage < totalPages ? (
-                                            <Link
-                                                href={pageHref(currentPage + 1)}
-                                                className="rounded-lg border border-gray-300 px-3 py-1.5 font-medium text-[#15664f] hover:bg-[#eef6f2]"
-                                            >
-                                                Next
-                                            </Link>
-                                        ) : (
-                                            <span className="rounded-lg border border-gray-200 px-3 py-1.5 text-gray-400">
-                                                Next
-                                            </span>
-                                        )}
-                                    </nav>
+                                            {pageItems.map((item, i) =>
+                                                item === "…" ? (
+                                                    <span key={`gap-${i}`} className="px-2 text-gray-400">
+                                                        …
+                                                    </span>
+                                                ) : item === currentPage ? (
+                                                    <span
+                                                        key={item}
+                                                        aria-current="page"
+                                                        className="rounded-lg bg-[#15664f] px-3 py-1.5 font-semibold text-white"
+                                                    >
+                                                        {item}
+                                                    </span>
+                                                ) : (
+                                                    <Link
+                                                        key={item}
+                                                        href={pageHref(item)}
+                                                        className="rounded-lg border border-gray-300 px-3 py-1.5 font-medium text-gray-700 hover:bg-[#eef6f2]"
+                                                    >
+                                                        {item}
+                                                    </Link>
+                                                )
+                                            )}
+
+                                            {currentPage < totalPages ? (
+                                                <Link
+                                                    href={pageHref(currentPage + 1)}
+                                                    className="rounded-lg border border-gray-300 px-3 py-1.5 font-medium text-[#15664f] hover:bg-[#eef6f2]"
+                                                >
+                                                    Next
+                                                </Link>
+                                            ) : (
+                                                <span className="rounded-lg border border-gray-200 px-3 py-1.5 text-gray-400">
+                                                    Next
+                                                </span>
+                                            )}
+                                        </nav>
+                                    </div>
                                 )}
                             </div>
                         </>
@@ -544,7 +531,7 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
                                 {canAddStudent && (
                                     <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-gray-100 pt-4">
                                         <ConfirmLink
-                                            href={`${BASE}/students/edit?student=${encodeURIComponent(selected.student_number)}`}
+                                            href={`/dashboard/students/edit?student=${encodeURIComponent(selected.student_number)}`}
                                             title="Edit student details"
                                             message={`Edit the details of ${selected.first_name} ${selected.last_name} (${selected.student_number})? Changes will replace the current information.`}
                                             confirmLabel="Edit"

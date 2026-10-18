@@ -13,6 +13,7 @@ export type EmployeeInfo = {
     gender: string | null;
     contact_number: string | null;
     email: string | null;
+    avatar: string | null;
 };
 
 export type EmployeeVisit = {
@@ -32,7 +33,7 @@ export async function getEmployee(employeeId: number) {
     const rows = await prisma.$queryRaw<EmployeeInfo[]>`
     SELECT employee_id, employee_number, last_name, first_name, middle_name,
            department, position, date_of_birth, gender,
-           contact_number, email
+           contact_number, email, avatar
     FROM employees
     WHERE employee_id = ${employeeId}
     LIMIT 1

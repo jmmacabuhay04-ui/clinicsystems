@@ -16,7 +16,7 @@ export default async function EmployeeVitalsPage() {
     const fullName = `${employee.first_name} ${employee.last_name}`;
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-[#e7f3e2]">
             <EmployeeNav
                 fullName={fullName}
                 initials={initialsOf(employee.first_name, employee.last_name)}
@@ -24,7 +24,7 @@ export default async function EmployeeVitalsPage() {
 
 
             <main className="mx-auto max-w-5xl space-y-6 p-6">
-                <h1 className="text-2xl font-semibold text-gray-900">Vitals History</h1>
+                <h1 className="text-2xl font-semibold text-[#15664f]">Vitals History</h1>
 
                 <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                     {visits.length === 0 ? (
@@ -32,7 +32,7 @@ export default async function EmployeeVitalsPage() {
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm">
-                                <thead className="bg-gray-50 text-gray-700">
+                                <thead className="bg-[#EEEEEE] text-[#15664f]">
                                     <tr>
                                         <th className="whitespace-nowrap px-4 py-3 font-medium">Date</th>
                                         <th className="px-4 py-3 font-medium">Height</th>

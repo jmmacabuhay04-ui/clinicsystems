@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Archive, ArrowLeft, Pencil, Plus, Search, UserPlus } from "lucide-react";
+import { Archive, ArrowLeft, Pencil, Plus, Search } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { canManageRecords, canManageStudents } from "@/lib/permissions";
@@ -224,7 +224,10 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
     let employees: EmployeeRow[] = [];
     let total = 0;
 
-    if (!selected) {
+    // Same as Student Health Records: the list is only loaded when no
+    // employee number is in the URL. If a number is given but isn't an
+    // active employee, an error is shown instead of the list.
+    if (!employeeNumber) {
         const offset = (page - 1) * PAGE_SIZE;
 
         const [rows, count] = await Promise.all([
@@ -335,22 +338,11 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
     return (
         <main className="min-w-0 space-y-6 p-4 pb-8 md:p-8">
             <div className="flex flex-wrap items-center justify-between gap-3 md:gap-4">
-                <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">Employee Health Records</h1>
+                <h1 className="text-2xl font-semibold text-[#15664f] md:text-3xl">Employee Health Records</h1>
 
                 {canEditEmployees || canEditRecords ? (
                     <div className="flex w-full flex-wrap gap-3 sm:w-auto">
-                        {canEditEmployees && !selected && (
-                            <ConfirmLink
-                                href="/dashboard/employee-health-records/employees/new"
-                                title="Add a new employee?"
-                                message="You will be taken to the form to register a new employee."
-                                confirmLabel="Continue"
-                                className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-amber-400 px-4 text-sm font-semibold text-gray-900 hover:bg-amber-500 sm:flex-none"
-                            >
-                                <UserPlus className="h-4 w-4" />
-                                Add Employee
-                            </ConfirmLink>
-                        )}
+
                         {canEditRecords && (
                             <ConfirmLink
                                 href={
@@ -358,6 +350,7 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
                                         ? `${BASE}/new?employee=${encodeURIComponent(selected.employee_number)}`
                                         : `${BASE}/new`
                                 }
+                                icon={<Plus className="h-5 w-5" />}
                                 title="Add a new visit record?"
                                 message={
                                     selected
@@ -385,18 +378,23 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
                     <input
                         name="q"
                         defaultValue={q}
+                        autoComplete="off"
                         placeholder="Search by employee number or name..."
                         suppressHydrationWarning
-                        className="h-11 w-full rounded-lg border border-gray-300 bg-white pl-10 pr-3 text-base text-gray-900 outline-none placeholder:text-sm focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20 md:text-sm"
+                        className="h-11 w-full rounded-xl border border-gray-300 bg-white pl-10 pr-3 text-base text-gray-900 outline-none placeholder:text-sm focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20 md:text-sm"
                     />
                 </form>
             )}
 
-            {!selected && (
+            {employeeNumber && !selected && (
+                <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-base text-red-700">
+                    No active employee found with number {employeeNumber}. It may have been archived.
+                </div>
+            )}
+
+            {!selected && !employeeNumber && (
                 <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                    <p className="border-b border-gray-100 px-4 py-3 text-sm text-gray-600">
-                        {q ? `Search results for “${q}”` : "Recently registered employees"}
-                    </p>
+
 
                     {employees.length === 0 ? (
                         <p className="p-6 text-center text-sm text-gray-500 md:p-8">No employees found.</p>
@@ -501,67 +499,67 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
                     {employees.length > 0 && (
                         <div className="flex flex-col gap-3 border-t border-gray-100 px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                             <p className="text-sm text-gray-500">
-                                Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} of {total} employees
+                                Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} of {total}
                             </p>
 
-                            {totalPages > 1 && (
-                                <nav className="flex items-center justify-between gap-1 sm:justify-end" aria-label="Pagination">
-                                    {page > 1 ? (
-                                        <Link
-                                            href={pageHref(page - 1)}
-                                            className="rounded-lg border border-gray-300 px-3 py-2 font-medium text-[#15664f] hover:bg-[#eef6f2] sm:py-1.5"
-                                        >
-                                            Previous
-                                        </Link>
-                                    ) : (
-                                        <span className="rounded-lg border border-gray-200 px-3 py-2 text-gray-400 sm:py-1.5">
-                                            Previous
-                                        </span>
-                                    )}
 
-                                    {/* Mobile: "Page x of y" lang. sm pataas: buong listahan ng numero */}
-                                    <span className="px-2 text-sm text-gray-600 sm:hidden">
-                                        Page {page} of {totalPages}
+                            <nav className="flex items-center justify-between gap-1 sm:justify-end" aria-label="Pagination">
+                                {page > 1 ? (
+                                    <Link
+                                        href={pageHref(page - 1)}
+                                        className="rounded-lg border border-gray-300 px-3 py-2 font-medium text-[#15664f] hover:bg-[#eef6f2] sm:py-1.5"
+                                    >
+                                        Previous
+                                    </Link>
+                                ) : (
+                                    <span className="rounded-lg border border-gray-200 px-3 py-2 text-gray-400 sm:py-1.5">
+                                        Previous
                                     </span>
+                                )}
 
-                                    {pageList(page, totalPages).map((p, i) =>
-                                        p === "..." ? (
-                                            <span key={`gap-${i}`} className="hidden px-2 text-gray-400 sm:inline">
-                                                …
-                                            </span>
-                                        ) : p === page ? (
-                                            <span
-                                                key={p}
-                                                aria-current="page"
-                                                className="hidden rounded-lg bg-[#15664f] px-3 py-1.5 font-semibold text-white sm:inline"
-                                            >
-                                                {p}
-                                            </span>
-                                        ) : (
-                                            <Link
-                                                key={p}
-                                                href={pageHref(p)}
-                                                className="hidden rounded-lg border border-gray-300 px-3 py-1.5 font-medium text-gray-700 hover:bg-[#eef6f2] sm:inline"
-                                            >
-                                                {p}
-                                            </Link>
-                                        )
-                                    )}
+                                {/* Mobile: "Page x of y" lang. sm pataas: buong listahan ng numero */}
+                                <span className="px-2 text-sm text-gray-600 sm:hidden">
+                                    Page {page} of {totalPages}
+                                </span>
 
-                                    {page < totalPages ? (
-                                        <Link
-                                            href={pageHref(page + 1)}
-                                            className="rounded-lg border border-gray-300 px-3 py-2 font-medium text-[#15664f] hover:bg-[#eef6f2] sm:py-1.5"
-                                        >
-                                            Next
-                                        </Link>
-                                    ) : (
-                                        <span className="rounded-lg border border-gray-200 px-3 py-2 text-gray-400 sm:py-1.5">
-                                            Next
+                                {pageList(page, totalPages).map((p, i) =>
+                                    p === "..." ? (
+                                        <span key={`gap-${i}`} className="hidden px-2 text-gray-400 sm:inline">
+                                            …
                                         </span>
-                                    )}
-                                </nav>
-                            )}
+                                    ) : p === page ? (
+                                        <span
+                                            key={p}
+                                            aria-current="page"
+                                            className="hidden rounded-lg bg-[#15664f] px-3 py-1.5 font-semibold text-white sm:inline"
+                                        >
+                                            {p}
+                                        </span>
+                                    ) : (
+                                        <Link
+                                            key={p}
+                                            href={pageHref(p)}
+                                            className="hidden rounded-lg border border-gray-300 px-3 py-1.5 font-medium text-gray-700 hover:bg-[#eef6f2] sm:inline"
+                                        >
+                                            {p}
+                                        </Link>
+                                    )
+                                )}
+
+                                {page < totalPages ? (
+                                    <Link
+                                        href={pageHref(page + 1)}
+                                        className="rounded-lg border border-gray-300 px-3 py-2 font-medium text-[#15664f] hover:bg-[#eef6f2] sm:py-1.5"
+                                    >
+                                        Next
+                                    </Link>
+                                ) : (
+                                    <span className="rounded-lg border border-gray-200 px-3 py-2 text-gray-400 sm:py-1.5">
+                                        Next
+                                    </span>
+                                )}
+                            </nav>
+
                         </div>
                     )}
                 </section>
@@ -596,7 +594,7 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
                                 {canEditEmployees && (
                                     <div className="mt-6 flex flex-col gap-3 border-t border-gray-100 pt-5 sm:flex-row sm:flex-wrap">
                                         <ConfirmLink
-                                            href={`${BASE}/employees/edit?employee=${encodeURIComponent(selected.employee_number)}`}
+                                            href={`/dashboard/employees/edit?employee=${encodeURIComponent(selected.employee_number)}`}
                                             title="Edit employee details"
                                             message={`Edit the details of ${selected.first_name} ${selected.last_name} (${selected.employee_number})? Changes will replace the current information.`}
                                             confirmLabel="Edit"

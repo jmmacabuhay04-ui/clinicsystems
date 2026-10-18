@@ -16,7 +16,8 @@ import {
     LogOut,
     Menu,
     BarChart3,
-
+    User2,
+    ClipboardCheck,
     Settings,
     ShieldCheck,
     ScrollText,
@@ -71,10 +72,17 @@ function isGroup(entry: NavEntry): entry is NavGroup {
 
 const navItems: NavEntry[] = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "doctor", "dentist", "nurse"] },
-    { href: "/dashboard/student-health-records", label: "Student Health Records", icon: Stethoscope, roles: ["admin", "doctor", "nurse"] },
-    { href: "/dashboard/employee-health-records", label: "Employee Health Records", icon: Stethoscope, roles: ["admin", "doctor", "nurse"] },
-    { href: "/dashboard/dental-records", label: "Dental Records", icon: ToothIcon, roles: ["admin", "dentist", "nurse"] },
-
+    { href: "/dashboard/students    ", label: "Student", icon: User2, roles: ["admin", "nurse"] },
+    { href: "/dashboard/employees    ", label: "Employee", icon: User2, roles: ["admin", "nurse"] },
+    {
+        label: "Record",
+        icon: ClipboardCheck,
+        children: [
+            { href: "/dashboard/student-health-records", label: "Student Health Records", icon: Stethoscope, roles: ["admin", "doctor", "nurse"] },
+            { href: "/dashboard/employee-health-records", label: "Employee Health Records", icon: Stethoscope, roles: ["admin", "doctor", "nurse"] },
+            { href: "/dashboard/dental-records", label: "Dental Records", icon: ToothIcon, roles: ["admin", "dentist", "nurse"] },
+        ],
+    },
     // ALL FORMS -> isang dropdown
     {
         label: "Forms",
@@ -120,9 +128,10 @@ const roleLabels: Record<string, string> = {
 type Props = {
     username: string;
     role: string;
+    avatar?: string | null;
 };
 
-export default function AdminSidebar({ username, role }: Props) {
+export default function AdminSidebar({ username, role, avatar }: Props) {
     const pathname = usePathname();
     const [collapsed, setCollapsed] = useState(false); // desktop: icons only
     const [mobileOpen, setMobileOpen] = useState(false); // phone: show/hide drawer
@@ -387,12 +396,20 @@ export default function AdminSidebar({ username, role }: Props) {
                             className={`flex items-center gap-3 ${collapsed ? "md:flex-col md:justify-center" : ""
                                 }`}
                         >
-                            <div
-                                aria-hidden="true"
-                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/20 text-sm font-semibold"
-                            >
-                                {username.charAt(0).toUpperCase()}
-                            </div>
+                            {avatar ? (
+                                <img
+                                    src={avatar}
+                                    alt=""
+                                    className="h-9 w-9 shrink-0 rounded-full object-cover"
+                                />
+                            ) : (
+                                <div
+                                    aria-hidden="true"
+                                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/20 text-sm font-semibold"
+                                >
+                                    {username.charAt(0).toUpperCase()}
+                                </div>
+                            )}
 
                             <div className={`min-w-0 flex-1 ${collapsed ? "md:hidden" : ""}`}>
                                 <p className="truncate text-sm font-semibold" title={username}>

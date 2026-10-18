@@ -12,6 +12,7 @@ export type StudentInfo = {
     gender: string | null;
     contact_number: string | null;
     email: string | null;
+    avatar: string | null;
 };
 
 export type VisitRecord = {
@@ -32,7 +33,7 @@ export async function getStudent(studentId: number) {
     const rows = await prisma.$queryRaw<StudentInfo[]>`
     SELECT student_id, student_number, last_name, first_name, middle_name,
            grade_level, program, date_of_birth, gender,
-           contact_number, email
+           contact_number, email, avatar
     FROM students
     WHERE student_id = ${studentId} AND archived_at IS NULL
     LIMIT 1

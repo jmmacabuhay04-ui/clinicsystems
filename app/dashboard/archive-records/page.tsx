@@ -7,7 +7,7 @@ import { canManageDental, canManageRecords, canManageStaff } from "@/lib/permiss
 
 import ConfirmButton from "@/components/confirm-button";
 import { deleteRecord, restoreRecord } from "../student-health-records/record-actions";
-import { deleteStudent, restoreStudent } from "../student-health-records/student-actions";
+import { deleteStudent, restoreStudent } from "../students/student-actions";
 import { deleteCase, restoreCase } from "../health-case-reports/case-actions";
 import { deleteDental, restoreDental } from "../dental-records/actions";
 import { deleteSlip, restoreSlip } from "../referral-slips/actions";
@@ -169,18 +169,27 @@ function RestoreForm({
     action,
     name,
     value,
+    title,
+    message,
 }: {
     action: FormAction;
     name: string;
     value: number;
+    title: string;
+    message: string;
 }) {
     return (
         <form action={action}>
             <input type="hidden" name={name} value={value} />
-            <button type="submit" className={RESTORE_CLASS}>
+            <ConfirmButton
+                title={title}
+                confirmLabel="Restore"
+                message={message}
+                className={RESTORE_CLASS}
+            >
                 <RotateCcw className="h-3.5 w-3.5" />
                 Restore
-            </button>
+            </ConfirmButton>
         </form>
     );
 }
@@ -471,7 +480,13 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
             ],
             actions: canEdit ? (
                 <>
-                    <RestoreForm action={restoreStudent} name="studentId" value={s.student_id} />
+                    <RestoreForm
+                        action={restoreStudent}
+                        name="studentId"
+                        value={s.student_id}
+                        title="Restore student"
+                        message={`Restore ${s.last_name}, ${s.first_name} (${s.student_number}) to the Students list?`}
+                    />
                     <DeleteForm
                         action={deleteStudent}
                         name="studentId"
@@ -507,7 +522,13 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
             ],
             actions: canEdit ? (
                 <>
-                    <RestoreForm action={restoreEmployee} name="employeeId" value={e.employee_id} />
+                    <RestoreForm
+                        action={restoreEmployee}
+                        name="employeeId"
+                        value={e.employee_id}
+                        title="Restore employee"
+                        message={`Restore ${e.last_name}, ${e.first_name} (${e.employee_number}) to the Employees list?`}
+                    />
                     <DeleteForm
                         action={deleteEmployee}
                         name="employeeId"
@@ -546,7 +567,13 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
             ],
             actions: canEdit ? (
                 <>
-                    <RestoreForm action={restoreCase} name="caseId" value={c.case_id} />
+                    <RestoreForm
+                        action={restoreCase}
+                        name="caseId"
+                        value={c.case_id}
+                        title="Restore case report"
+                        message={`Restore case ${c.case_number} (${c.complaint})?`}
+                    />
                     <DeleteForm
                         action={deleteCase}
                         name="caseId"
@@ -581,7 +608,13 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
             ],
             actions: canEdit ? (
                 <>
-                    <RestoreForm action={restoreRecord} name="recordId" value={r.record_id} />
+                    <RestoreForm
+                        action={restoreRecord}
+                        name="recordId"
+                        value={r.record_id}
+                        title="Restore visit record"
+                        message={`Restore this visit? ${r.last_name}, ${r.first_name} · ${formatDate(r.visit_date)} · ${r.complaint}`}
+                    />
                     <DeleteForm
                         action={deleteRecord}
                         name="recordId"
@@ -616,7 +649,13 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
             ],
             actions: canEdit ? (
                 <>
-                    <RestoreForm action={restoreEmployeeRecord} name="recordId" value={r.record_id} />
+                    <RestoreForm
+                        action={restoreEmployeeRecord}
+                        name="recordId"
+                        value={r.record_id}
+                        title="Restore visit record"
+                        message={`Restore this visit? ${r.last_name}, ${r.first_name} · ${formatDate(r.visit_date)} · ${r.complaint}`}
+                    />
                     <DeleteForm
                         action={deleteEmployeeRecord}
                         name="recordId"
@@ -653,7 +692,13 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
             ],
             actions: canEdit ? (
                 <>
-                    <RestoreForm action={restoreDental} name="dentalId" value={d.dental_id} />
+                    <RestoreForm
+                        action={restoreDental}
+                        name="dentalId"
+                        value={d.dental_id}
+                        title="Restore dental record"
+                        message={`Restore this dental record (${d.procedure_name})?`}
+                    />
                     <DeleteForm
                         action={deleteDental}
                         name="dentalId"
@@ -694,7 +739,13 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
             ],
             actions: canEdit ? (
                 <>
-                    <RestoreForm action={restoreSlip} name="slipId" value={f.slip_id} />
+                    <RestoreForm
+                        action={restoreSlip}
+                        name="slipId"
+                        value={f.slip_id}
+                        title="Restore referral slip"
+                        message={`Restore this referral slip for ${f.last_name}, ${f.first_name} (${f.reason})?`}
+                    />
                     <DeleteForm
                         action={deleteSlip}
                         name="slipId"

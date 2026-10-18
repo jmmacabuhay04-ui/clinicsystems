@@ -34,7 +34,7 @@ export default async function StudentVitalsPage() {
     ];
 
     return (
-        <div className="min-h-screen bg-[#f6f7f6]">
+        <div className="min-h-screen bg-[#e7f3e2]">
             <StudentNav fullName={fullName} initials={initialsOf(student.first_name, student.last_name)} />
 
             <main className="mx-auto max-w-5xl space-y-6 px-4 py-6">

@@ -28,11 +28,11 @@ export default async function NewHealthRecordPage({ searchParams }: Props) {
     return (
         <main className="space-y-6 p-6 md:p-8">
             <Link
-                href={backHref}
+                href="/dashboard"
                 className="inline-flex items-center gap-1 text-sm font-medium text-[#15664f] hover:underline"
             >
                 <ArrowLeft className="h-4 w-4" />
-                Back to Student Health Records
+                Back to dashboard
             </Link>
 
             <h1 className="text-3xl font-semibold text-[#15664f]">Add Visit Record</h1>

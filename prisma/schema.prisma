@@ -57,8 +57,9 @@ model Student {
   health_records           HealthRecord[]
   portal_password_requests portal_password_requests[]
   student_health_forms     student_health_forms?
-
+  avatar                   String?
   @@map("students")
+
 }
 
 model HealthRecord {
@@ -359,6 +360,7 @@ model employees {
   employee_lab_exams       employee_lab_exams[]
   employee_physical_exams  employee_physical_exams[]
   portal_password_requests portal_password_requests[]
+    avatar                   String?
 }
 
 model health_declarations {

@@ -200,7 +200,7 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
             reference: c.case_number,
             status: c.status,
         })),
-    ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     const totalCases = cases.length;
 
@@ -448,11 +448,12 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                     ) : (
                         <div className="md:overflow-x-auto">
                             <table className="block w-full text-left text-sm md:table">
-                                <thead className="hidden bg-[#EEEEEE] text-gray-700 md:table-header-group">
+                                <thead className="hidden bg-[#EEEEEE] text-[#15664f] md:table-header-group">
                                     <tr>
                                         <th className="whitespace-nowrap px-4 py-3 font-medium">Date</th>
                                         <th className="whitespace-nowrap px-4 py-3 font-medium">ID Number</th>
                                         <th className="px-4 py-3 font-medium">Patient</th>
+                                        <th className="px-4 py-3 font-medium">Type</th>
                                         <th className="px-4 py-3 font-medium">Illness</th>
                                         <th className="px-4 py-3 font-medium">Source</th>
                                         <th className="px-4 py-3 font-medium">Attending Staff</th>
@@ -468,17 +469,17 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                                                 {c.id_number ?? "—"}
                                             </td>
                                             <td data-label="Patient" className={`${td} text-gray-900`}>
-                                                <div className="min-w-0">
-                                                    {c.last_name}, {c.first_name}
-                                                    <span
-                                                        className={`ml-2 rounded-full px-2 py-0.5 text-xs font-medium ${c.patient_type === "employee"
-                                                            ? "bg-amber-300 text-gray-900"
-                                                            : "bg-[#15664f]  text-white"
-                                                            }`}
-                                                    >
-                                                        {c.patient_type === "employee" ? "Employee" : "Student"}
-                                                    </span>
-                                                </div>
+                                                {c.last_name}, {c.first_name}
+                                            </td>
+                                            <td data-label="Type" className={`${td} md:whitespace-nowrap`}>
+                                                <span
+                                                    className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${c.patient_type === "employee"
+                                                        ? "bg-amber-300 text-gray-900"
+                                                        : "bg-[#15664f] text-white"
+                                                        }`}
+                                                >
+                                                    {c.patient_type === "employee" ? "Employee" : "Student"}
+                                                </span>
                                             </td>
                                             <td data-label="Illness" className={`${td} break-words text-gray-900`}>
                                                 {c.complaint}

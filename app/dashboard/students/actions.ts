@@ -7,13 +7,16 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { canManageRecords } from "@/lib/permissions";
 import { validatePasswordStrength } from "@/lib/password-policy";
+import { saveStudentPhoto, deleteStudentPhoto } from "@/lib/student-photo";
 
 export type StudentState = {
     error?: string;
     values?: Record<string, string>;
 };
 
-const BASE = "/dashboard/student-health-records";
+// Students now live in their own module, separate from health records.
+const BASE = "/dashboard/students";
+const HEALTH_BASE = "/dashboard/student-health-records";
 
 function collect(formData: FormData) {
     const values: Record<string, string> = {};
@@ -101,6 +104,10 @@ export async function createStudent(
     const contact = get("contactNumber").replace(/[\s-]/g, "");
     const email = get("email").toLowerCase();
 
+    // Tracks the uploaded file so it can be removed again if the save fails.
+    let savedPhotoUrl: string | null = null;
+    let committed = false;
+
     try {
         const existing = await prisma.$queryRaw<{ student_id: number }[]>`
       SELECT student_id FROM students WHERE student_number = ${studentNumber} LIMIT 1
@@ -114,6 +121,12 @@ export async function createStudent(
             if (emailClash[0]) return fail(`${email} is already used by another student.`);
         }
 
+        // Profile photo (optional). Checked only after the other checks pass,
+        // so a rejected form does not leave a file behind.
+        const photo = await saveStudentPhoto(formData.get("photo"));
+        if (!photo.ok) return fail(photo.error);
+        savedPhotoUrl = photo.url;
+
         const hashed = await bcrypt.hash(get("password"), 12);
 
         // must_change_password = TRUE because the nurse chose this password
@@ -122,21 +135,24 @@ export async function createStudent(
       INSERT INTO students
         (student_number, password, last_name, first_name, middle_name,
          grade_level, program, date_of_birth, gender,
-         contact_number, email, must_change_password)
+         contact_number, email, must_change_password, photo_url)
       VALUES
         (${studentNumber}, ${hashed}, ${get("lastName")}, ${get("firstName")},
          ${get("middleName") || null}, ${get("gradeLevel") || null}, ${get("program") || null},
          CAST(${get("dateOfBirth") || null} AS DATE), ${get("gender") || null},
-         ${contact || null}, ${email || null}, TRUE)
+         ${contact || null}, ${email || null}, TRUE, ${photo.url})
     `;
+        committed = true;
     } catch (err) {
         console.error("Create student error:", err);
+        if (!committed) await deleteStudentPhoto(savedPhotoUrl);
         return fail("Could not create the student account. Please try again.");
     }
 
     revalidatePath(BASE);
+    revalidatePath(HEALTH_BASE); // health record pickers list students too
     revalidatePath("/dashboard");
-    redirect(`${BASE}?student=${encodeURIComponent(studentNumber)}`);
+    redirect(`${BASE}?saved=${encodeURIComponent(studentNumber)}`);
 }
 
 export async function updateStudent(
@@ -169,6 +185,10 @@ export async function updateStudent(
     const contact = get("contactNumber").replace(/[\s-]/g, "");
     const email = get("email").toLowerCase();
 
+    // Tracks the uploaded file so it can be removed again if the save fails.
+    let savedPhotoUrl: string | null = null;
+    let committed = false;
+
     try {
         const clash = await prisma.$queryRaw<{ student_id: number }[]>`
       SELECT student_id FROM students
@@ -186,6 +206,24 @@ export async function updateStudent(
             if (emailClash[0]) return fail(`${email} is already used by another student.`);
         }
 
+        // Profile photo: keep the current one unless a new file was chosen
+        // or "Remove" was pressed.
+        const current = await prisma.$queryRaw<{ photo_url: string | null }[]>`
+      SELECT photo_url FROM students WHERE student_id = ${studentId} LIMIT 1
+    `;
+        const oldPhotoUrl = current[0]?.photo_url ?? null;
+
+        const photo = await saveStudentPhoto(formData.get("photo"));
+        if (!photo.ok) return fail(photo.error);
+        savedPhotoUrl = photo.url;
+
+        let newPhotoUrl = oldPhotoUrl;
+        if (photo.url) {
+            newPhotoUrl = photo.url;
+        } else if (formData.get("removePhoto") === "1") {
+            newPhotoUrl = null;
+        }
+
         await prisma.$executeRaw`
       UPDATE students
       SET student_number = ${studentNumber},
@@ -197,9 +235,16 @@ export async function updateStudent(
           date_of_birth  = CAST(${get("dateOfBirth") || null} AS DATE),
           gender         = ${get("gender") || null},
           contact_number = ${contact || null},
-          email          = ${email || null}
+          email          = ${email || null},
+          photo_url      = ${newPhotoUrl}
       WHERE student_id = ${studentId}
     `;
+        committed = true;
+
+        // The old file is no longer used, so remove it from disk.
+        if (oldPhotoUrl && oldPhotoUrl !== newPhotoUrl) {
+            await deleteStudentPhoto(oldPhotoUrl);
+        }
 
         if (get("password")) {
             const hashed = await bcrypt.hash(get("password"), 12);
@@ -213,9 +258,11 @@ export async function updateStudent(
         }
     } catch (err) {
         console.error("Update student error:", err);
+        if (!committed) await deleteStudentPhoto(savedPhotoUrl);
         return fail("Could not save the changes. Please try again.");
     }
 
     revalidatePath(BASE);
-    redirect(`${BASE}?student=${encodeURIComponent(studentNumber)}`);
+    revalidatePath(HEALTH_BASE);
+    redirect(`${BASE}?saved=${encodeURIComponent(studentNumber)}`);
 }

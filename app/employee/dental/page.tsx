@@ -14,16 +14,16 @@ export default async function EmployeeDentalPage() {
     const fullName = `${employee.first_name} ${employee.last_name}`;
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-[#e7f3e2]">
             <EmployeeNav fullName={fullName} initials={initialsOf(employee.first_name, employee.last_name)} />
 
 
             <main className="mx-auto max-w-5xl space-y-4 p-6">
-                <h1 className="text-2xl font-semibold text-gray-900">Dental Records ({records.length})</h1>
+                <h1 className="text-2xl font-semibold text-[#15664f]">Dental Records ({records.length})</h1>
 
                 {records.length === 0 && (
                     <div className="rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center">
-                        <p className="text-gray-500">No dental visits recorded yet.</p>
+                        <p className="text-gray-700">No dental visits recorded yet.</p>
                     </div>
                 )}
 
@@ -32,7 +32,7 @@ export default async function EmployeeDentalPage() {
                         <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 p-5">
                             <div>
                                 <p className="font-semibold text-gray-900">{r.procedure_name}</p>
-                                <p className="text-sm text-gray-600">{formatDate(r.visit_date)}</p>
+                                <p className="text-sm text-gray-700">{formatDate(r.visit_date)}</p>
                             </div>
                             <span className="text-sm font-medium text-[#15664f] group-open:hidden">
                                 View details

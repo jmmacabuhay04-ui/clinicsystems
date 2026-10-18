@@ -4,7 +4,9 @@ import { getEmployeeSession } from "@/lib/employee-session";
 import { getEmployee, formatDate, initialsOf } from "@/lib/employee-data";
 import EmployeeNav from "@/components/employee-nav";
 import ConfirmSubmit from "@/components/confirm-submit";
+import PortalAvatarForm from "@/components/portal-avatar-form";
 import { requestPasswordChange } from "./actions";
+import { saveEmployeeAvatar, removeEmployeeAvatar } from "./avatar-actions";
 
 type Props = { searchParams: Promise<{ requested?: string }> };
 
@@ -17,6 +19,7 @@ export default async function EmployeeProfilePage({ searchParams }: Props) {
 
     const { requested } = await searchParams;
     const fullName = `${employee.first_name} ${employee.last_name}`;
+    const initials = initialsOf(employee.first_name, employee.last_name);
 
     const pendingRows = await prisma.$queryRaw<{ created_at: Date }[]>`
         SELECT created_at FROM portal_password_requests
@@ -37,23 +40,21 @@ export default async function EmployeeProfilePage({ searchParams }: Props) {
         { label: "Gender", value: employee.gender || "—" },
         { label: "Contact Number", value: employee.contact_number || "—" },
         { label: "Email Address", value: employee.email || "—" },
-
     ];
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            <EmployeeNav fullName={fullName} initials={initialsOf(employee.first_name, employee.last_name)} />
+        <div className="min-h-screen bg-[#e7f3e2]">
+            <EmployeeNav fullName={fullName} initials={initials} />
 
             <main className="mx-auto max-w-5xl space-y-6 p-6">
-                <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[#15664f] text-xl font-semibold text-white">
-                        {initialsOf(employee.first_name, employee.last_name)}
-                    </div>
-                    <div className="min-w-0">
-                        <p className="text-2xl font-semibold text-gray-900">{fullName}</p>
-                        <p className="text-sm text-gray-600">{employee.employee_number}</p>
-                    </div>
-                </div>
+                <PortalAvatarForm
+                    current={employee.avatar}
+                    initials={initials}
+                    fullName={fullName}
+                    subtitle={employee.employee_number}
+                    saveAction={saveEmployeeAvatar}
+                    removeAction={removeEmployeeAvatar}
+                />
 
                 <div className="divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white shadow-sm">
                     {rows.map((row) => (
@@ -66,7 +67,7 @@ export default async function EmployeeProfilePage({ searchParams }: Props) {
 
                 {/* Password change request */}
                 <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                    <h2 className="text-lg font-semibold text-gray-900">Password</h2>
+                    <h2 className="text-lg font-semibold text-[#15664f]">Password</h2>
 
                     {requested === "1" && (
                         <p className="mt-3 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800">

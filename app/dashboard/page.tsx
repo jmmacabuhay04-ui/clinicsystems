@@ -1000,9 +1000,9 @@ export default async function DashboardPage() {
         {
             label: "Add Student",
             description: "Register a new student",
-            href: "/dashboard/student-health-records/students/new",
+            href: "/dashboard/students/new",
             icon: UserPlus,
-            cardClass: "border-green-200 bg-green-50",
+            cardClass: "border-emerald-200 bg-emerald-50",
             iconClass: "bg-[#15664f]",
         },
         ...(showEmployees
@@ -1011,27 +1011,13 @@ export default async function DashboardPage() {
                     label: "Add Employee",
                     description: "Register a new employee",
                     // TODO: i-check kung tama ang route na ito
-                    href: "/dashboard/employee-health-records/employees/new",
+                    href: "/dashboard/employees/new",
                     icon: Briefcase,
-                    cardClass: "border-green-200 bg-green-50",
-                    iconClass: "bg-[#15664f]",
+                    cardClass: "border-teal-200 bg-teal-50",
+                    iconClass: "bg-teal-600",
                 },
             ]
             : []),
-        // Doctors do not handle dental records.
-        ...(isDoctor
-            ? []
-            : [
-                {
-                    label: "Add Dental",
-                    description: "Record a new dental visit",
-                    // TODO: i-check kung tama ang route na ito
-                    href: "/dashboard/dental-records/new",
-                    icon: ToothIcon,
-                    cardClass: "border-sky-200 bg-sky-50",
-                    iconClass: "bg-sky-600",
-                },
-            ]),
         ...(isDentist
             ? []
             : [
@@ -1040,16 +1026,31 @@ export default async function DashboardPage() {
                     description: "Record a new visit",
                     href: "/dashboard/student-health-records/new",
                     icon: Stethoscope,
-                    cardClass: "border-green-200 bg-green-50",
-                    iconClass: "bg-[#15664f]",
+                    cardClass: "border-sky-200 bg-sky-50",
+                    iconClass: "bg-sky-600",
                 },
+                // Doctors do not handle dental records.
+                ...(isDoctor
+                    ? []
+                    : [
+                        {
+                            label: "Add Dental",
+                            description: "Record a new dental visit",
+                            // TODO: i-check kung tama ang route na ito
+                            href: "/dashboard/dental-records/new",
+                            icon: ToothIcon,
+                            cardClass: "border-violet-200 bg-violet-50",
+                            iconClass: "bg-violet-500",
+                        },
+                    ]),
+
                 {
                     label: "New Case Report",
                     description: "Create a case report",
                     href: "/dashboard/health-case-reports/new",
                     icon: ClipboardList,
-                    cardClass: "border-red-200 bg-red-50",
-                    iconClass: "bg-red-700",
+                    cardClass: "border-amber-200 bg-amber-50",
+                    iconClass: "bg-amber-500",
                 },
             ]),
         {
@@ -1057,8 +1058,8 @@ export default async function DashboardPage() {
             description: "Generate and view reports",
             href: "/dashboard/illness-alerts",
             icon: BarChart3,
-            cardClass: "border-yellow-200 bg-yellow-50",
-            iconClass: "bg-yellow-500",
+            cardClass: "border-rose-200 bg-rose-50",
+            iconClass: "bg-rose-500",
         },
     ];
 

@@ -98,6 +98,7 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
     // LEFT JOIN on both sides: a case report belongs to a student OR an
     // employee, and the other column is NULL. An INNER JOIN would silently
     // drop every employee case report from this list.
+    // Newest date first, regardless of student or employee.
     const reports = await prisma.$queryRaw<CaseRow[]>`
         SELECT c.case_id, c.case_number,
                CASE WHEN c.employee_id IS NOT NULL THEN 'employee' ELSE 'student' END AS patient_type,
@@ -258,6 +259,7 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
                                         <th className="whitespace-nowrap px-4 py-3 font-medium">Case No.</th>
                                         <th className="whitespace-nowrap px-4 py-3 font-medium">ID No.</th>
                                         <th className="px-4 py-3 font-medium">Patient</th>
+                                        <th className="px-4 py-3 font-medium">Type</th>
                                         <th className="px-4 py-3 font-medium">Complaint</th>
                                         <th className="whitespace-nowrap px-4 py-3 font-medium">Date</th>
                                         <th className="px-4 py-3 font-medium">Staff</th>
@@ -280,10 +282,10 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
                                                 <td className="whitespace-nowrap px-4 py-3 text-gray-700">
                                                     {c.id_number ?? "—"}
                                                 </td>
-                                                <td className="px-4 py-3 text-gray-900">
-                                                    {fullName(c)}
+                                                <td className="px-4 py-3 text-gray-900">{fullName(c)}</td>
+                                                <td className="whitespace-nowrap px-4 py-3">
                                                     <span
-                                                        className={`ml-2 rounded-full px-2 py-0.5 text-xs font-medium ${isEmployee
+                                                        className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${isEmployee
                                                             ? "bg-amber-300 text-gray-900"
                                                             : "bg-[#15664f] text-white"
                                                             }`}
@@ -321,4 +323,4 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
             </section>
         </main>
     );
-}
+} 

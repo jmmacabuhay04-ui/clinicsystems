@@ -14,11 +14,11 @@ export default async function EmployeeVisitsPage() {
     const fullName = `${employee.first_name} ${employee.last_name}`;
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-[#e7f3e2]">
             <EmployeeNav fullName={fullName} initials={initialsOf(employee.first_name, employee.last_name)} />
 
             <main className="mx-auto max-w-5xl space-y-4 p-6">
-                <h1 className="text-2xl font-semibold text-gray-900">My Visits ({visits.length})</h1>
+                <h1 className="text-2xl font-semibold text-[#15664f]">My Visits ({visits.length})</h1>
 
                 {visits.length === 0 && (
                     <div className="rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center">

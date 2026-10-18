@@ -5,6 +5,8 @@ import { getSession } from "@/lib/session";
 import { canManageAccounts } from "@/lib/permissions";
 import PasswordForm from "./password-form";
 import SessionForm from "./session-form";
+import PortalAvatarForm from "@/components/portal-avatar-form";
+import { saveAvatar, removeAvatar } from "./actions";
 
 type LogRow = {
     log_id: number;
@@ -63,6 +65,16 @@ export default async function SettingsPage() {
                     Manage clinic system settings and configurations
                 </p>
             </div>
+
+            {/* Header + profile picture (i-click ang bilog para lumabas ang camera) */}
+            <PortalAvatarForm
+                current={user?.avatar ?? null}
+                initials={session.username.charAt(0).toUpperCase()}
+                fullName={session.username}
+                subtitle={session.role}
+                saveAction={saveAvatar}
+                removeAction={removeAvatar}
+            />
 
             <section className="space-y-8 rounded-xl border border-gray-200 bg-white p-4 shadow-sm md:p-6">
                 <div>
