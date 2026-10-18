@@ -360,7 +360,8 @@ model employees {
   employee_lab_exams       employee_lab_exams[]
   employee_physical_exams  employee_physical_exams[]
   portal_password_requests portal_password_requests[]
-    avatar                   String?
+  avatar                   String?
+
 }
 
 model health_declarations {

@@ -12,10 +12,15 @@ export default async function EmployeeNav({ fullName, initials }: Props) {
 
     let avatar: string | null = null;
     if (session) {
-        const rows = await prisma.$queryRaw<{ avatar: string | null }[]>`
-      SELECT avatar FROM employees WHERE employee_id = ${session.employeeId} LIMIT 1
-    `;
-        avatar = rows[0]?.avatar ?? null;
+        try {
+            const rows = await prisma.$queryRaw<{ avatar: string | null }[]>`
+                SELECT avatar FROM employees WHERE employee_id = ${session.employeeId} LIMIT 1
+            `;
+            avatar = rows[0]?.avatar ?? null;
+        } catch (err) {
+            // Huwag hayaang mag-crash ang buong page dahil lang sa avatar.
+            console.error("EmployeeNav: failed to load avatar", err);
+        }
     }
 
     return (
