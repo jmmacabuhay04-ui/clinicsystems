@@ -9,7 +9,6 @@ import { canManageStudents } from "@/lib/permissions";
 import { validatePasswordStrength } from "@/lib/password-policy";
 import { canDeleteYet, formatDeletableOn, RETENTION_YEARS } from "@/lib/retention";
 import { logAccess } from "@/lib/access-log";
-import { saveStudentPhoto, deleteStudentPhoto } from "@/lib/student-photo";
 
 // Saan pupunta pagkatapos mag-save / archive.
 const BASE = "/dashboard/employee-health-records";
@@ -98,10 +97,6 @@ export async function createEmployee(
         return { error: "Your own password is incorrect. The employee account was not created.", values };
     }
 
-    // Tracks the uploaded file so it can be removed again if the save fails.
-    let savedPhotoUrl: string | null = null;
-    let committed = false;
-
     try {
         const dup = await prisma.$queryRaw<{ employee_id: number }[]>`
       SELECT employee_id FROM employees
@@ -120,14 +115,6 @@ export async function createEmployee(
             }
         }
 
-        // Profile photo (optional). Checked only after the other checks pass,
-        // so a rejected form does not leave a file behind.
-        const photo = await saveStudentPhoto(formData.get("photo"), "employees");
-        if (!photo.ok) {
-            return { error: photo.error, values };
-        }
-        savedPhotoUrl = photo.url;
-
         const hash = await bcrypt.hash(password, 12);
 
         // must_change_password = TRUE because the nurse chose this password
@@ -137,16 +124,15 @@ export async function createEmployee(
       INSERT INTO employees
         (employee_number, last_name, first_name, middle_name, department,
          position, date_of_birth, gender, contact_number, email,
-         password, must_change_password, photo_url)
+         password, must_change_password)
       VALUES
         (${values.employeeNumber}, ${values.lastName}, ${values.firstName},
          ${values.middleName || null}, ${values.department || null},
          ${values.position || null}, ${values.dateOfBirth || null}::date,
          ${values.gender || null}, ${values.contactNumber || null},
-         ${values.email || null}, ${hash}, TRUE, ${photo.url})
+         ${values.email || null}, ${hash}, TRUE)
       RETURNING employee_id
     `;
-        committed = true;
 
         await logAccess(
             actorOf(session),
@@ -157,7 +143,6 @@ export async function createEmployee(
         );
     } catch (err) {
         console.error("Create employee error:", err);
-        if (!committed) await deleteStudentPhoto(savedPhotoUrl);
         return { error: "Could not save the employee. Please try again.", values };
     }
 
@@ -209,10 +194,6 @@ export async function updateEmployee(
         }
     }
 
-    // Tracks the uploaded file so it can be removed again if the save fails.
-    let savedPhotoUrl: string | null = null;
-    let committed = false;
-
     try {
         const dup = await prisma.$queryRaw<{ employee_id: number }[]>`
       SELECT employee_id FROM employees
@@ -234,26 +215,6 @@ export async function updateEmployee(
             }
         }
 
-        // Profile photo: keep the current one unless a new file was chosen
-        // or "Remove" was pressed.
-        const current = await prisma.$queryRaw<{ photo_url: string | null }[]>`
-      SELECT photo_url FROM employees WHERE employee_id = ${employeeId} LIMIT 1
-    `;
-        const oldPhotoUrl = current[0]?.photo_url ?? null;
-
-        const photo = await saveStudentPhoto(formData.get("photo"), "employees");
-        if (!photo.ok) {
-            return { error: photo.error, values };
-        }
-        savedPhotoUrl = photo.url;
-
-        let newPhotoUrl = oldPhotoUrl;
-        if (photo.url) {
-            newPhotoUrl = photo.url;
-        } else if (formData.get("removePhoto") === "1") {
-            newPhotoUrl = null;
-        }
-
         await prisma.$executeRaw`
       UPDATE employees SET
         employee_number = ${values.employeeNumber},
@@ -265,16 +226,9 @@ export async function updateEmployee(
         date_of_birth   = ${values.dateOfBirth || null}::date,
         gender          = ${values.gender || null},
         contact_number  = ${values.contactNumber || null},
-        email           = ${values.email || null},
-        photo_url       = ${newPhotoUrl}
+        email           = ${values.email || null}
       WHERE employee_id = ${employeeId}
     `;
-        committed = true;
-
-        // The old file is no longer used, so remove it from disk.
-        if (oldPhotoUrl && oldPhotoUrl !== newPhotoUrl) {
-            await deleteStudentPhoto(oldPhotoUrl);
-        }
 
         if (password) {
             const hash = await bcrypt.hash(password, 12);
@@ -299,7 +253,6 @@ export async function updateEmployee(
         );
     } catch (err) {
         console.error("Update employee error:", err);
-        if (!committed) await deleteStudentPhoto(savedPhotoUrl);
         return { error: "Could not save the changes. Please try again.", values };
     }
 
@@ -364,9 +317,9 @@ export async function deleteEmployee(formData: FormData) {
     // the button; a form post straight to this action would otherwise bypass
     // the policy entirely.
     const rows = await prisma.$queryRaw<
-        { archived_at: Date | null; employee_number: string; photo_url: string | null }[]
+        { archived_at: Date | null; employee_number: string }[]
     >`
-    SELECT archived_at, employee_number, photo_url FROM employees
+    SELECT archived_at, employee_number FROM employees
     WHERE employee_id = ${employeeId} LIMIT 1
   `;
     const target = rows[0];
@@ -386,9 +339,6 @@ export async function deleteEmployee(formData: FormData) {
       AND archived_at IS NOT NULL
       AND archived_at < NOW() - (${RETENTION_YEARS} || ' years')::interval
   `;
-
-    // The record is gone, so its photo file should go too.
-    await deleteStudentPhoto(target.photo_url);
 
     await logAccess(
         actorOf(session),

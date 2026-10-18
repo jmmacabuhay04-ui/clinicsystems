@@ -85,4 +85,4 @@ export async function getEmployeeDental(employeeId: number) {
     WHERE employee_id = ${employeeId} AND archived_at IS NULL
     ORDER BY visit_date DESC, dental_id DESC
   `;
-}
+}   

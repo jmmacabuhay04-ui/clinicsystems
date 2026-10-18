@@ -70,6 +70,7 @@ export default function EmployeeForm({
                             maxLength={20}
                             required
                             suppressHydrationWarning
+                            autoComplete="off"
                             className={inputClass}
                         />
                     </Field>
@@ -78,6 +79,7 @@ export default function EmployeeForm({
                             name="department"
                             defaultValue={v.department}
                             placeholder="e.g. College Department"
+                            autoComplete="off"
                             maxLength={100}
                             suppressHydrationWarning
                             className={inputClass}
@@ -88,6 +90,7 @@ export default function EmployeeForm({
                             name="position"
                             defaultValue={v.position}
                             placeholder="e.g. Instructor"
+                            autoComplete="off"
                             maxLength={100}
                             suppressHydrationWarning
                             className={inputClass}
@@ -97,6 +100,7 @@ export default function EmployeeForm({
                         <input
                             name="lastName"
                             defaultValue={v.lastName}
+                            autoComplete="off"
                             maxLength={50}
                             required
                             suppressHydrationWarning
@@ -106,6 +110,7 @@ export default function EmployeeForm({
                     <Field label="First Name *">
                         <input
                             name="firstName"
+                            autoComplete="off"
                             defaultValue={v.firstName}
                             maxLength={50}
                             required
@@ -116,6 +121,7 @@ export default function EmployeeForm({
                     <Field label="Middle Name">
                         <input
                             name="middleName"
+                            autoComplete="off"
                             defaultValue={v.middleName}
                             maxLength={50}
                             suppressHydrationWarning
@@ -144,6 +150,7 @@ export default function EmployeeForm({
                         <input
                             name="contactNumber"
                             type="tel"
+                            autoComplete="off"
                             defaultValue={v.contactNumber}
                             placeholder="09XXXXXXXXX"
                             maxLength={20}

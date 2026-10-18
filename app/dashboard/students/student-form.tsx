@@ -163,7 +163,7 @@ export default function StudentForm({ mode, student, cancelHref }: Props) {
                             className={inputClass}
                         />
                     </Field>
-                    <PhotoUpload defaultUrl={v.photoUrl} />
+
                 </div>
             </section>
 

@@ -167,7 +167,6 @@ export default function EmployeeForm({
                             className={inputClass}
                         />
                     </Field>
-                    <PhotoUpload defaultUrl={v.photoUrl} />
                 </div>
             </section>
 
