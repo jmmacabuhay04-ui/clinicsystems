@@ -49,7 +49,7 @@ function fmtDate(date: Date | null) {
         month: "long",
         day: "numeric",
         year: "numeric",
-        timeZone: "UTC",
+        timeZone: "Asia/Manila",
     });
 }
 
@@ -221,10 +221,10 @@ export default async function DentalHealthFormPage({ searchParams }: Props) {
                                     message={`Open the dental health record of ${s.first_name} ${s.last_name} (${s.student_number})? This contains confidential medical information.`}
                                     className={`block w-full rounded-lg px-3 py-2.5 text-left text-sm lg:py-2 ${active ? "bg-[#15664f] text-white" : "text-gray-700 hover:bg-gray-100"}`}
                                 >
-                                    <span className="block break-words font-medium">
+                                    <span className="block break-words text-left font-medium">
                                         {s.last_name}, {s.first_name}
                                     </span>
-                                    <span className={`block text-xs ${active ? "text-white/80" : "text-gray-500"}`}>
+                                    <span className={`block text-left text-xs ${active ? "text-white/80" : "text-gray-500"}`}>
                                         {s.student_number}
                                     </span>
                                 </ConfirmLink>

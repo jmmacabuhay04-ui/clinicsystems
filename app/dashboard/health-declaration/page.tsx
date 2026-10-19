@@ -51,7 +51,7 @@ function fmt(date: Date | null) {
         month: "long",
         day: "numeric",
         year: "numeric",
-        timeZone: "UTC",
+        timeZone: "Asia/Manila",
     });
 }
 
@@ -219,18 +219,18 @@ export default async function HealthDeclarationPage({ searchParams }: Props) {
                                             key={s.student_id}
                                             className={`relative ${active ? "bg-[#15664f] text-white" : "text-gray-700 hover:bg-gray-100"}`}
                                         >
-                                            <td className="px-3 py-2.5 align-top">
+                                            <td className="px-3 py-2.5 text-left align-top">
                                                 {/* after:absolute after:inset-0 ginagawang clickable ang buong row */}
                                                 <ConfirmLink
                                                     href={`${BASE}?q=${encodeURIComponent(q)}&student=${encodeURIComponent(s.student_number)}`}
                                                     title="View health declaration"
                                                     message={`Open the health declaration of ${s.first_name} ${s.last_name} (${s.student_number})? This contains confidential medical information.`}
-                                                    className="block after:absolute after:inset-0"
+                                                    className="block w-full text-left after:absolute after:inset-0"
                                                 >
-                                                    <span className="block break-words font-medium">
+                                                    <span className="block break-words text-left font-medium">
                                                         {s.last_name}, {s.first_name}
                                                     </span>
-                                                    <span className={`block text-xs ${active ? "text-white/80" : "text-gray-500"}`}>
+                                                    <span className={`block text-left text-xs ${active ? "text-white/80" : "text-gray-500"}`}>
                                                         {s.student_number}
                                                         {/* Sa pinakamaliit na screen, nasa ilalim ng pangalan ang grade */}
                                                         <span className="sm:hidden lg:inline">

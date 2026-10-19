@@ -81,7 +81,7 @@ function formatDate(date: Date | null, month: "short" | "long" = "short") {
         month,
         day: "numeric",
         year: "numeric",
-        timeZone: "UTC",
+        timeZone: "Asia/Manila",
     });
 }
 

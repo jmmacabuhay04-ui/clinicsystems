@@ -32,7 +32,7 @@ function fmt(date: Date) {
         month: "short",
         day: "numeric",
         year: "numeric",
-        timeZone: "UTC",
+        timeZone: "Asia/Manila",
     });
 }
 function orDash(value: string | null | undefined) {

@@ -102,6 +102,14 @@ function formatDay(date: Date) {
     });
 }
 
+// Pinagsasama ang "fever", "Fever", "FEVER" at "  fever " bilang iisang sakit.
+// Ginagawang malaking letra ang una para maganda ang label: "Fever", "Sakit ng ulo".
+function normalizeComplaint(raw: string) {
+    const text = raw.trim().replace(/\s+/g, " ").toLowerCase();
+    if (!text) return "Unspecified";
+    return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 function levelOf(count: number) {
     if (count >= OUTBREAK_PER_DAY) return "outbreak" as const;
     if (count >= WARNING_PER_DAY) return "warning" as const;
@@ -204,12 +212,18 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
 
     const totalCases = cases.length;
 
-    const breakdownMap = new Map<string, number>();
+    // Group by normalized complaint. Bukod sa bilang ng cases, itinatala rin ang
+    // mga natatanging estudyante para hindi lumampas sa 100% ang "of students".
+    const breakdownMap = new Map<string, { count: number; students: Set<string> }>();
     for (const c of cases) {
-        breakdownMap.set(c.complaint, (breakdownMap.get(c.complaint) ?? 0) + 1);
+        const illness = normalizeComplaint(c.complaint);
+        const entry = breakdownMap.get(illness) ?? { count: 0, students: new Set<string>() };
+        entry.count += 1;
+        if (c.patient_type === "student" && c.id_number) entry.students.add(c.id_number);
+        breakdownMap.set(illness, entry);
     }
     const breakdown = [...breakdownMap.entries()]
-        .map(([illness, count]) => ({ illness, count }))
+        .map(([illness, { count, students }]) => ({ illness, count, studentCount: students.size }))
         .sort((a, b) => b.count - a.count);
 
     // The thresholds count PERSONS, not rows. A student with both a clinic
@@ -335,7 +349,8 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                         ) : (
                             <div className="space-y-5">
                                 {breakdown.map((b) => {
-                                    const pct = totalStudents > 0 ? (b.count / totalStudents) * 100 : 0;
+                                    // Natatanging estudyante ÷ kabuuang estudyante, kaya hindi lalampas sa 100%
+                                    const pct = totalStudents > 0 ? (b.studentCount / totalStudents) * 100 : 0;
                                     const barWidth = totalCases > 0 ? (b.count / totalCases) * 100 : 0;
                                     return (
                                         <div key={b.illness}>
@@ -482,7 +497,7 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                                                 </span>
                                             </td>
                                             <td data-label="Illness" className={`${td} break-words text-gray-900`}>
-                                                {c.complaint}
+                                                {normalizeComplaint(c.complaint)}
                                             </td>
                                             <td data-label="Source" className={`${td} md:whitespace-nowrap`}>
                                                 {c.source === "visit" ? (

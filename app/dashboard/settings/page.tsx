@@ -30,7 +30,7 @@ function formatWhen(date: Date) {
         year: "numeric",
         hour: "numeric",
         minute: "2-digit",
-        timeZone: "UTC",
+        timeZone: "Asia/Manila",
     });
 }
 

@@ -94,7 +94,7 @@ function fmt(date: Date | null) {
         month: "short",
         day: "numeric",
         year: "numeric",
-        timeZone: "UTC",
+        timeZone: "Asia/Manila",
     });
 }
 
@@ -183,7 +183,8 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
     const psych = form?.psychological ?? {};
     const other = form?.other_medical ?? {};
     const ros = form?.review_of_system ?? {};
-    const today = new Date().toISOString().slice(0, 10);
+    // "en-CA" ay nagbibigay ng YYYY-MM-DD; naka-Manila para tama ang petsa kahit madaling-araw
+    const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
 
     return (
         <main className="min-w-0 space-y-6 p-4 pb-8 md:p-8">
@@ -271,7 +272,7 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
                                             key={e.employee_id}
                                             className={`relative ${active ? "bg-[#15664f] text-white" : "text-gray-700 hover:bg-gray-100"}`}
                                         >
-                                            <td className="px-3 py-2.5 align-top">
+                                            <td className="px-3 py-2.5 text-left align-top">
                                                 {/* after:absolute after:inset-0 ginagawang clickable ang buong row */}
                                                 <ConfirmLink
                                                     href={`${BASE}?q=${encodeURIComponent(q)}&employee=${encodeURIComponent(e.employee_number)}`}
@@ -279,10 +280,10 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
                                                     message={`Open the health form of ${e.first_name} ${e.last_name} (${e.employee_number})? This contains confidential medical information.`}
                                                     className="block w-full text-left after:absolute after:inset-0"
                                                 >
-                                                    <span className="block break-words font-medium">
+                                                    <span className="block break-words text-left font-medium">
                                                         {e.last_name}, {e.first_name}
                                                     </span>
-                                                    <span className={`block text-xs ${active ? "text-white/80" : "text-gray-500"}`}>
+                                                    <span className={`block text-left text-xs ${active ? "text-white/80" : "text-gray-500"}`}>
                                                         {e.employee_number}
                                                         {/* Sa pinakamaliit na screen, nasa ilalim ng pangalan ang position */}
                                                         <span className="sm:hidden lg:inline">

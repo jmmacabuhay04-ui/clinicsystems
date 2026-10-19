@@ -43,6 +43,8 @@ const PERSON_TYPES = new Set([
     "referral_slip",
 ]);
 
+const TIME_ZONE = "Asia/Manila";
+
 function formatWhen(value: Date | string) {
     const date = new Date(value);
     return date.toLocaleString("en-PH", {
@@ -51,8 +53,13 @@ function formatWhen(value: Date | string) {
         day: "numeric",
         hour: "numeric",
         minute: "2-digit",
-        timeZone: "UTC",
+        timeZone: TIME_ZONE,
     });
+}
+
+// YYYY-MM-DD ayon sa oras ng Manila, para tama ang "Today" kahit anong timezone ng server
+function manilaDayKey(value: Date | string) {
+    return new Intl.DateTimeFormat("en-CA", { timeZone: TIME_ZONE }).format(new Date(value));
 }
 
 function Pill({ className, children }: { className: string; children: React.ReactNode }) {
@@ -71,10 +78,8 @@ export default async function AccessLogsPage() {
 
     const logs = await getAccessLogs(300);
 
-    const today = new Date().toDateString();
-    const todayCount = logs.filter(
-        (l) => new Date(l.created_at).toDateString() === today,
-    ).length;
+    const today = manilaDayKey(new Date());
+    const todayCount = logs.filter((l) => manilaDayKey(l.created_at) === today).length;
     const viewCount = logs.filter((l) => l.action === "view").length;
     const actors = new Set(logs.map((l) => l.actor_name ?? l.actor_id)).size;
 
