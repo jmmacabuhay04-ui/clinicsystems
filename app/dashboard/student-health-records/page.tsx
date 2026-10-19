@@ -75,13 +75,6 @@ const STATUS_STYLES: Record<string, string> = {
     resolved: "bg-green-100 text-green-700",
 };
 
-// Mobile: bawat row ay card, at ang data-label ang nagsisilbing label ng bawat field.
-// md pataas: normal na table.
-const tr =
-    "mb-3 block rounded-lg border border-gray-200 py-2 md:mb-0 md:table-row md:rounded-none md:border-0 md:border-t md:border-gray-100 md:py-0";
-const td =
-    "flex items-start justify-between gap-3 px-4 py-1.5 text-right before:shrink-0 before:text-left before:text-xs before:font-semibold before:uppercase before:text-gray-500 before:content-[attr(data-label)] md:table-cell md:py-3 md:text-left md:before:hidden";
-
 function formatDate(date: Date | null, month: "short" | "long" = "short") {
     if (!date) return "—";
     return new Date(date).toLocaleDateString("en-US", {
@@ -146,6 +139,73 @@ async function searchStudents(q: string, limit: number, offset: number) {
     ORDER BY last_name, first_name
     LIMIT ${limit} OFFSET ${offset}
   `;
+}
+
+function TypeBadges({ v }: { v: VisitItem }) {
+    if (v.kind === "visit") {
+        return (
+            <span className="whitespace-nowrap rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
+                Clinic Visit
+            </span>
+        );
+    }
+    return (
+        <div className="flex flex-wrap items-center gap-2">
+            <span className="whitespace-nowrap rounded-full bg-[#eef6f2] px-2.5 py-0.5 text-xs font-medium text-[#15664f]">
+                Case {v.caseNumber}
+            </span>
+            <span
+                className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLES[v.status ?? ""] ?? "bg-gray-100 text-gray-700"
+                    }`}
+            >
+                {v.status}
+            </span>
+        </div>
+    );
+}
+
+function VisitActions({ v, padded }: { v: VisitItem; padded?: boolean }) {
+    const py = padded ? "py-1 " : "";
+    if (v.kind === "visit") {
+        return (
+            <>
+                <ConfirmLink
+                    href={`${BASE}/edit?record=${v.id}`}
+                    title="Edit visit record"
+                    message={`Edit this visit (${formatDate(v.date)} - ${v.complaint})?`}
+                    confirmLabel="Edit"
+                    className={`inline-flex items-center gap-1 ${py}font-medium text-[#15664f] hover:underline`}
+                >
+                    <Pencil className="h-3.5 w-3.5" />
+                    Edit
+                </ConfirmLink>
+                <form action={archiveRecord}>
+                    <input type="hidden" name="recordId" value={v.id} />
+                    <ConfirmButton
+                        title="Archive visit record"
+                        confirmLabel="Archive"
+                        message={`Archive this visit (${formatDate(v.date)} - ${v.complaint})? It will move to Archive Records. You can restore it later.`}
+                        className={`inline-flex items-center gap-1 ${py}font-medium text-amber-700 hover:underline`}
+                    >
+                        <Archive className="h-3.5 w-3.5" />
+                        Archive
+                    </ConfirmButton>
+                </form>
+            </>
+        );
+    }
+    return (
+        <ConfirmLink
+            href={`${CASES}/edit?case=${v.id}`}
+            title="Open case report"
+            message={`Open case ${v.caseNumber} (${v.complaint})? You will be taken to Health Case Reports.`}
+            confirmLabel="Open"
+            className={`inline-flex items-center gap-1 ${py}font-medium text-[#15664f] hover:underline`}
+        >
+            <Pencil className="h-3.5 w-3.5" />
+            Open case
+        </ConfirmLink>
+    );
 }
 
 export default async function StudentHealthRecordsPage({ searchParams }: Props) {
@@ -320,12 +380,17 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
             return qs ? `${BASE}?${qs}` : BASE;
         })();
 
+    const viewHref = (s: StudentRow) =>
+        `${BASE}?student=${encodeURIComponent(s.student_number)}${q ? `&q=${encodeURIComponent(q)}` : ""}${currentPage > 1 ? `&page=${currentPage}` : ""}`;
+    const viewMessage = (s: StudentRow) =>
+        `Open the health record of ${s.first_name} ${s.last_name} (${s.student_number})? This contains confidential medical information and your access will be recorded.`;
+
     return (
         <main className="min-w-0 space-y-6 p-4 md:p-8">
-            <div className="flex flex-wrap items-center justify-between gap-3 md:gap-4">
+            <div className="flex items-center justify-between gap-3 md:gap-4">
                 <h1 className="text-2xl font-semibold text-[#15664f] md:text-3xl">Student Health Records</h1>
                 {canEdit ? (
-                    <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex shrink-0 items-center gap-3">
 
                         <ConfirmLink
                             href={addHref}
@@ -377,74 +442,98 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
                         <p className="p-8 text-center text-sm text-gray-700">No students found.</p>
                     ) : (
                         <>
-                            <div className="p-3 md:overflow-x-auto md:p-0">
-                                <table className="block w-full text-left text-sm md:table">
-                                    <thead className="hidden bg-[#EEEEEE] text-[#15664f] md:table-header-group">
-                                        <tr>
-                                            <th className="whitespace-nowrap px-4 py-3 font-medium">Grade/Level</th>
-                                            <th className="px-4 py-3 font-medium">Program</th>
-                                            <th className="whitespace-nowrap px-4 py-3 font-medium">Student Number</th>
-                                            <th className="whitespace-nowrap px-4 py-3 font-medium">Last Name</th>
-                                            <th className="whitespace-nowrap px-4 py-3 font-medium">First Name</th>
-                                            <th className="whitespace-nowrap px-4 py-3 font-medium">Middle Name</th>
-                                            <th className="whitespace-nowrap px-4 py-3 font-medium">Contact Number</th>
-                                            <th className="px-4 py-3 font-medium">Email</th>
-                                            <th className="px-4 py-3 font-medium">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="block md:table-row-group">
-                                        {results.map((s) => (
-                                            <tr key={s.student_id} className={tr}>
-                                                <td data-label="Grade/Level" className={`${td} text-gray-600`}>
-                                                    {show(s.grade_level)}
-                                                </td>
-                                                <td data-label="Program" className={`${td} text-gray-600`}>
-                                                    {show(s.program)}
-                                                </td>
-                                                <td data-label="Student No." className={`${td} font-medium text-gray-900`}>
-                                                    {s.student_number}
-                                                </td>
-                                                <td data-label="Last Name" className={`${td} text-gray-900`}>
-                                                    {s.last_name}
-                                                </td>
-                                                <td data-label="First Name" className={`${td} text-gray-900`}>
-                                                    {s.first_name}
-                                                </td>
-                                                <td data-label="Middle Name" className={`${td} text-gray-900`}>
-                                                    {show(s.middle_name)}
-                                                </td>
-                                                <td data-label="Contact" className={`${td} text-gray-700 md:whitespace-nowrap`}>
-                                                    {show(s.contact_number)}
-                                                </td>
-                                                <td data-label="Email" className={`${td} break-all text-gray-700`}>
-                                                    {show(s.email)}
-                                                </td>
-                                                <td data-label="Actions" className={`${td} md:whitespace-nowrap`}>
-                                                    <div className="flex items-center gap-3">
+                            <>
+                                {/* MOBILE: card list */}
+                                <ul className="space-y-2 p-3 md:hidden">
+                                    {results.map((s) => {
+                                        const name = `${s.last_name}, ${s.first_name}${s.middle_name ? ` ${s.middle_name}` : ""}`;
+                                        return (
+                                            <li key={s.student_id} className="rounded-lg border border-gray-300 p-3">
+                                                <p className="break-words text-sm font-semibold text-gray-900">{name}</p>
+                                                <p className="text-xs text-gray-500">{s.student_number}</p>
+                                                <dl className="mt-2 space-y-1">
+                                                    <div className="flex gap-2 text-sm">
+                                                        <dt className="w-24 shrink-0 text-gray-500">Grade/Level</dt>
+                                                        <dd className="min-w-0 flex-1 break-words text-gray-900">{show(s.grade_level)}</dd>
+                                                    </div>
+                                                    <div className="flex gap-2 text-sm">
+                                                        <dt className="w-24 shrink-0 text-gray-500">Program</dt>
+                                                        <dd className="min-w-0 flex-1 break-words text-gray-900">{show(s.program)}</dd>
+                                                    </div>
+                                                    <div className="flex gap-2 text-sm">
+                                                        <dt className="w-24 shrink-0 text-gray-500">Contact</dt>
+                                                        <dd className="min-w-0 flex-1 break-words text-gray-900">{show(s.contact_number)}</dd>
+                                                    </div>
+                                                    <div className="flex gap-2 text-sm">
+                                                        <dt className="w-24 shrink-0 text-gray-500">Email</dt>
+                                                        <dd className="min-w-0 flex-1 break-all text-gray-900">{show(s.email)}</dd>
+                                                    </div>
+                                                    <div className="flex gap-2 text-sm">
+                                                        <dt className="w-24 shrink-0 text-gray-500">Actions</dt>
+                                                        <dd className="min-w-0 flex-1">
+                                                            <ConfirmLink
+                                                                href={viewHref(s)}
+                                                                title="View health record"
+                                                                message={viewMessage(s)}
+                                                                className="font-medium text-[#15664f] hover:underline"
+                                                            >
+                                                                View record
+                                                            </ConfirmLink>
+                                                        </dd>
+                                                    </div>
+                                                </dl>
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+
+                                {/* DESKTOP: table */}
+                                <div className="hidden overflow-x-auto md:block">
+                                    <table className="w-full text-left text-sm">
+                                        <thead className="bg-[#EEEEEE] text-[#15664f]">
+                                            <tr>
+                                                <th className="whitespace-nowrap px-4 py-3 font-medium">Grade/Level</th>
+                                                <th className="px-4 py-3 font-medium">Program</th>
+                                                <th className="whitespace-nowrap px-4 py-3 font-medium">Student Number</th>
+                                                <th className="whitespace-nowrap px-4 py-3 font-medium">Last Name</th>
+                                                <th className="whitespace-nowrap px-4 py-3 font-medium">First Name</th>
+                                                <th className="whitespace-nowrap px-4 py-3 font-medium">Middle Name</th>
+                                                <th className="whitespace-nowrap px-4 py-3 font-medium">Contact Number</th>
+                                                <th className="px-4 py-3 font-medium">Email</th>
+                                                <th className="px-4 py-3 font-medium">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {results.map((s) => (
+                                                <tr key={s.student_id} className="border-t border-gray-100">
+                                                    <td className="px-4 py-3 text-gray-600">{show(s.grade_level)}</td>
+                                                    <td className="px-4 py-3 text-gray-600">{show(s.program)}</td>
+                                                    <td className="whitespace-nowrap px-4 py-3 font-semibold text-gray-900">{s.student_number}</td>
+                                                    <td className="px-4 py-3 text-gray-900">{s.last_name}</td>
+                                                    <td className="px-4 py-3 text-gray-900">{s.first_name}</td>
+                                                    <td className="px-4 py-3 text-gray-900">{show(s.middle_name)}</td>
+                                                    <td className="whitespace-nowrap px-4 py-3 text-gray-700">{show(s.contact_number)}</td>
+                                                    <td className="px-4 py-3 text-gray-700">{show(s.email)}</td>
+                                                    <td className="whitespace-nowrap px-4 py-3">
                                                         <ConfirmLink
-                                                            href={`${BASE}?student=${encodeURIComponent(s.student_number)}${q ? `&q=${encodeURIComponent(q)}` : ""}${currentPage > 1 ? `&page=${currentPage}` : ""}`}
+                                                            href={viewHref(s)}
                                                             title="View health record"
-                                                            message={`Open the health record of ${s.first_name} ${s.last_name} (${s.student_number})? This contains confidential medical information and your access will be recorded.`}
+                                                            message={viewMessage(s)}
                                                             className="font-medium text-[#15664f] hover:underline"
                                                         >
                                                             View record
                                                         </ConfirmLink>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </>
 
-                            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 px-4 py-3 text-sm text-gray-600">
-                                <p>
-                                    Showing {(currentPage - 1) * PAGE_SIZE + 1}–
-                                    {(currentPage - 1) * PAGE_SIZE + results.length} of {totalResults}
-                                </p>
-
+                            <div className="flex flex-wrap items-center justify-center gap-3 border-t border-gray-100 px-4 py-3 text-sm text-gray-600 empty:hidden sm:justify-end">
                                 {totalPages > 1 && (
-                                    <div className="flex flex-wrap items-center justify-end gap-3 border-t border-gray-100 px-4 py-3 text-sm text-gray-600">
+                                    <div className="flex flex-wrap items-center justify-end gap-3">
                                         <nav className="flex flex-wrap items-center gap-1" aria-label="Pagination">
                                             {currentPage > 1 ? (
                                                 <Link
@@ -588,101 +677,71 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
                                     No clinic visits or case reports recorded yet.
                                 </p>
                             ) : (
-                                <div className="p-3 md:overflow-x-auto md:p-0">
-                                    <table className="block w-full text-left text-sm md:table">
-                                        <thead className="hidden bg-[#EEEEEE] text-[#15664f] md:table-header-group">
-                                            <tr>
-                                                <th className="whitespace-nowrap px-4 py-3 font-medium">Date</th>
-                                                <th className="whitespace-nowrap px-4 py-3 font-medium">Type</th>
-                                                <th className="px-4 py-3 font-medium">Complaint</th>
-                                                <th className="px-4 py-3 font-medium">Action Taken / Notes</th>
-                                                <th className="px-4 py-3 font-medium">Attending Staff</th>
-                                                {canEdit && <th className="px-4 py-3 font-medium">Actions</th>}
-                                            </tr>
-                                        </thead>
-                                        <tbody className="block md:table-row-group">
-                                            {visits.map((v) => (
-                                                <tr key={v.key} className={tr}>
-                                                    <td data-label="Date" className={`${td} text-gray-900 md:whitespace-nowrap`}>
-                                                        {formatDate(v.date)}
-                                                    </td>
-                                                    <td data-label="Type" className={`${td} md:whitespace-nowrap`}>
-                                                        {v.kind === "visit" ? (
-                                                            <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
-                                                                Clinic Visit
-                                                            </span>
-                                                        ) : (
-                                                            <div className="flex flex-wrap items-center justify-end gap-2 md:justify-start">
-                                                                <span className="rounded-full bg-[#eef6f2] px-2.5 py-0.5 text-xs font-medium text-[#15664f]">
-                                                                    Case {v.caseNumber}
-                                                                </span>
-                                                                <span
-                                                                    className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLES[v.status ?? ""] ??
-                                                                        "bg-gray-100 text-gray-700"
-                                                                        }`}
-                                                                >
-                                                                    {v.status}
-                                                                </span>
-                                                            </div>
-                                                        )}
-                                                    </td>
-                                                    <td data-label="Complaint" className={`${td} break-words text-gray-900`}>
-                                                        {v.complaint}
-                                                    </td>
-                                                    <td data-label="Notes" className={`${td} break-words text-gray-900`}>
-                                                        {v.detail ?? "—"}
-                                                    </td>
-                                                    <td data-label="Staff" className={`${td} text-gray-900`}>
-                                                        {v.staff ?? "—"}
-                                                    </td>
-                                                    {canEdit && (
-                                                        <td data-label="Actions" className={`${td} md:whitespace-nowrap`}>
-                                                            <div className="flex flex-wrap items-center justify-end gap-3 md:justify-start">
-                                                                {v.kind === "visit" ? (
-                                                                    <>
-                                                                        <ConfirmLink
-                                                                            href={`${BASE}/edit?record=${v.id}`}
-                                                                            title="Edit visit record"
-                                                                            message={`Edit this visit (${formatDate(v.date)} - ${v.complaint})?`}
-                                                                            confirmLabel="Edit"
-                                                                            className="inline-flex items-center gap-1 font-medium text-[#15664f] hover:underline"
-                                                                        >
-                                                                            <Pencil className="h-3.5 w-3.5" />
-                                                                            Edit
-                                                                        </ConfirmLink>
-                                                                        <form action={archiveRecord}>
-                                                                            <input type="hidden" name="recordId" value={v.id} />
-                                                                            <ConfirmButton
-                                                                                title="Archive visit record"
-                                                                                confirmLabel="Archive"
-                                                                                message={`Archive this visit (${formatDate(v.date)} - ${v.complaint})? It will move to Archive Records. You can restore it later.`}
-                                                                                className="inline-flex items-center gap-1 font-medium text-amber-700 hover:underline"
-                                                                            >
-                                                                                <Archive className="h-3.5 w-3.5" />
-                                                                                Archive
-                                                                            </ConfirmButton>
-                                                                        </form>
-                                                                    </>
-                                                                ) : (
-                                                                    <ConfirmLink
-                                                                        href={`${CASES}/edit?case=${v.id}`}
-                                                                        title="Open case report"
-                                                                        message={`Open case ${v.caseNumber} (${v.complaint})? You will be taken to Health Case Reports.`}
-                                                                        confirmLabel="Open"
-                                                                        className="inline-flex items-center gap-1 font-medium text-[#15664f] hover:underline"
-                                                                    >
-                                                                        <Pencil className="h-3.5 w-3.5" />
-                                                                        Open case
-                                                                    </ConfirmLink>
-                                                                )}
-                                                            </div>
-                                                        </td>
-                                                    )}
+                                <>
+                                    {/* MOBILE: card list */}
+                                    <ul className="space-y-2 p-3 md:hidden">
+                                        {visits.map((v) => (
+                                            <li key={v.key} className="rounded-lg border border-gray-300 p-3">
+                                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                                    <TypeBadges v={v} />
+                                                    <span className="text-xs text-gray-600">{formatDate(v.date)}</span>
+                                                </div>
+                                                <p className="mt-2 break-words text-sm font-semibold text-gray-900">{v.complaint}</p>
+                                                <dl className="mt-1 space-y-1">
+                                                    <div className="flex gap-2 text-sm">
+                                                        <dt className="w-20 shrink-0 text-gray-500">Action</dt>
+                                                        <dd className="min-w-0 flex-1 break-words text-gray-900">{v.detail || "—"}</dd>
+                                                    </div>
+                                                    <div className="flex gap-2 text-sm">
+                                                        <dt className="w-20 shrink-0 text-gray-500">Staff</dt>
+                                                        <dd className="min-w-0 flex-1 break-words text-gray-900">{v.staff || "—"}</dd>
+                                                    </div>
+                                                </dl>
+                                                {canEdit && (
+                                                    <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-gray-100 pt-2 text-sm">
+                                                        <VisitActions v={v} padded />
+                                                    </div>
+                                                )}
+                                            </li>
+                                        ))}
+                                    </ul>
+
+                                    {/* DESKTOP: table */}
+                                    <div className="hidden overflow-x-auto md:block">
+                                        <table className="w-full text-left text-sm">
+                                            <thead className="bg-[#EEEEEE] text-[#15664f]">
+                                                <tr>
+                                                    <th className="whitespace-nowrap px-4 py-3 font-medium">Date</th>
+                                                    <th className="whitespace-nowrap px-4 py-3 font-medium">Type</th>
+                                                    <th className="px-4 py-3 font-medium">Complaint</th>
+                                                    <th className="px-4 py-3 font-medium">Action Taken / Notes</th>
+                                                    <th className="px-4 py-3 font-medium">Attending Staff</th>
+                                                    {canEdit && <th className="px-4 py-3 font-medium">Actions</th>}
                                                 </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
+                                            </thead>
+                                            <tbody>
+                                                {visits.map((v) => (
+                                                    <tr key={v.key} className="border-t border-gray-100">
+                                                        <td className="whitespace-nowrap px-4 py-3 text-gray-900">{formatDate(v.date)}</td>
+                                                        <td className="whitespace-nowrap px-4 py-3">
+                                                            <TypeBadges v={v} />
+                                                        </td>
+                                                        <td className="px-4 py-3 text-gray-900">{v.complaint}</td>
+                                                        <td className="px-4 py-3 text-gray-900">{v.detail || "—"}</td>
+                                                        <td className="px-4 py-3 text-gray-900">{v.staff || "—"}</td>
+                                                        {canEdit && (
+                                                            <td className="whitespace-nowrap px-4 py-3">
+                                                                <div className="flex items-center gap-3">
+                                                                    <VisitActions v={v} />
+                                                                </div>
+                                                            </td>
+                                                        )}
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </>
                             )}
                         </div>
                     </section>

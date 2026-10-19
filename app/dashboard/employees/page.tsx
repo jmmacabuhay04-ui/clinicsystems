@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Pencil, Search, UserPlus } from "lucide-react";
+
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { canManageStudents } from "@/lib/permissions";
 import ConfirmLink from "@/components/confirm-link";
+import { Pencil, Plus, Search } from "lucide-react";
 
 const BASE = "/dashboard/employees";
 const RECORDS = "/dashboard/employee-health-records";
@@ -98,16 +99,15 @@ export default async function EmployeesPage({ searchParams }: Props) {
         <main className="min-w-0 space-y-6 p-4 pb-8 md:p-8">
             <div className="flex flex-wrap items-center justify-between gap-3 md:gap-4">
                 <h1 className="text-2xl font-semibold text-[#15664f] md:text-3xl">Employees</h1>
-
                 {canEdit ? (
                     <ConfirmLink
                         href={`${BASE}/new`}
                         title="Add a new employee?"
                         message="You will be taken to the form to create a new employee account."
                         confirmLabel="Continue"
-                        className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#15664f] px-4 text-sm font-semibold text-white hover:bg-[#10523f] sm:w-auto"
+                        className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#15664f] px-4 text-sm font-semibold text-white hover:bg-[#10523f]"
                     >
-                        <UserPlus className="h-4 w-4" />
+                        <Plus className="h-4 w-4" />
                         Add Employee
                     </ConfirmLink>
                 ) : (
@@ -173,12 +173,14 @@ export default async function EmployeesPage({ searchParams }: Props) {
                                                 Edit
                                             </ConfirmLink>
                                         )}
-                                        <Link
+                                        <ConfirmLink
                                             href={recordsHref(e)}
+                                            title="View health record"
+                                            message={`Open the health record of ${e.first_name} ${e.last_name} (${e.employee_number})? This contains confidential medical information and your access will be recorded.`}
                                             className="inline-flex items-center gap-1 py-1 font-medium text-[#15664f] hover:underline"
                                         >
                                             Health Record
-                                        </Link>
+                                        </ConfirmLink>
                                     </div>
                                 </li>
                             ))}
@@ -220,12 +222,14 @@ export default async function EmployeesPage({ searchParams }: Props) {
                                                             Edit
                                                         </ConfirmLink>
                                                     )}
-                                                    <Link
+                                                    <ConfirmLink
                                                         href={recordsHref(e)}
+                                                        title="View health record"
+                                                        message={`Open the health record of ${e.first_name} ${e.last_name} (${e.employee_number})? This contains confidential medical information and your access will be recorded.`}
                                                         className="font-medium text-[#15664f] hover:underline"
                                                     >
                                                         Health Record
-                                                    </Link>
+                                                    </ConfirmLink>
                                                 </div>
                                             </td>
                                         </tr>
@@ -234,13 +238,9 @@ export default async function EmployeesPage({ searchParams }: Props) {
                             </table>
                         </div>
 
-                        <div className="flex flex-col gap-3 border-t border-gray-100 px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-                            <p className="text-sm text-gray-500">
-                                Showing {offset + 1}–{Math.min(page * PAGE_SIZE, total)} of {total}
-                            </p>
-
-                            {(
-                                <nav className="flex items-center justify-between gap-1 sm:justify-end" aria-label="Pagination">
+                        <div className="flex flex-wrap items-center justify-center gap-3 border-t border-gray-100 px-4 py-3 empty:hidden sm:justify-end">
+                            {totalPages > 1 && (
+                                <nav className="flex flex-wrap items-center justify-center gap-1 sm:justify-end" aria-label="Pagination">
                                     {page > 1 ? (
                                         <Link
                                             href={pageHref(page - 1)}
@@ -254,20 +254,16 @@ export default async function EmployeesPage({ searchParams }: Props) {
                                         </span>
                                     )}
 
-                                    <span className="px-2 text-sm text-gray-600 sm:hidden">
-                                        Page {page} of {totalPages}
-                                    </span>
-
                                     {pageList(page, totalPages).map((p, i) =>
                                         p === "..." ? (
-                                            <span key={`gap-${i}`} className="hidden px-2 text-gray-400 sm:inline">
+                                            <span key={`gap-${i}`} className="px-2 text-gray-400">
                                                 …
                                             </span>
                                         ) : p === page ? (
                                             <span
                                                 key={p}
                                                 aria-current="page"
-                                                className="hidden rounded-lg bg-[#15664f] px-3 py-1.5 font-semibold text-white sm:inline"
+                                                className="rounded-lg bg-[#15664f] px-3 py-1.5 font-semibold text-white"
                                             >
                                                 {p}
                                             </span>
@@ -275,7 +271,7 @@ export default async function EmployeesPage({ searchParams }: Props) {
                                             <Link
                                                 key={p}
                                                 href={pageHref(p)}
-                                                className="hidden rounded-lg border border-gray-300 px-3 py-1.5 font-medium text-gray-700 hover:bg-[#eef6f2] sm:inline"
+                                                className="rounded-lg border border-gray-300 px-3 py-1.5 font-medium text-gray-700 hover:bg-[#eef6f2]"
                                             >
                                                 {p}
                                             </Link>

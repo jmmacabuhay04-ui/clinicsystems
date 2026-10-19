@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Archive, ArrowLeft, Briefcase, ClipboardPlus, GraduationCap, Pencil, Search } from "lucide-react";
+import { Archive, ArrowLeft, Briefcase, GraduationCap, Pencil, Plus, Search } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { canManageDental } from "@/lib/permissions";
@@ -82,7 +82,7 @@ function RecordTable({
                         {/* MOBILE: card list (walang horizontal scroll) */}
                         <ul className="space-y-2 p-3 md:hidden">
                             {rows.map((d) => (
-                                <li key={d.dental_id} className="rounded-lg border border-gray-100 p-3">
+                                <li key={d.dental_id} className="rounded-lg border border-gray-300 p-3">
                                     <div className="flex items-start justify-between gap-2">
                                         <div className="min-w-0">
                                             <p className="break-words text-sm font-semibold text-gray-900">
@@ -269,7 +269,7 @@ export default async function DentalRecordsPage({ searchParams }: Props) {
 
     return (
         <main className="min-w-0 space-y-6 p-4 pb-8 md:space-y-8 md:p-8">
-            <div className="flex flex-wrap items-center justify-between gap-3 md:gap-4">
+            <div className="flex items-center justify-between gap-3 md:gap-4">
                 <div className="min-w-0">
                     <h1 className="text-2xl font-semibold text-[#15664f] md:text-3xl">Dental Records</h1>
                 </div>
@@ -280,11 +280,11 @@ export default async function DentalRecordsPage({ searchParams }: Props) {
                         title="Add dental record"
                         message="Add a new dental record for a student or employee?"
                         confirmLabel="Continue"
-                        icon={<ClipboardPlus className="h-5 w-5" />}
-                        className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#15664f] px-4 text-sm font-semibold text-white hover:bg-[#10523f] sm:w-auto"
+                        icon={<Plus className="h-5 w-5" />}
+                        className="inline-flex h-10 shrink-0 items-center gap-2 rounded-lg bg-[#15664f] px-4 text-sm font-semibold text-white hover:bg-[#10523f]"
                     >
-                        <ClipboardPlus className="h-4 w-4" />
-                        Add Dental Record
+                        <Plus className="h-4 w-4" />
+                        Add Record
                     </ConfirmLink>
                 ) : (
                     <span className="rounded-full bg-gray-200 px-3 py-1 text-xs font-medium text-gray-600">
