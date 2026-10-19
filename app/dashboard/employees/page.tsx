@@ -139,7 +139,7 @@ export default async function EmployeesPage({ searchParams }: Props) {
                         {/* MOBILE: card list */}
                         <ul className="space-y-2 p-3 md:hidden">
                             {employees.map((e) => (
-                                <li key={e.employee_id} className="rounded-lg border border-gray-100 p-3">
+                                <li key={e.employee_id} className="rounded-lg border border-gray-300 p-3">
                                     <p className="break-words text-sm font-semibold text-gray-900">{fullName(e)}</p>
                                     <p className="text-xs text-gray-500">{e.employee_number}</p>
                                     <dl className="mt-2 space-y-1">

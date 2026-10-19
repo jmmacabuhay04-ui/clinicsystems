@@ -146,7 +146,7 @@ export default async function StudentsPage({ searchParams }: Props) {
                         {/* MOBILE: card list */}
                         <ul className="space-y-2 p-3 md:hidden">
                             {students.map((s) => (
-                                <li key={s.student_id} className="rounded-lg border border-gray-100 p-3">
+                                <li key={s.student_id} className="rounded-lg border border-gray-300 p-3">
                                     <p className="break-words text-sm font-semibold text-gray-900">{fullName(s)}</p>
                                     <p className="text-xs text-gray-500">{s.student_number}</p>
                                     <dl className="mt-2 space-y-1">
