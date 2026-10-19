@@ -5,7 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import UserForm from "./user-form";
 import { resetUserPassword, verifyResetOtp } from "./reset-actions";
-import { updateUser, deleteUser } from "./actions";
+import { updateUser } from "./actions";
+import { requestDeleteOtp, confirmDeleteOtp } from "./delete-actions";
 import ConfirmSubmit from "@/components/confirm-submit";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { canCreateAccounts } from "@/lib/permissions";
@@ -20,7 +21,14 @@ import {
 import RoleBadge from "@/components/role-badge";
 
 type Props = {
-    searchParams: Promise<{ reset?: string; otp?: string; err?: string; edit?: string }>;
+    searchParams: Promise<{
+        reset?: string;
+        otp?: string;
+        err?: string;
+        edit?: string;
+        del?: string;
+        derr?: string;
+    }>;
 };
 
 const notices: Record<string, { tone: "green" | "red"; text: string }> = {
@@ -37,6 +45,11 @@ const notices: Record<string, { tone: "green" | "red"; text: string }> = {
     lastadmin: { tone: "red", text: "You can't delete or demote the last Administrator." },
     linked: { tone: "red", text: "This account has linked records and can't be deleted." },
     deletefailed: { tone: "red", text: "Could not delete the account." },
+    delsavefailed: { tone: "red", text: "Could not create the deletion request. Check the server terminal; the delete_account_requests table may be missing." },
+    delmailfailed: { tone: "red", text: "Could not send the deletion OTP to the account owner's email. Check that the account uses a real email address and that GMAIL_USER / GMAIL_APP_PASSWORD are set in .env." },
+    delexpired: { tone: "red", text: "The deletion OTP has expired. Please press Delete again to get a new code." },
+    dellocked: { tone: "red", text: "Too many wrong OTP attempts. Please press Delete again to get a new code." },
+    noactor: { tone: "red", text: "Could not identify your account. Please log in again." },
 };
 
 // Mobile: bawat row ay card, at ang data-label ang nagsisilbing label ng bawat field.
@@ -54,9 +67,10 @@ export default async function UsersPage({ searchParams }: Props) {
     if (!session) redirect("/login");
     if (!canCreateAccounts(session.role)) redirect("/dashboard");
     const canReset = session.role === "admin" || session.role === "ittech";
-    const { reset, otp, err, edit } = await searchParams;
+    const { reset, otp, err, edit, del, derr } = await searchParams;
     const otpUserId = Number(otp) || 0;
     const editId = Number(edit) || 0;
+    const delUserId = Number(del) || 0;
 
     const users = await prisma.user.findMany({
         select: { user_id: true, username: true, role: true, created_at: true },
@@ -64,6 +78,7 @@ export default async function UsersPage({ searchParams }: Props) {
     });
 
     const otpUser = users.find((u) => u.user_id === otpUserId);
+    const delUser = users.find((u) => u.user_id === delUserId);
     const notice = reset ? notices[reset] : null;
 
     return (
@@ -91,6 +106,14 @@ export default async function UsersPage({ searchParams }: Props) {
                         {err
                             ? "Wrong OTP. Please try again."
                             : `An OTP was sent to ${otpUser.username}. Ask the account owner for the 6-digit code (valid for 10 minutes).`}
+                    </div>
+                )}
+
+                {delUser && (
+                    <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                        {derr
+                            ? "Wrong OTP. Please try again."
+                            : `A deletion OTP was sent to ${delUser.username}. Ask the account owner for the 6-digit code (valid for 5 minutes).`}
                     </div>
                 )}
 
@@ -195,25 +218,54 @@ export default async function UsersPage({ searchParams }: Props) {
                                                 {canReset && (
                                                     <TableCell className={tdBlock}>
                                                         <p className={mobileLabel}>Actions</p>
-                                                        <div className="flex items-center gap-2">
-                                                            <Link
-                                                                href={`/dashboard/users?edit=${u.user_id}`}
-                                                                className="inline-flex h-9 items-center whitespace-nowrap rounded-lg border border-[#15664f] px-3 text-sm font-semibold text-[#15664f] hover:bg-[#15664f]/10"
-                                                            >
-                                                                Edit
-                                                            </Link>
-                                                            <form action={deleteUser}>
+                                                        {u.user_id === delUserId ? (
+                                                            /* DELETE STEP 2: enter the OTP sent to the account owner's email */
+                                                            <form action={confirmDeleteOtp} className="flex flex-wrap items-center gap-2">
                                                                 <input type="hidden" name="userId" value={u.user_id} />
+                                                                <input
+                                                                    name="otp"
+                                                                    inputMode="numeric"
+                                                                    pattern="[0-9]{6}"
+                                                                    maxLength={6}
+                                                                    placeholder="6-digit OTP"
+                                                                    required
+                                                                    autoComplete="one-time-code"
+                                                                    suppressHydrationWarning
+                                                                    className="h-9 w-32 rounded-lg border border-red-400 bg-white px-2 text-center text-base tracking-widest outline-none focus:border-red-600 md:text-sm"
+                                                                />
                                                                 <ConfirmSubmit
-                                                                    title="Delete account?"
-                                                                    message={`The account ${u.username} will be permanently deleted. This can't be undone.`}
+                                                                    title="Permanently delete account?"
+                                                                    message={`The account ${u.username} will be permanently deleted if the OTP is correct. This can't be undone.`}
                                                                     confirmLabel="Delete"
                                                                     className="h-9 whitespace-nowrap rounded-lg bg-red-600 px-3 text-sm font-semibold text-white hover:bg-red-700"
                                                                 >
-                                                                    Delete
+                                                                    Confirm Delete
                                                                 </ConfirmSubmit>
+                                                                <a href="/dashboard/users" className="text-sm text-gray-500 hover:underline">
+                                                                    Cancel
+                                                                </a>
                                                             </form>
-                                                        </div>
+                                                        ) : (
+                                                            <div className="flex items-center gap-2">
+                                                                <Link
+                                                                    href={`/dashboard/users?edit=${u.user_id}`}
+                                                                    className="inline-flex h-9 items-center whitespace-nowrap rounded-lg border border-[#15664f] px-3 text-sm font-semibold text-[#15664f] hover:bg-[#15664f]/10"
+                                                                >
+                                                                    Edit
+                                                                </Link>
+                                                                {/* DELETE STEP 1: send OTP to the email of the account being deleted */}
+                                                                <form action={requestDeleteOtp}>
+                                                                    <input type="hidden" name="userId" value={u.user_id} />
+                                                                    <button
+                                                                        type="submit"
+                                                                        title={`Send a deletion OTP to ${u.username}`}
+                                                                        className="h-9 whitespace-nowrap rounded-lg bg-red-600 px-3 text-sm font-semibold text-white hover:bg-red-700"
+                                                                    >
+                                                                        Delete
+                                                                    </button>
+                                                                </form>
+                                                            </div>
+                                                        )}
                                                     </TableCell>
                                                 )}
                                             </TableRow>
