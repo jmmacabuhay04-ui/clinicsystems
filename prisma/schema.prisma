@@ -101,7 +101,7 @@ model HealthCaseReport {
   archived_by Int?
   created_at  DateTime  @default(now())
   employee_id Int?
-  staff_name  String?   @db.VarChar(100)
+
   action_taken String?  @db.VarChar(255)
 
   @@index([student_id])
