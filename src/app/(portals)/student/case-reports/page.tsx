@@ -1,0 +1,1 @@
+export { default } from "@/features/student-portal/components/case-reports-page";

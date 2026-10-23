@@ -75,6 +75,8 @@ model HealthRecord {
   heart_rate      Int?
   blood_pressure  String?   @db.VarChar(10)
   temperature     Float?
+  visit_time      DateTime? @db.Time(6)
+  notes           String?
   recorded_by     Int?
   created_at      DateTime  @default(now())
   archived_at     DateTime?
@@ -99,6 +101,8 @@ model HealthCaseReport {
   archived_by Int?
   created_at  DateTime  @default(now())
   employee_id Int?
+  staff_name  String?   @db.VarChar(100)
+  action_taken String?  @db.VarChar(255)
 
   @@index([student_id])
   @@map("health_case_reports")

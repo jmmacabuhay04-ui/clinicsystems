@@ -1,0 +1,1 @@
+export { default } from "@/features/case-reports/components/case-reports-edit-page";

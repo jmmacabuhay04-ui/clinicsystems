@@ -1,0 +1,1 @@
+export { default } from "@/features/employee-portal/components/case-reports-page";

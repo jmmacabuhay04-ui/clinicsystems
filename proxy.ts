@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { signToken, verifyToken } from "@/lib/jwt";
+import { signToken, verifyToken } from "@/lib/auth/jwt";
 
 // Mga page na pwedeng buksan ng IT Tech. Walang clinical data dito.
 const IT_TECH_ALLOWED = [
