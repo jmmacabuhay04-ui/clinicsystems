@@ -195,7 +195,11 @@ export default async function UsersPage({ searchParams }: Props) {
                                     return (
                                         <Fragment key={u.user_id}>
                                             <tr className={tr}>
-                                                <td data-label="Account" className={td}>
+                                                {/* Mobile: header ng card (picture, email, role, created). Desktop: unang column */}
+                                                <td
+                                                    data-label="Account"
+                                                    className={`${td} border-b border-gray-100 max-md:justify-start max-md:pb-3 max-md:text-left max-md:before:hidden md:border-b-0`}
+                                                >
                                                     <div className="flex min-w-0 items-center gap-3">
                                                         {/* Profile picture ng account (galing sa Settings); initial kapag wala pa */}
                                                         {u.avatar ? (
@@ -203,35 +207,42 @@ export default async function UsersPage({ searchParams }: Props) {
                                                             <img
                                                                 src={u.avatar}
                                                                 alt=""
-                                                                className="hidden h-9 w-9 shrink-0 rounded-full object-cover ring-2 ring-[#15664f]/30 md:block"
+                                                                className="h-11 w-11 shrink-0 rounded-full object-cover ring-2 ring-[#15664f]/30 md:h-9 md:w-9"
                                                             />
                                                         ) : (
-                                                            <span className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#eef6f2] text-xs font-bold text-[#15664f] md:flex">
+                                                            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#eef6f2] text-sm font-bold text-[#15664f] md:h-9 md:w-9 md:text-xs">
                                                                 {u.username.charAt(0).toUpperCase()}
                                                             </span>
                                                         )}
-                                                        <span className="flex min-w-0 flex-wrap items-center gap-2">
-                                                            {/* Puwedeng bumaba sa "@" lang, hindi sa gitna ng salita */}
-                                                            <span className="min-w-0 font-semibold text-gray-900 [overflow-wrap:anywhere] md:[overflow-wrap:normal]">
-                                                                {u.username.split("@")[0]}
-                                                                {u.username.includes("@") && (
-                                                                    <>
-                                                                        <wbr />@{u.username.split("@").slice(1).join("@")}
-                                                                    </>
+                                                        <span className="min-w-0">
+                                                            <span className="flex min-w-0 flex-wrap items-center gap-2">
+                                                                {/* Puwedeng bumaba sa "@" lang, hindi sa gitna ng salita */}
+                                                                <span className="min-w-0 font-semibold text-gray-900 [overflow-wrap:anywhere] md:[overflow-wrap:normal]">
+                                                                    {u.username.split("@")[0]}
+                                                                    {u.username.includes("@") && (
+                                                                        <>
+                                                                            <wbr />@{u.username.split("@").slice(1).join("@")}
+                                                                        </>
+                                                                    )}
+                                                                </span>
+                                                                {isMe && (
+                                                                    <span className="shrink-0 rounded-full bg-[#15664f] px-2 py-0.5 text-[10px] font-bold text-white">
+                                                                        You
+                                                                    </span>
                                                                 )}
                                                             </span>
-                                                            {isMe && (
-                                                                <span className="shrink-0 rounded-full bg-[#15664f] px-2 py-0.5 text-[10px] font-bold text-white">
-                                                                    You
-                                                                </span>
-                                                            )}
+                                                            {/* Mobile lang: role at petsa sa ilalim ng email */}
+                                                            <span className="mt-1 flex flex-wrap items-center gap-2 md:hidden">
+                                                                <RoleBadge role={u.role} />
+                                                                <span className="text-xs text-gray-500">Created {formatCreated(u.created_at)}</span>
+                                                            </span>
                                                         </span>
                                                     </div>
                                                 </td>
-                                                <td data-label="Role" className={td}>
+                                                <td data-label="Role" className={`${td} max-md:hidden`}>
                                                     <RoleBadge role={u.role} />
                                                 </td>
-                                                <td data-label="Created" className={`${td} text-gray-600 md:whitespace-nowrap`}>
+                                                <td data-label="Created" className={`${td} text-gray-600 max-md:hidden md:whitespace-nowrap`}>
                                                     {formatCreated(u.created_at)}
                                                 </td>
                                                 <td className={tdBlock}>
