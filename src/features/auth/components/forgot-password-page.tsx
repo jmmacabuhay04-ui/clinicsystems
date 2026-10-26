@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
-import { AlertCircle, ArrowLeft, Send } from "lucide-react";
+import { AlertCircle, ArrowLeft, Mail, Send } from "lucide-react";
 import { requestOtp, type ForgotState } from "@/features/auth/forgot-password-actions";
 import AuthShell, { authButtonClass, authInputClass } from "./auth-shell";
 
@@ -25,24 +25,26 @@ export default function ForgotPasswordPage() {
                 )}
 
                 <label htmlFor="email" className="block space-y-2">
-                    <span className="text-sm font-medium text-white">Email Address*</span>
-                    <input
-                        id="email"
-                        name="email"
-                        type="email"
-                        placeholder="yourname@bcas.edu.ph"
-                        autoComplete="email"
-                        required
-                        suppressHydrationWarning
-                        className={authInputClass}
-                    />
+                    <span className="text-sm font-medium text-white/90">Email Address</span>
+                    {/* Mail icon sa loob ng input, kapareho ng Login */}
+                    <span className="relative block">
+                        <Mail className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-white/50" />
+                        <input
+                            id="email"
+                            name="email"
+                            type="email"
+                            placeholder="yourname@bcas.edu.ph"
+                            autoComplete="email"
+                            required
+                            suppressHydrationWarning
+                            className={`${authInputClass} pl-11!`}
+                        />
+                    </span>
                 </label>
 
                 <button type="submit" disabled={pending} suppressHydrationWarning className={`${authButtonClass} mt-3`}>
                     {pending ? (
-                        <>
-                            Sending...
-                        </>
+                        "Sending..."
                     ) : (
                         <>
                             Send Code

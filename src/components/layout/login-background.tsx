@@ -1,5 +1,5 @@
-// Background ng login page: madilim na green. Ang campus photo ay nasa kanang kalahati,
+// Background ng login page: mint green, kapareho ng dashboard. Ang campus photo ay nasa kanang bahagi,
 // na inaayos na mismo ng login page.
 export default function LoginBackground({ children }: { children: React.ReactNode }) {
-    return <div className="min-h-screen bg-[#0b2a20]">{children}</div>;
+    return <div className="min-h-screen bg-[#e7f3e2]">{children}</div>;
 }
