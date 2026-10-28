@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
-import { Plus, Search, User2 } from "lucide-react";
+import { Plus, Search } from "lucide-react";
+
 import { getStudentFilterOptions, listStudents, STUDENTS_PAGE_SIZE } from "../service";
 import type { StudentFilters, StudentListRow as Row } from "../types";
 import { getSession } from "@/lib/auth/session";
@@ -8,6 +9,8 @@ import ConfirmLink from "@/components/shared/confirm-link";
 import FlashMessage from "@/components/shared/flash-message";
 import AutoSubmitSelect from "@/components/shared/auto-submit-select";
 import ListPagination from "@/components/shared/list-pagination";
+import SearchInput from "@/components/shared/search-input";
+import RowActionMenu, { type RowAction } from "@/components/shared/row-action-menu";
 
 const BASE = "/dashboard/students";
 const HEALTH_BASE = "/dashboard/student-health-records";
@@ -17,11 +20,35 @@ type Props = {
 };
 
 const selectClass =
-    "h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20";
-const viewBtn =
-    "inline-flex h-8 items-center rounded-md bg-[#15664f] px-4 text-xs font-semibold text-white hover:bg-[#10523f]";
-const editBtn =
-    "inline-flex h-8 items-center rounded-md bg-[#f6d860] px-4 text-xs font-semibold text-gray-900 hover:bg-[#efcc3f]";
+    "h-11 w-full rounded-xl border border-[#dcebe3] bg-white px-3 text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-4 focus:ring-[#15664f]/10";
+
+// Profile picture; initials kapag wala pang picture
+function Avatar({ src, first, last }: { src?: string | null; first: string; last: string }) {
+    if (src) {
+        // eslint-disable-next-line @next/next/no-img-element
+        return <img src={src} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover ring-2 ring-[#15664f]/30" />;
+    }
+    return (
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#15664f] text-sm font-semibold text-white">
+            {`${first?.[0] ?? ""}${last?.[0] ?? ""}`.toUpperCase()}
+        </span>
+    );
+}
+
+// Lahat ng nasa listahan ay hindi naka-archive, kaya "Active"
+function ActiveBadge() {
+    return (
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#e3f1e9] px-2.5 py-0.5 text-sm font-medium text-[#15664f]">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#15664f]" />
+            Active
+        </span>
+    );
+}
+
+function formatGender(g?: string | null) {
+    if (!g) return "—";
+    return g.charAt(0).toUpperCase() + g.slice(1).toLowerCase();
+}
 
 export default async function StudentsPage({ searchParams }: Props) {
     const session = await getSession();
@@ -62,37 +89,30 @@ export default async function StudentsPage({ searchParams }: Props) {
     const viewMessage = (s: Row) =>
         `Open the health record of ${s.first_name} ${s.last_name} (${s.student_number})? This contains confidential medical information and your access will be recorded.`;
 
-    const actions = (s: Row) => (
-        <>
-            <ConfirmLink href={viewHref(s)} title="View health record" message={viewMessage(s)} className={viewBtn}>
-                View
-            </ConfirmLink>
-            {canEdit && (
-                <ConfirmLink
-                    href={editHref(s)}
-                    title="Edit student details"
-                    message={`Edit the details of ${s.first_name} ${s.last_name} (${s.student_number})?`}
-                    confirmLabel="Edit"
-                    className={editBtn}
-                >
-                    Edit
-                </ConfirmLink>
-            )}
-        </>
-    );
+    // Mga pagpipilian sa "⋮" menu ng bawat row
+    const actions = (s: Row): RowAction[] => [
+        { label: "View Health Record", href: viewHref(s), title: "View health record", message: viewMessage(s), confirmLabel: "View", icon: "view" },
+        ...(canEdit
+            ? [
+                {
+                    label: "Edit Details",
+                    href: editHref(s),
+                    title: "Edit student details",
+                    message: `Edit the details of ${s.first_name} ${s.last_name} (${s.student_number})?`,
+                    confirmLabel: "Edit",
+                    icon: "edit" as const,
+                },
+            ]
+            : []),
+    ];
 
     return (
         <main className="min-w-0 space-y-6 p-4 pb-8 md:p-8">
             {/* Header */}
             <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center text-[#15664f]">
-                        <User2 className="h-10 w-10" />
-                    </div>
-                    <div className="min-w-0">
-                        <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">Students</h1>
-                        <p className="text-sm text-gray-600">Manage and view all registered students.</p>
-                    </div>
+                <div className="min-w-0">
+                    <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">Students</h1>
+                    <p className="mt-1 text-sm text-gray-600">Manage and view student information.</p>
                 </div>
                 {canAdd ? (
                     <ConfirmLink
@@ -100,13 +120,13 @@ export default async function StudentsPage({ searchParams }: Props) {
                         title="Add a new student?"
                         message="You will be taken to the form to create a new student account."
                         confirmLabel="Continue"
-                        className="inline-flex h-11 items-center gap-2 rounded-lg bg-[#15664f] px-5 text-sm font-semibold text-white shadow-sm hover:bg-[#10523f]"
+                        className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#15664f] px-5 text-sm font-semibold text-white shadow-md shadow-[#15664f]/20 hover:bg-[#10523f]"
                     >
                         <Plus className="h-4 w-4" />
                         Add Student
                     </ConfirmLink>
                 ) : (
-                    <span className="rounded-full bg-gray-200 px-3 py-1 text-xs font-medium text-gray-600">View only</span>
+                    <span className="rounded-full bg-gray-200 px-3 py-1 text-sm font-medium text-gray-600">View only</span>
                 )}
             </div>
 
@@ -116,44 +136,62 @@ export default async function StudentsPage({ searchParams }: Props) {
                 </FlashMessage>
             )}
 
-            <section className="overflow-hidden rounded-xl border-2 border-[#cfe5d9] bg-white shadow-md shadow-[#15664f]/10">
-                {/* Search + filters */}
-                <form method="get" action={BASE} className="grid gap-3 p-4 md:grid-cols-[1fr_12rem_12rem] md:items-end md:p-5">
-                    <div className="relative">
-                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                        <input
+            <section className="overflow-hidden rounded-2xl border border-[#dcebe3] bg-white shadow-sm shadow-[#15664f]/5">
+                {/* Filters sa kaliwa, search sa kanan */}
+                <form
+                    method="get"
+                    action={BASE}
+                    className="grid gap-3 p-4 sm:grid-cols-2 md:p-5 lg:grid-cols-[12rem_12rem_minmax(0,1fr)]"
+                >
+                    <AutoSubmitSelect
+                        name="grade"
+                        defaultValue={filters.grade}
+                        options={options.grades}
+                        allLabel="All Grade Levels"
+                        className={selectClass}
+                    />
+                    <AutoSubmitSelect
+                        name="program"
+                        defaultValue={filters.program}
+                        options={options.programs}
+                        allLabel="All Programs"
+                        className={selectClass}
+                    />
+                    <div className="relative sm:col-span-2 lg:col-span-1 lg:ml-auto lg:w-full lg:max-w-sm">
+                        <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-600" />
+                        <SearchInput
                             name="q"
                             defaultValue={filters.q}
                             autoComplete="off"
-                            placeholder="Search by name or student number..."
+                            placeholder="Search by name or student no..."
                             suppressHydrationWarning
-                            className="h-11 w-full rounded-lg border border-gray-300 bg-white pl-10 pr-3 text-base text-gray-900 outline-none placeholder:text-sm focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20 md:text-sm"
+                            className="h-11 w-full rounded-xl border border-[#dcebe3] bg-white pl-10 pr-3 text-base text-gray-900 outline-none focus:border-[#15664f] focus:ring-4 focus:ring-[#15664f]/10 md:text-sm"
                         />
                     </div>
-                    <label className="block space-y-1">
-                        <span className="text-xs font-medium text-gray-600">Grade Level</span>
-                        <AutoSubmitSelect name="grade" defaultValue={filters.grade} options={options.grades} className={selectClass} />
-                    </label>
-                    <label className="block space-y-1">
-                        <span className="text-xs font-medium text-gray-600">Program</span>
-                        <AutoSubmitSelect name="program" defaultValue={filters.program} options={options.programs} className={selectClass} />
-                    </label>
                 </form>
 
                 {students.length === 0 ? (
-                    <p className="border-t border-gray-100 p-8 text-center text-sm text-gray-500">No students found.</p>
+                    <p className="border-t border-gray-100 p-8 text-center text-sm text-gray-600">No students found.</p>
                 ) : (
                     <>
                         {/* MOBILE: card list */}
                         <ul className="space-y-2 border-t border-gray-100 p-3 md:hidden">
                             {students.map((s) => (
-                                <li key={s.student_id} className="rounded-lg border border-gray-200 p-3">
-                                    <p className="break-words text-sm font-semibold text-gray-900">{fullName(s)}</p>
-                                    <p className="text-xs text-gray-500">{s.student_number}</p>
-                                    <p className="mt-1 text-sm text-gray-700">
-                                        {[s.grade_level, s.program].filter(Boolean).join(" · ") || "—"}
-                                    </p>
-                                    <div className="mt-3 flex items-center gap-2">{actions(s)}</div>
+                                <li key={s.student_id} className="flex items-start gap-3 rounded-xl border border-[#e4ede8] p-3">
+                                    <Avatar src={s.avatar} first={s.first_name} last={s.last_name} />
+                                    <div className="min-w-0 flex-1">
+                                        <p className="break-words text-sm font-semibold text-gray-900">{fullName(s)}</p>
+                                        <p className="text-sm text-gray-600">{s.student_number}</p>
+                                        <p className="mt-1 text-sm text-gray-600">
+                                            {[s.grade_level, s.program, s.gender ? formatGender(s.gender) : null]
+                                                .filter(Boolean)
+                                                .join(" · ") || "—"}
+                                        </p>
+                                        <div className="mt-2">
+                                            <ActiveBadge />
+                                        </div>
+                                    </div>
+                                    <RowActionMenu actions={actions(s)} />
                                 </li>
                             ))}
                         </ul>
@@ -161,24 +199,35 @@ export default async function StudentsPage({ searchParams }: Props) {
                         {/* DESKTOP: table */}
                         <div className="hidden overflow-x-auto md:block">
                             <table className="w-full text-left text-sm">
-                                <thead className="border-y border-gray-200 bg-[#f6faf8] text-gray-700">
+                                <thead className="border-y border-[#e4ede8] bg-[#f6faf8] text-gray-600">
                                     <tr>
                                         <th className="whitespace-nowrap px-5 py-3 font-semibold">Student Number</th>
-                                        <th className="px-5 py-3 font-semibold">Full Name</th>
+                                        <th className="px-5 py-3 font-semibold">Name</th>
                                         <th className="whitespace-nowrap px-5 py-3 font-semibold">Grade Level</th>
                                         <th className="px-5 py-3 font-semibold">Program</th>
-                                        <th className="px-5 py-3 font-semibold">Actions</th>
+                                        <th className="px-5 py-3 font-semibold">Gender</th>
+                                        <th className="px-5 py-3 font-semibold">Status</th>
+                                        <th className="px-5 py-3 text-center font-semibold">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {students.map((s) => (
                                         <tr key={s.student_id} className="border-t border-gray-100 hover:bg-[#f6faf8]">
-                                            <td className="whitespace-nowrap px-5 py-4 font-medium text-gray-900">{s.student_number}</td>
-                                            <td className="px-5 py-4 text-gray-900">{fullName(s)}</td>
-                                            <td className="px-5 py-4 text-gray-700">{s.grade_level ?? "—"}</td>
-                                            <td className="px-5 py-4 text-gray-700">{s.program ?? "—"}</td>
-                                            <td className="whitespace-nowrap px-5 py-4">
-                                                <div className="flex items-center gap-2">{actions(s)}</div>
+                                            <td className="whitespace-nowrap px-5 py-3 text-gray-600">{s.student_number}</td>
+                                            <td className="px-5 py-3">
+                                                <div className="flex items-center gap-3">
+                                                    <Avatar src={s.avatar} first={s.first_name} last={s.last_name} />
+                                                    <span className="font-medium text-gray-900">{fullName(s)}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-5 py-3 text-gray-600">{s.grade_level ?? "—"}</td>
+                                            <td className="px-5 py-3 text-gray-600">{s.program ?? "—"}</td>
+                                            <td className="px-5 py-3 text-gray-600">{formatGender(s.gender)}</td>
+                                            <td className="px-5 py-3">
+                                                <ActiveBadge />
+                                            </td>
+                                            <td className="px-5 py-3 text-center">
+                                                <RowActionMenu actions={actions(s)} />
                                             </td>
                                         </tr>
                                     ))}

@@ -132,11 +132,13 @@ const roleLabels: Record<string, string> = {
 
 type Props = {
     username: string;
+    /** Display Name mula sa Settings (o galing sa email kung wala pa) */
+    displayName?: string;
     role: string;
     avatar?: string | null;
 };
 
-export default function AdminSidebar({ username, role, avatar }: Props) {
+export default function AdminSidebar({ username, displayName: savedName, role, avatar }: Props) {
     const pathname = usePathname();
     const [collapsed, setCollapsed] = useState(false); // desktop: icons only
     const [mobileOpen, setMobileOpen] = useState(false); // phone: show/hide drawer
@@ -181,7 +183,7 @@ export default function AdminSidebar({ username, role, avatar }: Props) {
 
     const localPart = username.split("@")[0];
     const baseName = localPart.charAt(0).toUpperCase() + localPart.slice(1);
-    const displayName = role === "doctor" || role === "dentist" ? `Dr. ${baseName}` : baseName;
+    const displayName = savedName || (role === "doctor" || role === "dentist" ? `Dr. ${baseName}` : baseName);
 
     const isActive = (href: string) =>
         href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(href);
@@ -240,30 +242,28 @@ export default function AdminSidebar({ username, role, avatar }: Props) {
             />
 
             <aside
-                className={`fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col bg-gradient-to-b from-[#15664f] to-[#0c3f30] text-white shadow-xl transition-[transform,visibility] duration-200 md:h-screen md:max-w-none md:shrink-0 md:translate-x-0 md:transition-[width] md:visible ${mobileOpen ? "visible translate-x-0" : "invisible -translate-x-full"
+                className={`fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col overflow-hidden bg-gradient-to-b from-[#176b52] via-[#11593f] to-[#0b3f2e] text-white shadow-xl transition-[transform,visibility] duration-200 md:h-screen md:max-w-none md:shrink-0 md:translate-x-0 md:transition-[width] md:visible ${mobileOpen ? "visible translate-x-0" : "invisible -translate-x-full"
                     } ${collapsed ? "md:w-[72px]" : "md:w-[260px]"}`}
             >
                 {/* Header: logo + menu button */}
                 <div
-                    className={`relative flex items-center justify-center border-b border-white/10 px-4 py-4 ${collapsed ? "md:px-2 md:py-4" : ""
+                    className={`relative flex items-center justify-center border-b border-white/10 px-4 pb-5 pt-6 ${collapsed ? "md:border-b-0 md:px-2 md:py-4" : ""
                         }`}
                 >
                     <Link
                         href={role === "ittech" ? "/dashboard/users" : "/dashboard"}
                         onClick={() => setMobileOpen(false)}
                         title="Go to Dashboard"
-                        className={`flex w-full items-center gap-3 pr-8 hover:opacity-90 ${collapsed ? "md:hidden" : ""
+                        className={`flex w-full flex-col items-center gap-2 px-6 text-center hover:opacity-90 ${collapsed ? "md:hidden" : ""
                             }`}
                     >
+                        {/* Malaking logo sa gitna, pangalan sa ilalim */}
                         <img
                             src="/bcas.jpg"
                             alt="BCAS"
-                            className="h-11 w-11 shrink-0 rounded-full bg-white object-contain ring-2 ring-white/30"
+                            className="h-24 w-24 shrink-0 rounded-full bg-white object-contain shadow-lg shadow-black/25"
                         />
-                        <div className="min-w-0 text-left">
-                            <p className="text-sm font-bold uppercase tracking-wider text-white">BCAS Clinic</p>
-                            <p className="text-[11px] text-white/60">Health Record System</p>
-                        </div>
+                        <p className="text-xl font-semibold tracking-wide text-white">School Clinic</p>
                     </Link>
 
                     {/* Phone: isara ang drawer */}
@@ -283,15 +283,26 @@ export default function AdminSidebar({ username, role, avatar }: Props) {
                         onClick={toggleCollapsed}
                         aria-label={collapsed ? "Expand menu" : "Collapse menu"}
                         title={collapsed ? "Expand menu" : "Collapse menu"}
-                        className={`hidden rounded-lg p-1.5 text-white/80 hover:bg-white/10 hover:text-white md:inline-flex ${collapsed ? "" : "md:absolute md:right-3 md:top-1/2 md:-translate-y-1/2"
+                        className={`hidden rounded-lg p-1.5 text-white/80 hover:bg-white/10 hover:text-white md:inline-flex ${collapsed ? "" : "md:absolute md:right-2 md:top-2"
                             }`}
                     >
                         <Menu className="h-5 w-5" />
                     </button>
                 </div>
 
-                {/* Body */}
-                <div className="flex min-h-0 flex-1 flex-col">
+                {/* Green at dilaw na alon sa ibaba ng sidebar (pang-dekorasyon) */}
+                <svg
+                    aria-hidden="true"
+                    viewBox="0 0 260 120"
+                    preserveAspectRatio="none"
+                    className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-32 w-full"
+                >
+                    <path d="M0 40 C 60 10, 120 20, 170 50 C 210 74, 240 80, 260 76 V120 H0 Z" fill="#2f8a6d" fillOpacity="0.45" />
+                    <path d="M0 64 C 70 34, 130 48, 180 76 C 214 94, 240 100, 260 98 V120 H0 Z" fill="#0b3f2e" fillOpacity="0.55" />
+                    <path d="M0 52 C 70 22, 130 36, 178 64 C 214 84, 240 90, 260 88" fill="none" stroke="#f2c94c" strokeWidth="3" />
+                </svg>
+                {/* Body (nasa ibabaw ng alon) */}
+                <div className="relative z-10 flex min-h-0 flex-1 flex-col">
                     {/* Menu */}
                     <nav className="no-scrollbar flex-1 overflow-y-auto px-3 py-3">
                         {visibleItems.map((item, index) => {
@@ -301,7 +312,7 @@ export default function AdminSidebar({ username, role, avatar }: Props) {
                             const sectionHeader =
                                 item.section && item.section !== prevSection ? (
                                     <p
-                                        className={`px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-white/45 ${index > 0 ? "pt-4" : "pt-1"} ${collapsed ? "md:hidden" : ""}`}
+                                        className={`px-3 pb-1 text-sm font-medium uppercase tracking-[0.14em] text-white/40 ${index > 0 ? "pt-4" : "pt-1"} ${collapsed ? "md:hidden" : ""}`}
                                     >
                                         {item.section}
                                     </p>
@@ -334,20 +345,19 @@ export default function AdminSidebar({ username, role, avatar }: Props) {
                                                     setOpenGroup(open ? null : item.label);
                                                 }
                                             }}
-                                            className={`group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[14.5px] transition-all md:py-2 ${collapsed ? "md:justify-center md:px-0" : ""
+                                            className={`group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-base transition-all ${collapsed ? "md:justify-center md:px-0" : ""
                                                 } ${hasActiveChild && !open
-                                                    ? "bg-amber-400 font-semibold text-[#14532D] shadow-md shadow-black/10"
+                                                    ? "bg-[#4f9a7c]/70 font-semibold text-white shadow-sm shadow-black/10 ring-1 ring-white/15"
                                                     : hasActiveChild
                                                         ? "bg-white/10 font-semibold text-white"
                                                         : "text-white/85 hover:bg-white/10 hover:text-white"
                                                 }`}
                                         >
                                             {hasActiveChild && !open && (
-                                                <span className="absolute -left-3 top-1/2 h-6 w-1.5 -translate-y-1/2 rounded-r-full bg-white" />
+                                                <span className="absolute -left-3 top-1/2 h-6 w-1.5 -translate-y-1/2 rounded-r-full bg-amber-300" />
                                             )}
                                             <Icon
-                                                className={`h-[18px] w-[18px] shrink-0 ${hasActiveChild && !open ? "text-[#14532D]" : hasActiveChild ? "text-amber-300" : ""
-                                                    }`}
+                                                className={`h-5 w-5 shrink-0 ${hasActiveChild ? "text-amber-300" : ""}`}
                                                 strokeWidth={1.8}
                                             />
                                             <span className={`flex-1 truncate text-left ${collapsed ? "md:hidden" : ""}`}>
@@ -374,14 +384,13 @@ export default function AdminSidebar({ username, role, avatar }: Props) {
                                                             href={child.href}
                                                             title={child.label}
                                                             onClick={() => setMobileOpen(false)}
-                                                            className={`group flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[14px] transition-all md:py-1.5 ${childActive
-                                                                ? "bg-amber-400 font-semibold text-[#14532D] shadow-md shadow-black/10"
+                                                            className={`group flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[15px] transition-all ${childActive
+                                                                ? "bg-[#4f9a7c]/70 font-semibold text-white shadow-sm shadow-black/10 ring-1 ring-white/15"
                                                                 : "text-white/75 hover:bg-white/10 hover:text-white"
                                                                 }`}
                                                         >
                                                             <ChildIcon
-                                                                className={`h-4 w-4 shrink-0 ${childActive ? "text-[#14532D]" : ""
-                                                                    }`}
+                                                                className={`h-[18px] w-[18px] shrink-0 ${childActive ? "text-amber-300" : ""}`}
                                                                 strokeWidth={1.8}
                                                             />
                                                             <span className="truncate">{child.label}</span>
@@ -404,19 +413,18 @@ export default function AdminSidebar({ username, role, avatar }: Props) {
                                         href={item.href}
                                         title={item.label}
                                         onClick={() => setMobileOpen(false)}
-                                        className={`group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14.5px] transition-all md:py-2 ${collapsed ? "md:justify-center md:px-0" : ""
+                                        className={`group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-base transition-all ${collapsed ? "md:justify-center md:px-0" : ""
                                             } ${active
-                                                ? "bg-amber-400 font-semibold text-[#14532D] shadow-md shadow-black/10"
+                                                ? "bg-[#4f9a7c]/70 font-semibold text-white shadow-sm shadow-black/10 ring-1 ring-white/15"
                                                 : "text-white/85 hover:bg-white/10 hover:text-white"
                                             }`}
                                     >
                                         {/* amber na marka sa kaliwa ng aktibong page */}
                                         {active && (
-                                            <span className="absolute -left-3 top-1/2 h-6 w-1.5 -translate-y-1/2 rounded-r-full bg-white" />
+                                            <span className="absolute -left-3 top-1/2 h-6 w-1.5 -translate-y-1/2 rounded-r-full bg-amber-300" />
                                         )}
                                         <Icon
-                                            className={`h-[18px] w-[18px] shrink-0 ${active ? "text-[#14532D]" : ""
-                                                }`}
+                                            className={`h-5 w-5 shrink-0 ${active ? "text-amber-300" : ""}`}
                                             strokeWidth={1.8}
                                         />
                                         <span className={`truncate ${collapsed ? "md:hidden" : ""}`}>{item.label}</span>
@@ -426,9 +434,9 @@ export default function AdminSidebar({ username, role, avatar }: Props) {
                         })}
                     </nav>
 
-                    <div className={`border-t border-white/10 p-3 ${collapsed ? "md:px-2" : ""}`}>
+                    <div className={`relative p-3 ${collapsed ? "md:px-2" : ""}`}>
                         <div
-                            className={`flex items-center gap-3 rounded-xl bg-white/10 p-2.5 ${collapsed ? "md:flex-col md:justify-center md:bg-transparent md:p-0" : ""
+                            className={`relative flex items-center gap-3 rounded-xl bg-white/10 p-2.5 backdrop-blur-sm ${collapsed ? "md:flex-col md:justify-center md:bg-transparent md:p-0" : ""
                                 }`}
                         >
                             {avatar ? (
@@ -440,17 +448,17 @@ export default function AdminSidebar({ username, role, avatar }: Props) {
                             ) : (
                                 <div
                                     aria-hidden="true"
-                                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-400 text-sm font-bold text-[#14532D]"
+                                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-400 text-sm font-semibold text-[#14532D]"
                                 >
-                                    {username.charAt(0).toUpperCase()}
+                                    {displayName.replace(/^Dr\.?\s*/i, "").charAt(0).toUpperCase()}
                                 </div>
                             )}
 
                             <div className={`min-w-0 flex-1 ${collapsed ? "md:hidden" : ""}`}>
-                                <p className="truncate text-sm font-semibold" title={username}>
+                                <p className="truncate text-base font-semibold" title={username}>
                                     {displayName}
                                 </p>
-                                <span className="mt-0.5 inline-block rounded-full bg-amber-400/90 px-2 py-0.5 text-[11px] font-semibold text-[#14532D]">
+                                <span className="mt-0.5 inline-block rounded-full bg-amber-400/90 px-2 py-0.5 text-sm font-semibold text-[#14532D]">
                                     {roleLabels[role] ?? role}
                                 </span>
                             </div>

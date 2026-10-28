@@ -1,15 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import {
-    Activity,
-    AlertTriangle,
-    CalendarDays,
-    CheckCircle2,
-    School,
-    ShieldAlert,
-    Thermometer,
-    Users,
-} from "lucide-react";
+import { ArrowLeft, Activity, AlertTriangle, CalendarDays, CheckCircle2, School, ShieldAlert, Thermometer, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import WeekPicker from "./week-picker";
@@ -71,7 +62,7 @@ const CASES_BASE = "/dashboard/health-case-reports";
 const tr =
     "mb-3 block rounded-lg border border-gray-200 py-2 md:mb-0 md:table-row md:rounded-none md:border-0 md:border-t md:border-gray-100 md:py-0";
 const td =
-    "flex items-start justify-between gap-3 px-4 py-1.5 text-right before:shrink-0 before:text-left before:text-xs before:font-semibold before:uppercase before:text-gray-500 before:content-[attr(data-label)] md:table-cell md:py-3 md:text-left md:before:hidden";
+    "flex items-start justify-between gap-3 px-4 py-1.5 text-right before:shrink-0 before:text-left before:text-sm before:font-semibold before:uppercase before:text-gray-600 before:content-[attr(data-label)] md:table-cell md:py-3 md:text-left md:before:hidden";
 
 function keyOf(d: Date) {
     return d.toISOString().slice(0, 10);
@@ -378,6 +369,14 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
 
     return (
         <main className="min-w-0 space-y-6 p-4 pb-8 md:p-8">
+            <Link
+                href="/dashboard"
+                className="inline-flex items-center gap-1 text-sm font-medium text-[#15664f] hover:underline"
+            >
+                <ArrowLeft className="h-4 w-4" />
+                Back to Dashboard
+            </Link>
+
             {/* Header */}
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
@@ -410,7 +409,7 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                         {(["safe", "warning", "outbreak"] as const).map((key) => (
                             <span
                                 key={key}
-                                className={`rounded-full px-3 py-1 text-xs font-semibold ${level === key ? levels[key].pill : "bg-white/70 text-gray-500"
+                                className={`rounded-full px-3 py-1 text-sm font-semibold ${level === key ? levels[key].pill : "bg-white/70 text-gray-600"
                                     }`}
                             >
                                 {levels[key].tab}
@@ -434,9 +433,9 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                                 <StatIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                             </div>
                             <div className="min-w-0">
-                                <p className="text-xs leading-4 text-gray-600 sm:text-sm">{s.label}</p>
+                                <p className="text-sm leading-4 text-gray-600 sm:text-sm">{s.label}</p>
                                 <p className={`mt-1 break-words text-xl font-bold leading-tight sm:text-2xl ${s.valueClass}`}>{s.value}</p>
-                                {s.hint ? <p className="mt-0.5 text-[11px] text-gray-500 sm:text-xs">{s.hint}</p> : null}
+                                {s.hint ? <p className="mt-0.5 text-sm text-gray-600 sm:text-sm">{s.hint}</p> : null}
                             </div>
                         </div>
                     );
@@ -448,7 +447,7 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                 <div className={`${card} min-w-0 p-5 md:p-6`}>
                     <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
                         <h2 className="text-lg font-semibold text-gray-900">Daily Case Trend</h2>
-                        <div className="flex flex-wrap gap-3 text-xs text-gray-600">
+                        <div className="flex flex-wrap gap-3 text-sm text-gray-600">
                             <span className="inline-flex items-center gap-1.5">
                                 <span className="h-2.5 w-2.5 rounded-sm bg-[#15664f]" /> Safe
                             </span>
@@ -467,7 +466,7 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                             className="absolute inset-x-0 border-t-2 border-dashed border-red-300"
                             style={{ bottom: linePos(OUTBREAK_PER_DAY) }}
                         >
-                            <span className="absolute -top-5 right-0 rounded bg-white px-1 text-[11px] font-semibold text-red-600">
+                            <span className="absolute -top-5 right-0 rounded bg-white px-1 text-sm font-semibold text-red-600">
                                 Outbreak · {OUTBREAK_PER_DAY}
                             </span>
                         </div>
@@ -475,7 +474,7 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                             className="absolute inset-x-0 border-t-2 border-dashed border-amber-300"
                             style={{ bottom: linePos(WARNING_PER_DAY) }}
                         >
-                            <span className="absolute -top-5 right-0 rounded bg-white px-1 text-[11px] font-semibold text-amber-600">
+                            <span className="absolute -top-5 right-0 rounded bg-white px-1 text-sm font-semibold text-amber-600">
                                 Warning · {WARNING_PER_DAY}
                             </span>
                         </div>
@@ -484,7 +483,7 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                         <div className="absolute inset-0 flex items-end gap-3 border-b-2 border-gray-200 sm:gap-5">
                             {daily.map((d) => (
                                 <div key={d.name} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end">
-                                    <span className={`mb-1 text-sm font-bold ${d.count > 0 ? "text-gray-900" : "text-gray-400"}`}>
+                                    <span className={`mb-1 text-sm font-semibold ${d.count > 0 ? "text-gray-900" : "text-gray-600"}`}>
                                         {d.count}
                                     </span>
                                     <div
@@ -501,9 +500,9 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                         {daily.map((d, i) => (
                             <div key={d.name} className="min-w-0 flex-1 text-center">
                                 <p className="text-sm font-semibold text-gray-800">{d.name}</p>
-                                <p className="text-[11px] text-gray-500">{dayDate(i)}</p>
+                                <p className="text-sm text-gray-600">{dayDate(i)}</p>
                                 {/* Clinic visits at case reports ng araw na ito */}
-                                <div className="mt-1.5 flex flex-col items-center gap-0.5 text-[10px] font-semibold sm:flex-row sm:justify-center sm:gap-1">
+                                <div className="mt-1.5 flex flex-col items-center gap-0.5 text-sm font-semibold sm:flex-row sm:justify-center sm:gap-1">
                                     <span
                                         title="Clinic visits"
                                         className={`rounded px-1.5 py-0.5 ${d.visitCount > 0 ? "bg-[#eef6f2] text-[#15664f]" : "bg-gray-50 text-gray-300"}`}
@@ -521,7 +520,7 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                         ))}
                     </div>
 
-                    <p className="mt-4 border-t border-gray-100 pt-3 text-xs text-gray-500">
+                    <p className="mt-4 border-t border-gray-100 pt-3 text-sm text-gray-600">
                         Each bar counts sick persons from both <span className="font-semibold">clinic visits</span> (students
                         and employees) and <span className="font-semibold">case reports</span>. A person with both on the same
                         day counts once. Below each day: <span className="font-semibold text-[#15664f]">V</span> = clinic
@@ -534,7 +533,7 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                     <h2 className="mb-5 text-lg font-semibold text-gray-900">Illness Breakdown</h2>
 
                     {breakdown.length === 0 ? (
-                        <p className="py-10 text-center text-sm text-gray-500">No cases this week.</p>
+                        <p className="py-10 text-center text-sm text-gray-600">No cases this week.</p>
                     ) : (
                         <div className="space-y-4">
                             {breakdown.map((b, i) => {
@@ -543,7 +542,7 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                                     <div key={b.illness}>
                                         <div className="flex items-center justify-between gap-4 text-sm">
                                             <span className="flex min-w-0 items-center gap-2">
-                                                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#eef6f2] text-xs font-bold text-[#15664f]">
+                                                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#eef6f2] text-sm font-semibold text-[#15664f]">
                                                     {i + 1}
                                                 </span>
                                                 <span className="break-words font-semibold text-gray-900">{b.illness}</span>
@@ -564,20 +563,20 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
 
                     <div className="mt-6 grid gap-3 border-t border-gray-100 pt-4 sm:grid-cols-2">
                         <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-                            <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Warning threshold</p>
+                            <p className="text-sm font-semibold uppercase tracking-wide text-amber-700">Warning threshold</p>
                             <p className="mt-1 text-sm text-amber-900">
                                 <span className="text-lg font-bold">{WARNING_PER_DAY}+</span> sick persons in one day
                             </p>
                         </div>
                         <div className="rounded-lg border border-red-200 bg-red-50 p-3">
-                            <p className="text-xs font-semibold uppercase tracking-wide text-red-700">Outbreak threshold</p>
+                            <p className="text-sm font-semibold uppercase tracking-wide text-red-700">Outbreak threshold</p>
                             <p className="mt-1 text-sm text-red-900">
                                 <span className="text-lg font-bold">{OUTBREAK_PER_DAY}+</span> sick persons in one day
                             </p>
                         </div>
                     </div>
                     {totalStudents > 0 && (
-                        <p className="mt-3 text-xs text-gray-500">Out of {totalStudents} active students.</p>
+                        <p className="mt-3 text-sm text-gray-600">Out of {totalStudents} active students.</p>
                     )}
                 </div>
             </section>
@@ -586,22 +585,23 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
             <section className={`${card} overflow-hidden`}>
                 <div className="flex items-center justify-between gap-3 p-5 md:px-6">
                     <h2 className="text-lg font-semibold text-gray-900">Weekly Case Log</h2>
-                    <span className="rounded-full bg-[#eef6f2] px-3 py-1 text-xs font-semibold text-[#15664f]">
+                    <span className="rounded-full bg-[#eef6f2] px-3 py-1 text-sm font-semibold text-[#15664f]">
                         {cases.length} case{cases.length === 1 ? "" : "s"}
                     </span>
                 </div>
 
                 {cases.length === 0 ? (
-                    <p className="border-t border-gray-100 p-8 text-center text-sm text-gray-500">
+                    <p className="border-t border-gray-100 p-8 text-center text-sm text-gray-600">
                         No cases recorded this week.
                     </p>
                 ) : (
                     <div className="border-t border-gray-100 p-3 md:overflow-x-auto md:p-0">
                         <table className="block w-full text-left text-sm md:table">
-                            <thead className="hidden border-b border-gray-200 bg-[#f6faf8] text-gray-700 md:table-header-group">
+                            <thead className="hidden border-b border-gray-200 bg-[#f6faf8] text-gray-600 md:table-header-group">
                                 <tr>
                                     <th className="whitespace-nowrap px-5 py-3 font-semibold">Date</th>
                                     <th className="px-5 py-3 font-semibold">Patient</th>
+                                    <th className="px-5 py-3 font-semibold">Type</th>
                                     <th className="px-5 py-3 font-semibold">Illness</th>
                                     <th className="px-5 py-3 font-semibold">Source</th>
                                     <th className="px-5 py-3 font-semibold">Attending Staff</th>
@@ -610,46 +610,47 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                             <tbody className="block md:table-row-group">
                                 {cases.map((c) => (
                                     <tr key={c.key} className={`${tr} md:hover:bg-[#f6faf8]`}>
-                                        <td data-label="Date" className={`${td} text-gray-700 md:whitespace-nowrap md:px-5`}>
+                                        <td data-label="Date" className={`${td} text-gray-600 md:whitespace-nowrap md:px-5`}>
                                             {formatDay(c.date)}
                                         </td>
                                         <td data-label="Patient" className={`${td} md:px-5`}>
                                             <div className="md:text-left">
-                                                <div className="flex flex-wrap items-center justify-end gap-2 md:justify-start">
-                                                    <span className="font-medium text-gray-900">
-                                                        {c.first_name} {c.last_name}
-                                                    </span>
-                                                    <span
-                                                        className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${c.patient_type === "employee"
-                                                            ? "bg-amber-300 text-gray-900"
-                                                            : "bg-[#15664f] text-white"
-                                                            }`}
-                                                    >
-                                                        {c.patient_type === "employee" ? "Employee" : "Student"}
-                                                    </span>
-                                                </div>
-                                                <p className="text-xs text-gray-500">{c.id_number ?? "—"}</p>
+                                                <p className="font-medium text-gray-900">
+                                                    {c.first_name} {c.last_name}
+                                                </p>
+                                                <p className="text-sm text-gray-600">{c.id_number ?? "—"}</p>
                                             </div>
+                                        </td>
+                                        {/* Sariling column ang Type para pantay-pantay ang badge */}
+                                        <td data-label="Type" className={`${td} md:px-5`}>
+                                            <span
+                                                className={`inline-block whitespace-nowrap rounded-full px-2.5 py-0.5 text-sm font-medium ${c.patient_type === "employee"
+                                                    ? "bg-amber-300 text-gray-900"
+                                                    : "bg-[#15664f] text-white"
+                                                    }`}
+                                            >
+                                                {c.patient_type === "employee" ? "Employee" : "Student"}
+                                            </span>
                                         </td>
                                         <td data-label="Illness" className={`${td} break-words text-gray-900 md:px-5`}>
                                             {normalizeComplaint(c.complaint)}
                                         </td>
                                         <td data-label="Source" className={`${td} md:whitespace-nowrap md:px-5`}>
                                             {c.source === "visit" ? (
-                                                <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
+                                                <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-sm font-medium text-gray-600">
                                                     Clinic Visit
                                                 </span>
                                             ) : (
                                                 <span className="flex flex-wrap items-center justify-end gap-1.5 md:justify-start">
                                                     <Link
                                                         href={`${CASES_BASE}?q=${encodeURIComponent(c.reference ?? "")}`}
-                                                        className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+                                                        className="rounded-full bg-blue-50 px-2.5 py-0.5 text-sm font-semibold text-blue-700 hover:bg-blue-100"
                                                     >
                                                         Case {c.reference ?? ""}
                                                     </Link>
                                                     {c.status ? (
                                                         <span
-                                                            className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${statusStyles[c.status] ?? "bg-gray-100 text-gray-700"
+                                                            className={`rounded-full px-2 py-0.5 text-sm font-medium capitalize ${statusStyles[c.status] ?? "bg-gray-100 text-gray-600"
                                                                 }`}
                                                         >
                                                             {c.status}
@@ -658,7 +659,7 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                                                 </span>
                                             )}
                                         </td>
-                                        <td data-label="Staff" className={`${td} text-gray-700 md:px-5`}>
+                                        <td data-label="Staff" className={`${td} text-gray-600 md:px-5`}>
                                             {c.staff ?? "—"}
                                         </td>
                                     </tr>

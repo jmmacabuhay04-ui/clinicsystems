@@ -4,6 +4,7 @@ import { ArrowLeft, Stethoscope } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import ConfirmLink from "@/components/shared/confirm-link";
+import SearchInput from "@/components/shared/search-input";
 
 type Row = {
     record_id: number;
@@ -39,7 +40,7 @@ function PatientAvatar({ name, type }: { name: string; type: "student" | "employ
     return (
         <span
             aria-hidden="true"
-            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${type === "employee" ? "bg-amber-400 text-gray-900" : "bg-[#15664f] text-white"
+            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${type === "employee" ? "bg-amber-400 text-gray-900" : "bg-[#15664f] text-white"
                 }`}
         >
             {initials}
@@ -50,7 +51,7 @@ function PatientAvatar({ name, type }: { name: string; type: "student" | "employ
 function TypeBadge({ type }: { type: "student" | "employee" }) {
     return (
         <span
-            className={`inline-block whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ${type === "employee" ? "bg-amber-300 text-gray-900" : "bg-[#15664f] text-white"
+            className={`inline-block whitespace-nowrap rounded-full px-2.5 py-0.5 text-sm font-medium ${type === "employee" ? "bg-amber-300 text-gray-900" : "bg-[#15664f] text-white"
                 }`}
         >
             {type === "employee" ? "Employee" : "Student"}
@@ -140,14 +141,14 @@ export default async function ClinicVisitsPage({
                         </div>
                         <div>
                             <h1 className="text-xl font-semibold text-[#14532D]">All Clinic Visits</h1>
-                            <p className="text-xs text-gray-600">{total.toLocaleString("en-US")} total records</p>
+                            <p className="text-sm text-gray-600">{total.toLocaleString("en-US")} total records</p>
                         </div>
                     </div>
                 </div>
 
                 {/* Right side: Search (full width sa mobile) */}
                 <form method="get" className="flex w-full flex-wrap items-center gap-2 md:w-auto md:justify-end">
-                    <input
+                    <SearchInput
                         name="q"
                         defaultValue={q}
                         placeholder="Search name, ID or complaint..."
@@ -178,7 +179,7 @@ export default async function ClinicVisitsPage({
 
             <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
                 {rows.length === 0 ? (
-                    <p className="p-6 text-center text-sm text-gray-700">No clinic visits found.</p>
+                    <p className="p-6 text-center text-sm text-gray-600">No clinic visits found.</p>
                 ) : (
                     <>
                         {/* MOBILE: card list (walang horizontal scroll) */}
@@ -194,14 +195,14 @@ export default async function ClinicVisitsPage({
                                             <PatientAvatar name={name} type={r.patient_type} />
                                             <div className="min-w-0 flex-1">
                                                 <p className="break-words text-sm font-medium text-gray-900">{name}</p>
-                                                <p className="text-xs text-gray-600">ID: {r.ref_number}</p>
-                                                <p className="mt-1 break-words text-sm text-gray-700">
-                                                    <span className="text-gray-500">Complaint: </span>
+                                                <p className="text-sm text-gray-600">ID: {r.ref_number}</p>
+                                                <p className="mt-1 break-words text-sm text-gray-600">
+                                                    <span className="text-gray-600">Complaint: </span>
                                                     {r.complaint}
                                                 </p>
                                                 <div className="mt-1.5 flex flex-wrap items-center gap-2">
                                                     <TypeBadge type={r.patient_type} />
-                                                    <span className="text-xs text-gray-600">
+                                                    <span className="text-sm text-gray-600">
                                                         {formatVisitDate(r.visit_date)}
                                                     </span>
                                                 </div>
@@ -241,7 +242,7 @@ export default async function ClinicVisitsPage({
                                                 key={`${r.patient_type}-${r.record_id}`}
                                                 className="border-t border-gray-100"
                                             >
-                                                <td className="whitespace-nowrap px-3 py-2 text-gray-700">
+                                                <td className="whitespace-nowrap px-3 py-2 text-gray-600">
                                                     {r.ref_number}
                                                 </td>
                                                 <td className="px-3 py-2 font-medium text-gray-900">
@@ -250,11 +251,11 @@ export default async function ClinicVisitsPage({
                                                         <span>{name}</span>
                                                     </div>
                                                 </td>
-                                                <td className="px-3 py-2 text-gray-700">{r.complaint}</td>
+                                                <td className="px-3 py-2 text-gray-600">{r.complaint}</td>
                                                 <td className="px-3 py-2">
                                                     <TypeBadge type={r.patient_type} />
                                                 </td>
-                                                <td className="whitespace-nowrap px-3 py-2 text-gray-700">
+                                                <td className="whitespace-nowrap px-3 py-2 text-gray-600">
                                                     {formatVisitDate(r.visit_date)}
                                                 </td>
                                                 <td className="px-3 py-2 text-center">
@@ -262,7 +263,7 @@ export default async function ClinicVisitsPage({
                                                         href={viewHref(r)}
                                                         title="View health record"
                                                         message={confirmMessage(name)}
-                                                        className="inline-block rounded-md bg-[#15664f] px-3 py-1 text-xs font-medium text-white hover:bg-[#124f3d]"
+                                                        className="inline-block rounded-md bg-[#15664f] px-3 py-1 text-sm font-medium text-white hover:bg-[#124f3d]"
                                                     >
                                                         View
                                                     </ConfirmLink>

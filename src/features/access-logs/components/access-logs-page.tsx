@@ -5,6 +5,7 @@ import { getSession } from "@/lib/auth/session";
 import { getAccessLogs } from "@/lib/access-log";
 import AutoSubmitSelect from "@/components/shared/auto-submit-select";
 import ListPagination from "@/components/shared/list-pagination";
+import SearchInput from "@/components/shared/search-input";
 
 const BASE = "/dashboard/access-logs";
 const PAGE_SIZE = 20;
@@ -24,7 +25,7 @@ const ROLE_STYLES: Record<string, string> = {
 };
 
 const ACTION_STYLES: Record<string, string> = {
-    view: "bg-gray-100 text-gray-700",
+    view: "bg-gray-100 text-gray-600",
     create: "bg-emerald-100 text-emerald-800",
     update: "bg-amber-100 text-amber-800",
     delete: "bg-red-100 text-red-800",
@@ -72,7 +73,7 @@ function formatWhen(value: Date | string) {
 
 function Pill({ className, children }: { className: string; children: React.ReactNode }) {
     return (
-        <span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${className}`}>
+        <span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-0.5 text-sm font-semibold capitalize ${className}`}>
             {children}
         </span>
     );
@@ -146,7 +147,7 @@ export default async function AccessLogsPage({ searchParams }: Props) {
             {/* Read-only notice */}
             <div className="flex items-start gap-3 rounded-xl border-2 border-[#cfe5d9] bg-[#eef6f2] p-4 text-sm">
                 <Lock className="mt-0.5 h-5 w-5 shrink-0 text-[#15664f]" />
-                <p className="text-gray-700">
+                <p className="text-gray-600">
                     <span className="font-semibold text-gray-900">Read-only audit trail.</span> Entries cannot be edited
                     or deleted from within the system.
                 </p>
@@ -165,7 +166,7 @@ export default async function AccessLogsPage({ searchParams }: Props) {
                                 <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
                             </div>
                             <div className="min-w-0">
-                                <p className="truncate text-xs text-gray-600 sm:text-sm">{s.label}</p>
+                                <p className="truncate text-sm text-gray-600 sm:text-sm">{s.label}</p>
                                 <p className="text-xl font-bold text-gray-900 sm:text-2xl">{s.value}</p>
                             </div>
                         </div>
@@ -177,8 +178,8 @@ export default async function AccessLogsPage({ searchParams }: Props) {
                 {/* Filters */}
                 <form method="get" className="flex flex-wrap items-center gap-2 p-4 md:gap-3 md:px-6">
                     <div className="relative min-w-0 flex-1 basis-64">
-                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                        <input
+                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-600" />
+                        <SearchInput
                             name="q"
                             defaultValue={q}
                             autoComplete="off"
@@ -205,7 +206,7 @@ export default async function AccessLogsPage({ searchParams }: Props) {
                     {hasFilters && (
                         <Link
                             href={BASE}
-                            className="inline-flex h-11 items-center justify-center gap-1 rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                            className="inline-flex h-11 items-center justify-center gap-1 rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-600 hover:bg-gray-50"
                         >
                             <X className="h-4 w-4" />
                             Clear
@@ -219,7 +220,7 @@ export default async function AccessLogsPage({ searchParams }: Props) {
                         <p className="mt-3 text-base font-semibold text-gray-800">
                             {hasFilters ? "No entries match your filters" : "No access recorded yet"}
                         </p>
-                        <p className="mt-1 text-sm text-gray-500">
+                        <p className="mt-1 text-sm text-gray-600">
                             {hasFilters
                                 ? "Try a different search or action."
                                 : "Entries will appear here once someone opens a health record."}
@@ -235,32 +236,32 @@ export default async function AccessLogsPage({ searchParams }: Props) {
                                         <p className="min-w-0 break-words text-sm font-semibold text-gray-900">
                                             {log.actor_name ?? `User #${log.actor_id ?? "?"}`}
                                         </p>
-                                        <span className="shrink-0 text-xs text-gray-400">#{offset + i + 1}</span>
+                                        <span className="shrink-0 text-sm text-gray-600">#{offset + i + 1}</span>
                                     </div>
 
                                     <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                                        <Pill className={ROLE_STYLES[log.actor_role ?? ""] ?? "bg-gray-100 text-gray-700"}>
+                                        <Pill className={ROLE_STYLES[log.actor_role ?? ""] ?? "bg-gray-100 text-gray-600"}>
                                             {log.actor_role ?? "unknown"}
                                         </Pill>
-                                        <Pill className={ACTION_STYLES[log.action] ?? "bg-gray-100 text-gray-700"}>
+                                        <Pill className={ACTION_STYLES[log.action] ?? "bg-gray-100 text-gray-600"}>
                                             {log.action}
                                         </Pill>
                                     </div>
 
-                                    <p className="mt-2 text-xs text-gray-600">{formatWhen(log.created_at)}</p>
+                                    <p className="mt-2 text-sm text-gray-600">{formatWhen(log.created_at)}</p>
 
                                     <dl className="mt-2 space-y-1 border-t border-gray-100 pt-2">
                                         <div className="flex gap-2 text-sm">
-                                            <dt className="w-16 shrink-0 text-gray-500">Record</dt>
+                                            <dt className="w-16 shrink-0 text-gray-600">Record</dt>
                                             <dd className="min-w-0 flex-1 break-words text-gray-900">
                                                 {TYPE_LABELS[log.record_type] ?? log.record_type}
                                                 {log.subject_number ? (
-                                                    <span className="block text-xs text-gray-500">
+                                                    <span className="block text-sm text-gray-600">
                                                         {log.subject_number}
                                                         {log.subject_name ? ` · ${log.subject_name}` : ""}
                                                     </span>
                                                 ) : log.record_id ? (
-                                                    <span className="block text-xs text-gray-400">
+                                                    <span className="block text-sm text-gray-600">
                                                         #{log.record_id}
                                                         {PERSON_TYPES.has(log.record_type) ? " (deleted)" : ""}
                                                     </span>
@@ -269,7 +270,7 @@ export default async function AccessLogsPage({ searchParams }: Props) {
                                         </div>
                                         {log.detail && (
                                             <div className="flex gap-2 text-sm">
-                                                <dt className="w-16 shrink-0 text-gray-500">Details</dt>
+                                                <dt className="w-16 shrink-0 text-gray-600">Details</dt>
                                                 <dd className="min-w-0 flex-1 break-words text-gray-900">{log.detail}</dd>
                                             </div>
                                         )}
@@ -281,7 +282,7 @@ export default async function AccessLogsPage({ searchParams }: Props) {
                         {/* DESKTOP: table */}
                         <div className="hidden border-t border-gray-100 md:block">
                             <table className="w-full text-left text-sm">
-                                <thead className="bg-[#f6faf8] text-xs uppercase tracking-wide text-gray-600">
+                                <thead className="bg-[#f6faf8] text-sm uppercase tracking-wide text-gray-600">
                                     <tr>
                                         <th className="whitespace-nowrap px-4 py-3 font-semibold">No.</th>
                                         <th className="whitespace-nowrap px-4 py-3 font-semibold">Date &amp; Time</th>
@@ -294,8 +295,8 @@ export default async function AccessLogsPage({ searchParams }: Props) {
                                 <tbody>
                                     {rows.map((log, i) => (
                                         <tr key={log.id} className="border-t border-gray-100 hover:bg-[#f6faf8]">
-                                            <td className="px-4 py-3 align-middle text-gray-400">{offset + i + 1}</td>
-                                            <td className="whitespace-nowrap px-4 py-3 align-middle text-gray-700">
+                                            <td className="px-4 py-3 align-middle text-gray-600">{offset + i + 1}</td>
+                                            <td className="whitespace-nowrap px-4 py-3 align-middle text-gray-600">
                                                 {formatWhen(log.created_at)}
                                             </td>
                                             <td className="px-4 py-3 align-middle">
@@ -303,13 +304,13 @@ export default async function AccessLogsPage({ searchParams }: Props) {
                                                     {log.actor_name ?? `User #${log.actor_id ?? "?"}`}
                                                 </p>
                                                 <div className="mt-1">
-                                                    <Pill className={ROLE_STYLES[log.actor_role ?? ""] ?? "bg-gray-100 text-gray-700"}>
+                                                    <Pill className={ROLE_STYLES[log.actor_role ?? ""] ?? "bg-gray-100 text-gray-600"}>
                                                         {log.actor_role ?? "unknown"}
                                                     </Pill>
                                                 </div>
                                             </td>
                                             <td className="px-4 py-3 align-middle">
-                                                <Pill className={ACTION_STYLES[log.action] ?? "bg-gray-100 text-gray-700"}>
+                                                <Pill className={ACTION_STYLES[log.action] ?? "bg-gray-100 text-gray-600"}>
                                                     {log.action}
                                                 </Pill>
                                             </td>
@@ -318,18 +319,18 @@ export default async function AccessLogsPage({ searchParams }: Props) {
                                                     {TYPE_LABELS[log.record_type] ?? log.record_type}
                                                 </span>
                                                 {log.subject_number ? (
-                                                    <span className="block text-xs text-gray-500">
+                                                    <span className="block text-sm text-gray-600">
                                                         {log.subject_number}
                                                         {log.subject_name ? ` · ${log.subject_name}` : ""}
                                                     </span>
                                                 ) : log.record_id ? (
-                                                    <span className="block text-xs text-gray-400">
+                                                    <span className="block text-sm text-gray-600">
                                                         #{log.record_id}
                                                         {PERSON_TYPES.has(log.record_type) ? " (deleted)" : ""}
                                                     </span>
                                                 ) : null}
                                             </td>
-                                            <td className="px-4 py-3 align-middle text-gray-700">{log.detail ?? "—"}</td>
+                                            <td className="px-4 py-3 align-middle text-gray-600">{log.detail ?? "—"}</td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -349,7 +350,7 @@ export default async function AccessLogsPage({ searchParams }: Props) {
                 )}
             </section>
 
-            <p className="text-xs text-gray-500">
+            <p className="text-sm text-gray-600">
                 Showing the latest 300 entries. The IP address of every entry is also recorded in the
                 <span className="font-mono"> record_access_logs </span>
                 table for investigations.

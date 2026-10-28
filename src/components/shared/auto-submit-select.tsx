@@ -6,6 +6,8 @@ type Props = {
     defaultValue: string;
     options: string[];
     allLabel?: string;
+    /** Opsyonal na ipapakitang label bawat value (hal. { student: "Students (12)" }) */
+    labels?: Record<string, string>;
     className?: string;
 };
 
@@ -14,6 +16,7 @@ export default function AutoSubmitSelect({
     defaultValue,
     options,
     allLabel = "All",
+    labels,
     className,
 }: Props) {
     return (
@@ -27,7 +30,7 @@ export default function AutoSubmitSelect({
             <option value="">{allLabel}</option>
             {options.map((o) => (
                 <option key={o} value={o}>
-                    {o}
+                    {labels?.[o] ?? o}
                 </option>
             ))}
         </select>

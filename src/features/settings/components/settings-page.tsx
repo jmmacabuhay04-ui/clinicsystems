@@ -1,10 +1,12 @@
 import { redirect } from "next/navigation";
-import { Clock, History, KeyRound, Monitor, Settings } from "lucide-react";
+import { Clock, History, KeyRound, Monitor, Settings, UserRound } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { canManageAccounts } from "@/lib/permissions";
 import PasswordForm from "./password-form";
 import SessionForm from "./session-form";
+import DisplayNameForm from "./display-name-form";
+import { staffDisplayName } from "@/lib/display-name";
 import PortalAvatarForm from "@/components/shared/portal-avatar-form";
 import { saveAvatar, removeAvatar } from "@/features/settings/actions";
 
@@ -23,7 +25,7 @@ const card = "rounded-xl border-2 border-[#cfe5d9] bg-white shadow-md shadow-[#1
 const tr =
     "mb-3 block rounded-lg border border-gray-200 py-2 md:mb-0 md:table-row md:rounded-none md:border-0 md:border-t md:border-gray-100 md:py-0 md:hover:bg-[#f6faf8]";
 const td =
-    "flex items-start justify-between gap-3 px-4 py-1.5 text-right text-sm before:shrink-0 before:text-left before:text-xs before:font-semibold before:uppercase before:text-gray-500 before:content-[attr(data-label)] md:table-cell md:py-3 md:text-left md:align-middle md:before:hidden";
+    "flex items-start justify-between gap-3 px-4 py-1.5 text-right text-sm before:shrink-0 before:text-left before:text-sm before:font-semibold before:uppercase before:text-gray-600 before:content-[attr(data-label)] md:table-cell md:py-3 md:text-left md:align-middle md:before:hidden";
 
 function formatWhen(date: Date) {
     return new Date(date).toLocaleString("en-US", {
@@ -43,6 +45,15 @@ export default async function SettingsPage() {
     const isAdmin = canManageAccounts(session.role);
 
     const user = await prisma.user.findUnique({ where: { user_id: session.userId } });
+    const displayName = staffDisplayName(user?.full_name, session.username, session.role);
+    const ROLE_LABELS: Record<string, string> = {
+        admin: "Administrator",
+        doctor: "Doctor",
+        dentist: "Dentist",
+        nurse: "Nurse",
+        ittech: "IT Technician",
+    };
+    const roleLabel = ROLE_LABELS[session.role] ?? session.role;
 
     const logs = isAdmin
         ? await prisma.$queryRaw<LogRow[]>`
@@ -72,15 +83,30 @@ export default async function SettingsPage() {
                 </div>
             </div>
 
-            {/* Profile picture (i-click ang bilog para lumabas ang camera) */}
+            {/* Profile picture (i-click ang bilog para lumabas ang camera).
+                Display Name ang ipinapakita, hindi na ang email. */}
             <PortalAvatarForm
                 current={user?.avatar ?? null}
-                initials={session.username.charAt(0).toUpperCase()}
-                fullName={session.username}
-                subtitle={session.role}
+                initials={displayName.replace(/^Dr\.?\s*/i, "").charAt(0).toUpperCase()}
+                fullName={displayName}
+                subtitle={roleLabel}
                 saveAction={saveAvatar}
                 removeAction={removeAvatar}
             />
+
+            {/* Display Name: pangalang lalabas sa dashboard at sidebar */}
+            <section className={`${card} min-w-0 p-5 md:p-6`}>
+                <div className="mb-5 flex items-start gap-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#eef6f2] text-[#15664f]">
+                        <UserRound className="h-5 w-5" />
+                    </span>
+                    <div>
+                        <h2 className="text-lg font-semibold text-gray-900">Display Name</h2>
+                        <p className="text-sm text-gray-600">Set the name others see instead of your email.</p>
+                    </div>
+                </div>
+                <DisplayNameForm current={user?.full_name ?? ""} email={session.username} />
+            </section>
 
             <div className="grid gap-6 lg:grid-cols-2">
                 {/* Change password */}
@@ -91,7 +117,7 @@ export default async function SettingsPage() {
                         </span>
                         <div>
                             <h2 className="text-lg font-semibold text-gray-900">Change Password</h2>
-                            <p className="text-sm text-gray-500">Update the password you use to sign in.</p>
+                            <p className="text-sm text-gray-600">Update the password you use to sign in.</p>
                         </div>
                     </div>
                     <PasswordForm />
@@ -105,7 +131,7 @@ export default async function SettingsPage() {
                         </span>
                         <div>
                             <h2 className="text-lg font-semibold text-gray-900">Session &amp; Login</h2>
-                            <p className="text-sm text-gray-500">Control auto-logout and two-factor authentication.</p>
+                            <p className="text-sm text-gray-600">Control auto-logout and two-factor authentication.</p>
                         </div>
                     </div>
                     <SessionForm minutes={user?.session_minutes ?? 60} twoFactor={user?.two_factor ?? false} />
@@ -121,17 +147,17 @@ export default async function SettingsPage() {
                         </span>
                         <div>
                             <h2 className="text-lg font-semibold text-gray-900">Recent Login Activity</h2>
-                            <p className="text-sm text-gray-500">
+                            <p className="text-sm text-gray-600">
                                 {isAdmin ? "Latest 15 sign-ins across all accounts." : "Your latest 15 sign-ins."}
                             </p>
                         </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                        <span className="rounded-full bg-[#eef6f2] px-3 py-1 text-xs font-semibold text-[#15664f]">
+                        <span className="rounded-full bg-[#eef6f2] px-3 py-1 text-sm font-semibold text-[#15664f]">
                             {logs.length - failedCount} successful
                         </span>
                         {failedCount > 0 && (
-                            <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
+                            <span className="rounded-full bg-red-100 px-3 py-1 text-sm font-semibold text-red-700">
                                 {failedCount} failed
                             </span>
                         )}
@@ -141,12 +167,12 @@ export default async function SettingsPage() {
                 {logs.length === 0 ? (
                     <div className="flex flex-col items-center border-t border-gray-100 p-10 text-center">
                         <History className="h-12 w-12 text-[#15664f]/30" />
-                        <p className="mt-3 text-sm text-gray-500">No login activity yet.</p>
+                        <p className="mt-3 text-sm text-gray-600">No login activity yet.</p>
                     </div>
                 ) : (
                     <div className="border-t border-gray-100 p-3 md:overflow-x-auto md:p-0">
                         <table className="block w-full text-left md:table">
-                            <thead className="hidden bg-[#f6faf8] text-xs uppercase tracking-wide text-gray-600 md:table-header-group">
+                            <thead className="hidden bg-[#f6faf8] text-sm uppercase tracking-wide text-gray-600 md:table-header-group">
                                 <tr>
                                     <th className="px-4 py-3 font-semibold">Account</th>
                                     <th className="whitespace-nowrap px-4 py-3 font-semibold">Date &amp; Time</th>
@@ -160,18 +186,18 @@ export default async function SettingsPage() {
                                         <td data-label="Account" className={`${td} break-all font-medium text-gray-900`}>
                                             {l.username}
                                         </td>
-                                        <td data-label="Date & Time" className={`${td} text-gray-700 md:whitespace-nowrap`}>
+                                        <td data-label="Date & Time" className={`${td} text-gray-600 md:whitespace-nowrap`}>
                                             {formatWhen(l.created_at)}
                                         </td>
                                         <td data-label="Device" className={`${td} break-words text-gray-600`}>
                                             <span className="inline-flex items-center gap-1.5">
-                                                <Monitor className="h-4 w-4 shrink-0 text-gray-400" />
+                                                <Monitor className="h-4 w-4 shrink-0 text-gray-600" />
                                                 {l.device ?? "—"}
                                             </span>
                                         </td>
                                         <td data-label="Status" className={td}>
                                             <span
-                                                className={`rounded-full px-3 py-1 text-xs font-semibold ${l.status === "success" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                                                className={`rounded-full px-3 py-1 text-sm font-semibold ${l.status === "success" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
                                                     }`}
                                             >
                                                 {l.status === "success" ? "Success" : "Failed"}

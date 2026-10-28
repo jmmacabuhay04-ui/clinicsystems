@@ -8,6 +8,9 @@ import ConfirmLink from "@/components/shared/confirm-link";
 import AutoSubmitSelect from "@/components/shared/auto-submit-select";
 import ListPagination from "@/components/shared/list-pagination";
 import DentalRecordDetail from "@/features/dental-records/components/dental-record-detail";
+import SearchInput from "@/components/shared/search-input";
+import RowActionMenu, { type RowAction } from "@/components/shared/row-action-menu";
+import { PersonAvatar, addButtonClass, listCardClass, listSearchClass, listSelectClass } from "@/components/shared/list-ui";
 
 const BASE = "/dashboard/dental-records";
 const PAGE_SIZE = 10;
@@ -44,27 +47,6 @@ type Props = {
 const STATUS_LABELS: Record<string, string> = { completed: "Completed", "follow-up": "Follow-up" };
 const LABEL_TO_STATUS: Record<string, string> = { Completed: "completed", "Follow-up": "follow-up" };
 
-const fieldClass =
-    "h-11 w-full rounded-lg border border-gray-300 bg-white text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20";
-
-// Custom tooth icon (walang tooth icon ang lucide)
-function ToothIcon({ className }: { className?: string }) {
-    return (
-        <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className={className}
-            aria-hidden="true"
-        >
-            <path d="M7 3C5 3 3.5 4.7 3.5 7C3.5 9 4.3 10.4 4.9 12C5.5 13.7 5.5 15.5 6 17.2C6.4 18.7 7.2 21 8.5 21C10 21 10.1 18.4 10.6 16.7C10.8 16 11.2 15.5 12 15.5C12.8 15.5 13.2 16 13.4 16.7C13.9 18.4 14 21 15.5 21C16.8 21 17.6 18.7 18 17.2C18.5 15.5 18.5 13.7 19.1 12C19.7 10.4 20.5 9 20.5 7C20.5 4.7 19 3 17 3C15.3 3 14.4 4 12 4C9.6 4 8.7 3 7 3Z" />
-        </svg>
-    );
-}
-
 function fmt(date: Date) {
     return new Date(date).toLocaleDateString("en-US", {
         month: "short",
@@ -74,25 +56,14 @@ function fmt(date: Date) {
     });
 }
 
-function PatientAvatar({ d }: { d: DentalRow }) {
-    if (d.avatar) {
-        return (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-                src={d.avatar}
-                alt=""
-                className={`h-10 w-10 shrink-0 rounded-full object-cover ring-2 ${d.patient_type === "employee" ? "ring-amber-300" : "ring-[#15664f]/40"
-                    }`}
-            />
-        );
-    }
-    const initials = `${d.first_name?.[0] ?? ""}${d.last_name?.[0] ?? ""}`.toUpperCase();
+// Student = green, Employee = dilaw
+function TypeBadge({ type }: { type: "student" | "employee" }) {
     return (
         <span
-            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-bold ${d.patient_type === "employee" ? "bg-amber-300 text-gray-900" : "bg-[#15664f] text-white"
+            className={`inline-block whitespace-nowrap rounded-full px-2.5 py-0.5 text-sm font-medium ${type === "employee" ? "bg-amber-300 text-gray-900" : "bg-[#15664f] text-white"
                 }`}
         >
-            {initials}
+            {type === "employee" ? "Employee" : "Student"}
         </span>
     );
 }
@@ -101,7 +72,7 @@ function StatusBadge({ status }: { status: string }) {
     const followUp = status === "follow-up";
     return (
         <span
-            className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${followUp ? "bg-amber-100 text-amber-800" : "bg-green-100 text-green-700"
+            className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-sm font-medium ${followUp ? "bg-amber-100 text-amber-800" : "bg-green-100 text-green-700"
                 }`}
         >
             <span className={`h-1.5 w-1.5 rounded-full ${followUp ? "bg-amber-500" : "bg-green-500"}`} />
@@ -219,45 +190,52 @@ export default async function DentalRecordsPage({ searchParams }: Props) {
     const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
     if (page > totalPages) redirect(hrefFor(totalPages));
 
-    const tabs = [
-        { key: "", label: "All", count: allCount, active: "bg-gray-900 text-white" },
-        { key: "student", label: "Students", count: countOf("student"), active: "bg-[#15664f] text-white" },
-        { key: "employee", label: "Employees", count: countOf("employee"), active: "bg-amber-300 text-gray-900" },
-    ];
+    // Pagpipilian sa "All Types" filter (may bilang)
+    const TYPE_OPTIONS: Record<string, string> = {
+        student: `Students (${countOf("student")})`,
+        employee: `Employees (${countOf("employee")})`,
+    };
 
     const patientName = records[0]
         ? `${records[0].first_name} ${records[0].last_name} (${records[0].patient_number})`
         : patientNumber;
 
-    // Isang button lang: View Record. Nasa loob ng record ang Edit at Archive.
-    const actions = (d: DentalRow) => (
-        <ConfirmLink
-            href={
-                // Walang access ang Dentist sa clinic health records, kaya ang dental record mismo ang bubuksan
-                isDentist
-                    ? `${BASE}?record=${d.dental_id}&from=list`
-                    : `/dashboard/${d.patient_type}-health-records?${d.patient_type}=${encodeURIComponent(d.patient_number)}&tab=dental`
-            }
-            title="View dental record"
-            message={`Open the dental record of ${d.first_name} ${d.last_name}? This contains confidential medical information and your access will be recorded.`}
-            className="inline-flex h-8 items-center rounded-md bg-[#15664f] px-4 text-xs font-semibold text-white hover:bg-[#10523f]"
-        >
-            View Record
-        </ConfirmLink>
-    );
+    // Mga pagpipilian sa "⋮" menu ng bawat row
+    const actions = (d: DentalRow): RowAction[] => [
+        {
+            label: "View Dental Record",
+            // Walang access ang Dentist sa clinic health records, kaya ang dental record mismo ang bubuksan
+            href: isDentist
+                ? `${BASE}?record=${d.dental_id}&from=list`
+                : `/dashboard/${d.patient_type}-health-records?${d.patient_type}=${encodeURIComponent(d.patient_number)}&tab=dental`,
+            title: "View dental record",
+            message: `Open the dental record of ${d.first_name} ${d.last_name}? This contains confidential medical information and your access will be recorded.`,
+            confirmLabel: "View",
+            icon: "view",
+        },
+        ...(canEdit
+            ? [
+                {
+                    label: "Edit Record",
+                    href: `${BASE}/edit?record=${d.dental_id}&back=${encodeURIComponent(hrefFor(page))}`,
+                    title: "Edit dental record",
+                    message: `Edit the dental record (${d.procedure_name}) of ${d.first_name} ${d.last_name}?`,
+                    confirmLabel: "Edit",
+                    icon: "edit" as const,
+                },
+            ]
+            : []),
+    ];
 
     return (
         <main className="min-w-0 space-y-6 p-4 pb-8 md:p-8">
             {/* Header */}
             <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                    <ToothIcon className="h-10 w-10 shrink-0 text-[#15664f]" />
-                    <div className="min-w-0">
-                        <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">Dental Records</h1>
-                        <p className="text-sm text-gray-600">
-                            {historyOnly ? `Dental history of ${patientName}.` : "Manage and view dental procedures of students and employees."}
-                        </p>
-                    </div>
+                <div className="min-w-0">
+                    <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">Dental Records</h1>
+                    <p className="mt-1 text-sm text-gray-600">
+                        {historyOnly ? `Dental history of ${patientName}.` : "Manage and view dental procedures of students and employees."}
+                    </p>
                 </div>
 
                 {canEdit ? (
@@ -267,13 +245,13 @@ export default async function DentalRecordsPage({ searchParams }: Props) {
                         message="Add a new dental record for a student or employee?"
                         confirmLabel="Continue"
                         icon={<Plus className="h-5 w-5" />}
-                        className="inline-flex h-11 shrink-0 items-center gap-2 rounded-lg bg-[#15664f] px-5 text-sm font-semibold text-white shadow-sm hover:bg-[#10523f]"
+                        className={addButtonClass}
                     >
                         <Plus className="h-4 w-4" />
                         Add Record
                     </ConfirmLink>
                 ) : (
-                    <span className="rounded-full bg-gray-200 px-3 py-1 text-xs font-medium text-gray-600">View only</span>
+                    <span className="rounded-full bg-gray-200 px-3 py-1 text-sm font-medium text-gray-600">View only</span>
                 )}
             </div>
 
@@ -287,115 +265,107 @@ export default async function DentalRecordsPage({ searchParams }: Props) {
                 </Link>
             )}
 
-            <section className="overflow-hidden rounded-xl border-2 border-[#cfe5d9] bg-white shadow-md shadow-[#15664f]/10">
+            <section className={listCardClass}>
                 {!historyOnly && (
-                    <div className="space-y-4 p-4 md:p-5">
-                        {/* Patient type tabs */}
-                        <nav className="flex flex-wrap gap-2" aria-label="Patient type">
-                            {tabs.map((t) => {
-                                const active = type === t.key;
-                                return (
-                                    <Link
-                                        key={t.label}
-                                        href={hrefWith({ type: t.key, page: "" })}
-                                        aria-current={active ? "page" : undefined}
-                                        className={`inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${active ? t.active : "border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
-                                            }`}
-                                    >
-                                        {t.label}
-                                        <span
-                                            className={`rounded-full px-1.5 text-xs ${active ? "bg-white/25" : "bg-gray-100 text-gray-600"}`}
-                                        >
-                                            {t.count}
-                                        </span>
-                                    </Link>
-                                );
-                            })}
-                        </nav>
-
-                        {/* Search + status */}
-                        <form method="get" action={BASE} className="grid gap-3 md:grid-cols-[1fr_12rem]">
-                            {type && <input type="hidden" name="type" value={type} />}
-                            <div className="relative">
-                                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                                <input
-                                    name="q"
-                                    defaultValue={q}
-                                    autoComplete="off"
-                                    placeholder="Search by name, ID number, or procedure..."
-                                    suppressHydrationWarning
-                                    className={`${fieldClass} pl-10 pr-3`}
-                                />
-                            </div>
-                            <AutoSubmitSelect
-                                name="status"
-                                defaultValue={status ? STATUS_LABELS[status] : ""}
-                                options={Object.values(STATUS_LABELS)}
-                                allLabel="All statuses"
-                                className={`${fieldClass} px-3`}
+                    // Filters sa kaliwa, search sa kanan
+                    <form
+                        method="get"
+                        action={BASE}
+                        className="grid gap-3 p-4 sm:grid-cols-2 md:p-5 lg:grid-cols-[12rem_12rem_minmax(0,1fr)]"
+                    >
+                        <AutoSubmitSelect
+                            name="type"
+                            defaultValue={type}
+                            options={["student", "employee"]}
+                            labels={TYPE_OPTIONS}
+                            allLabel={`All Types (${allCount})`}
+                            className={listSelectClass}
+                        />
+                        <AutoSubmitSelect
+                            name="status"
+                            defaultValue={status ? STATUS_LABELS[status] : ""}
+                            options={Object.values(STATUS_LABELS)}
+                            allLabel="All Statuses"
+                            className={listSelectClass}
+                        />
+                        <div className="relative sm:col-span-2 lg:col-span-1 lg:ml-auto lg:w-full lg:max-w-sm">
+                            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-600" />
+                            <SearchInput
+                                name="q"
+                                defaultValue={q}
+                                autoComplete="off"
+                                placeholder="Search name, ID, or procedure..."
+                                suppressHydrationWarning
+                                className={listSearchClass}
                             />
-                        </form>
-                    </div>
+                        </div>
+                    </form>
                 )}
 
                 {records.length === 0 ? (
-                    <p className="border-t border-gray-100 p-8 text-center text-sm text-gray-500">No dental records found.</p>
+                    <p className="border-t border-gray-100 p-8 text-center text-sm text-gray-600">No dental records found.</p>
                 ) : (
                     <>
                         {/* MOBILE: card list */}
                         <ul className="space-y-2 border-t border-gray-100 p-3 md:hidden">
                             {records.map((d) => (
-                                <li key={d.dental_id} className="rounded-lg border border-gray-200 p-3">
-                                    {/* Kapareho ng card sa Student Health Records */}
-                                    <div className="flex items-center gap-3">
-                                        <PatientAvatar d={d} />
-                                        <div className="min-w-0">
-                                            <p className="break-words text-sm font-semibold text-gray-900">
-                                                {d.first_name} {d.last_name}
-                                            </p>
-                                            <p className="text-xs text-gray-500">{d.patient_number}</p>
+                                <li key={d.dental_id} className="flex items-start gap-3 rounded-xl border border-[#e4ede8] p-3">
+                                    <PersonAvatar src={d.avatar} first={d.first_name} last={d.last_name} type={d.patient_type} />
+                                    <div className="min-w-0 flex-1">
+                                        <p className="break-words text-sm font-semibold text-gray-900">
+                                            {d.first_name} {d.last_name}
+                                        </p>
+                                        <p className="text-sm text-gray-600">{d.patient_number}</p>
+                                        <p className="mt-1 text-sm text-gray-600">
+                                            {d.procedure_name} · {fmt(d.visit_date)}
+                                        </p>
+                                        <div className="mt-2 flex flex-wrap gap-2">
+                                            <TypeBadge type={d.patient_type} />
+                                            <StatusBadge status={d.status} />
                                         </div>
                                     </div>
-                                    <p className="mt-1 text-sm text-gray-700">
-                                        {d.procedure_name} · {fmt(d.visit_date)}
-                                    </p>
-                                    <div className="mt-3">{actions(d)}</div>
+                                    <RowActionMenu actions={actions(d)} />
                                 </li>
                             ))}
                         </ul>
 
                         {/* DESKTOP: table */}
                         <div className="hidden overflow-x-auto md:block">
-                            {/* Kapareho ng table sa Student Health Records */}
                             <table className="w-full text-left text-sm">
-                                <thead className="border-y border-gray-200 bg-[#f6faf8] text-gray-700">
+                                <thead className="border-y border-[#e4ede8] bg-[#f6faf8] text-gray-600">
                                     <tr>
                                         <th className="whitespace-nowrap px-5 py-3 font-semibold">ID Number</th>
-                                        <th className="px-5 py-3 font-semibold">Full Name</th>
+                                        <th className="px-5 py-3 font-semibold">Name</th>
+                                        <th className="px-5 py-3 font-semibold">Type</th>
                                         <th className="whitespace-nowrap px-5 py-3 font-semibold">Visit Date</th>
                                         <th className="px-5 py-3 font-semibold">Procedure</th>
                                         <th className="px-5 py-3 font-semibold">Status</th>
-                                        <th className="px-5 py-3 font-semibold">Action</th>
+                                        <th className="px-5 py-3 text-center font-semibold">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {records.map((d) => (
                                         <tr key={d.dental_id} className="border-t border-gray-100 hover:bg-[#f6faf8]">
-                                            <td className="whitespace-nowrap px-5 py-4 font-medium text-gray-900">{d.patient_number}</td>
-                                            <td className="px-5 py-4 text-gray-900">
+                                            <td className="whitespace-nowrap px-5 py-3 text-gray-600">{d.patient_number}</td>
+                                            <td className="px-5 py-3">
                                                 <div className="flex items-center gap-3">
-                                                    <PatientAvatar d={d} />
-                                                    <span className="font-medium">
+                                                    <PersonAvatar src={d.avatar} first={d.first_name} last={d.last_name} type={d.patient_type} />
+                                                    <span className="font-medium text-gray-900">
                                                         {d.first_name} {d.last_name}
                                                     </span>
                                                 </div>
                                             </td>
-                                            <td className="whitespace-nowrap px-5 py-4 text-gray-700">{fmt(d.visit_date)}</td>
-                                            <td className="px-5 py-4 text-gray-700">{d.procedure_name}</td>
-                                            <td className="px-5 py-4">
+                                            <td className="px-5 py-3">
+                                                <TypeBadge type={d.patient_type} />
+                                            </td>
+                                            <td className="whitespace-nowrap px-5 py-3 text-gray-600">{fmt(d.visit_date)}</td>
+                                            <td className="px-5 py-3 text-gray-600">{d.procedure_name}</td>
+                                            <td className="px-5 py-3">
                                                 <StatusBadge status={d.status} />
                                             </td>
-                                            <td className="whitespace-nowrap px-5 py-4">{actions(d)}</td>
+                                            <td className="px-5 py-3 text-center">
+                                                <RowActionMenu actions={actions(d)} />
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>

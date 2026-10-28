@@ -140,14 +140,14 @@ type Props = {
 function TypeBadges({ v }: { v: VisitItem }) {
     if (v.kind === "visit") {
         return (
-            <span className="whitespace-nowrap rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
+            <span className="whitespace-nowrap rounded-full bg-gray-100 px-2.5 py-0.5 text-sm font-medium text-gray-600">
                 Clinic Visit
             </span>
         );
     }
     return (
         <div className="flex flex-wrap items-center gap-2">
-            <span className="whitespace-nowrap rounded-full bg-[#eef6f2] px-2.5 py-0.5 text-xs font-medium text-[#15664f]">
+            <span className="whitespace-nowrap rounded-full bg-[#eef6f2] px-2.5 py-0.5 text-sm font-medium text-[#15664f]">
                 Case {v.caseNumber}
             </span>
             <StatusBadge status={v.status} />
@@ -158,7 +158,7 @@ function TypeBadges({ v }: { v: VisitItem }) {
 function StatusBadge({ status }: { status: string | null }) {
     return (
         <span
-            className={`rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${STATUS_STYLES[status ?? ""] ?? "bg-gray-100 text-gray-700"}`}
+            className={`rounded-full px-2.5 py-0.5 text-sm font-medium capitalize ${STATUS_STYLES[status ?? ""] ?? "bg-gray-100 text-gray-600"}`}
         >
             {status}
         </span>
@@ -213,7 +213,7 @@ function VisitActions({ v, padded }: { v: VisitItem; padded?: boolean }) {
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
     return (
         <div className="grid grid-cols-[8.5rem_1fr] gap-3 py-1.5 text-sm">
-            <dt className="text-gray-500">{label}</dt>
+            <dt className="text-gray-600">{label}</dt>
             <dd className="min-w-0 break-words text-gray-900">{value}</dd>
         </div>
     );
@@ -229,7 +229,7 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
 }
 
 function Empty({ children }: { children: React.ReactNode }) {
-    return <p className="p-8 text-center text-sm text-gray-500">{children}</p>;
+    return <p className="p-8 text-center text-sm text-gray-600">{children}</p>;
 }
 
 // ------------------------------------------------------------------ tables
@@ -245,16 +245,16 @@ function VisitTable({ visits, canEdit }: { visits: VisitItem[]; canEdit: boolean
                     <li key={v.key} className="rounded-lg border border-gray-300 p-3">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                             <TypeBadges v={v} />
-                            <span className="text-xs text-gray-600">{formatDate(v.date)}</span>
+                            <span className="text-sm text-gray-600">{formatDate(v.date)}</span>
                         </div>
                         <p className="mt-2 break-words text-sm font-semibold text-gray-900">{v.complaint}</p>
                         <dl className="mt-1 space-y-1">
                             <div className="flex gap-2 text-sm">
-                                <dt className="w-20 shrink-0 text-gray-500">Action</dt>
+                                <dt className="w-20 shrink-0 text-gray-600">Action</dt>
                                 <dd className="min-w-0 flex-1 break-words text-gray-900">{v.detail || "—"}</dd>
                             </div>
                             <div className="flex gap-2 text-sm">
-                                <dt className="w-20 shrink-0 text-gray-500">Staff</dt>
+                                <dt className="w-20 shrink-0 text-gray-600">Staff</dt>
                                 <dd className="min-w-0 flex-1 break-words text-gray-900">{v.staff || "—"}</dd>
                             </div>
                         </dl>
@@ -347,13 +347,13 @@ function CaseTable({ cases, canEdit, archiveReturnTo }: { cases: CaseRow[]; canE
                 {cases.map((c) => (
                     <li key={c.case_id} className="rounded-lg border border-gray-300 p-3">
                         <div className="flex flex-wrap items-center justify-between gap-2">
-                            <span className="rounded-full bg-[#eef6f2] px-2.5 py-0.5 text-xs font-semibold text-[#15664f]">
+                            <span className="rounded-full bg-[#eef6f2] px-2.5 py-0.5 text-sm font-semibold text-[#15664f]">
                                 Case {c.case_number}
                             </span>
                             <StatusBadge status={c.status} />
                         </div>
                         <p className="mt-2 break-words text-sm font-semibold text-gray-900">{c.complaint}</p>
-                        <p className="mt-0.5 text-xs text-gray-600">
+                        <p className="mt-0.5 text-sm text-gray-600">
                             {formatDate(c.report_date)} · {c.staff_name || "—"}
                         </p>
                         <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-gray-100 pt-2 text-sm">
@@ -400,7 +400,7 @@ function DentalStatus({ status }: { status: string }) {
     const followUp = status === "follow-up";
     return (
         <span
-            className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ${followUp ? "bg-amber-100 text-amber-800" : "bg-green-100 text-green-700"
+            className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-sm font-semibold ${followUp ? "bg-amber-100 text-amber-800" : "bg-green-100 text-green-700"
                 }`}
         >
             <span className={`h-1.5 w-1.5 rounded-full ${followUp ? "bg-amber-500" : "bg-green-500"}`} />
@@ -453,7 +453,7 @@ function DentalTable({ rows, patientParam, canEdit }: { rows: DentalRow[]; patie
                 </form>
             </>
         ) : (
-            <span className="text-gray-400">—</span>
+            <span className="text-gray-600">—</span>
         );
 
     return (
@@ -463,11 +463,11 @@ function DentalTable({ rows, patientParam, canEdit }: { rows: DentalRow[]; patie
                 {rows.map((d) => (
                     <li key={d.dental_id} className="rounded-lg border border-gray-300 p-3">
                         <div className="flex flex-wrap items-center justify-between gap-2">
-                            <span className="text-xs text-gray-600">{formatDate(d.visit_date)}</span>
+                            <span className="text-sm text-gray-600">{formatDate(d.visit_date)}</span>
                             <DentalStatus status={d.status} />
                         </div>
                         <p className="mt-2 break-words text-sm font-semibold text-gray-900 first-letter:uppercase">{d.procedure_name}</p>
-                        <p className="mt-0.5 text-xs text-gray-600">
+                        <p className="mt-0.5 text-sm text-gray-600">
                             Tooth: {toothText(d.tooth)} · {d.dentist_name || "—"}
                         </p>
                         <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-gray-100 pt-2 text-sm">
@@ -522,13 +522,13 @@ function ArchiveTable({ items }: { items: ArchivedItem[] }) {
                 {items.map((a) => (
                     <li key={a.key} className="rounded-lg border border-gray-300 p-3">
                         <div className="flex flex-wrap items-center justify-between gap-2">
-                            <span className="text-xs font-semibold text-gray-700">
+                            <span className="text-sm font-semibold text-gray-600">
                                 {a.kind === "visit" ? "Clinic Visit" : a.kind === "dental" ? "Dental Record" : `Case ${a.caseNumber}`}
                             </span>
-                            <span className="text-xs text-gray-600">Archived {formatDate(a.archived_at)}</span>
+                            <span className="text-sm text-gray-600">Archived {formatDate(a.archived_at)}</span>
                         </div>
                         <p className="mt-2 break-words text-sm font-semibold text-gray-900">{a.complaint}</p>
-                        <p className="mt-0.5 text-xs text-gray-600">Record date: {formatDate(a.date)}</p>
+                        <p className="mt-0.5 text-sm text-gray-600">Record date: {formatDate(a.date)}</p>
                     </li>
                 ))}
             </ul>
@@ -548,7 +548,7 @@ function ArchiveTable({ items }: { items: ArchivedItem[] }) {
                         {items.map((a) => (
                             <tr key={a.key} className="border-t border-gray-100">
                                 <td className="whitespace-nowrap px-4 py-3 text-gray-900">{formatDate(a.archived_at)}</td>
-                                <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                                <td className="whitespace-nowrap px-4 py-3 text-gray-600">
                                     {a.kind === "visit" ? "Clinic Visit" : a.kind === "dental" ? "Dental Record" : `Case ${a.caseNumber}`}
                                 </td>
                                 <td className="whitespace-nowrap px-4 py-3 text-gray-900">{formatDate(a.date)}</td>
@@ -665,7 +665,7 @@ export default function StudentRecordView({
             message={`Add a new visit record for ${student.first_name} ${student.last_name} (${student.student_number})?`}
             confirmLabel="Continue"
             icon={<Plus className="h-5 w-5" />}
-            className="inline-flex h-10 items-center gap-2 rounded-lg bg-amber-400 px-4 text-sm font-semibold text-gray-900 shadow-sm hover:bg-amber-500"
+            className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#15664f] px-4 text-sm font-semibold text-white shadow-sm hover:bg-[#10523f]"
         >
             <Plus className="h-4 w-4" />
             Add Record
@@ -730,7 +730,7 @@ export default function StudentRecordView({
                                 <p className="break-words text-lg font-semibold leading-tight text-gray-900">
                                     {student.first_name} {student.last_name}
                                 </p>
-                                <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${"bg-[#15664f] text-white"}`}>Student</span>
+                                <span className={`rounded-full px-2.5 py-0.5 text-sm font-semibold ${"bg-[#15664f] text-white"}`}>Student</span>
                             </div>
                             <p className="mt-1 whitespace-nowrap text-sm text-gray-600">{student.student_number}</p>
                         </div>
@@ -755,23 +755,23 @@ export default function StudentRecordView({
                             </div>
                             <div className="space-y-4 p-5">
                                 <div>
-                                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Complaint</p>
+                                    <p className="text-sm font-semibold uppercase tracking-wide text-gray-600">Complaint</p>
                                     <p className="mt-1 text-xl font-bold capitalize text-gray-900">{one.complaint}</p>
                                 </div>
                                 <div className="rounded-lg bg-[#f6faf8] p-4">
-                                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                    <p className="text-sm font-semibold uppercase tracking-wide text-gray-600">
                                         Treatment / Action Taken
                                     </p>
                                     <p className="mt-1 whitespace-pre-wrap text-sm text-gray-900">
-                                        {one.action_taken || <span className="italic text-gray-400">No treatment recorded.</span>}
+                                        {one.action_taken || <span className="italic text-gray-600">No treatment recorded.</span>}
                                     </p>
                                 </div>
                                 <div className="flex items-center gap-3 border-t border-gray-100 pt-4">
-                                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-gray-500">
+                                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-gray-600">
                                         <UserRound className="h-4 w-4" />
                                     </span>
                                     <div>
-                                        <p className="text-xs text-gray-500">Attending Staff</p>
+                                        <p className="text-sm text-gray-600">Attending Staff</p>
                                         <p className="text-sm font-semibold text-gray-900">{show(one.attending_staff)}</p>
                                     </div>
                                 </div>
@@ -795,7 +795,7 @@ export default function StudentRecordView({
                                                 <Icon className="h-5 w-5" />
                                             </span>
                                             <div className="min-w-0">
-                                                <p className="truncate text-xs text-gray-500">{vt.label}</p>
+                                                <p className="truncate text-sm text-gray-600">{vt.label}</p>
                                                 <p className="truncate text-base font-bold text-gray-900">{vt.value}</p>
                                             </div>
                                         </div>
@@ -805,7 +805,7 @@ export default function StudentRecordView({
                         </section>
                     </div>
                 ) : (
-                    <div className="rounded-xl border-2 border-dashed border-[#cfe5d9] bg-white p-10 text-center text-sm text-gray-500">
+                    <div className="rounded-xl border-2 border-dashed border-[#cfe5d9] bg-white p-10 text-center text-sm text-gray-600">
                         This visit record could not be found. It may have been archived.
                     </div>
                 )}
@@ -835,7 +835,7 @@ export default function StudentRecordView({
                     {addRecordLink}
                     {editStudentLink}
                     {!canEdit && !canEditStudent && (
-                        <span className="rounded-full bg-gray-200 px-3 py-1 text-xs font-medium text-gray-600">
+                        <span className="rounded-full bg-gray-200 px-3 py-1 text-sm font-medium text-gray-600">
                             View only
                         </span>
                     )}
@@ -916,7 +916,7 @@ export default function StudentRecordView({
                         >
                             {t.label}
                             <span
-                                className={`ml-2 rounded-full px-1.5 text-xs ${active ? "bg-white/20" : "bg-gray-100 text-gray-600"}`}
+                                className={`ml-2 rounded-full px-1.5 text-sm ${active ? "bg-white/20" : "bg-gray-100 text-gray-600"}`}
                             >
                                 {t.count}
                             </span>
@@ -940,7 +940,7 @@ export default function StudentRecordView({
                                 <InfoRow label="Last Check-up" value={latest ? formatDate(latest.date) : "—"} />
                             </dl>
                             {!hasForm && (
-                                <p className="mt-2 text-xs text-gray-500">
+                                <p className="mt-2 text-sm text-gray-600">
                                     No Student Health Form on file yet.{" "}
                                     <Link
                                         href={`/dashboard/student-health-form?student=${encodeURIComponent(student.student_number)}`}
@@ -972,7 +972,7 @@ export default function StudentRecordView({
                                     <InfoRow label="Attending Staff" value={show(latest.staff)} />
                                 </dl>
                             ) : (
-                                <p className="py-6 text-center text-sm text-gray-500">No records yet.</p>
+                                <p className="py-6 text-center text-sm text-gray-600">No records yet.</p>
                             )}
                         </Card>
                     </div>
@@ -980,7 +980,7 @@ export default function StudentRecordView({
                     <section>
                         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                             <h2 className="text-lg font-semibold text-[#15664f]">Visit History</h2>
-                            <p className="text-sm text-gray-700">All clinic visits, newest first. Case reports are in the Case Reports tab.</p>
+                            <p className="text-sm text-gray-600">All clinic visits, newest first. Case reports are in the Case Reports tab.</p>
                         </div>
                         <div className="overflow-hidden rounded-xl border-2 border-[#cfe5d9] bg-white shadow-md shadow-[#15664f]/10">
                             <VisitTable visits={clinicVisits} canEdit={canEdit} />
@@ -1014,7 +1014,7 @@ export default function StudentRecordView({
                                     <InfoRow label="Attending Staff" value={show(cases[0].staff_name)} />
                                 </dl>
                             ) : (
-                                <p className="py-6 text-center text-sm text-gray-500">No case reports yet.</p>
+                                <p className="py-6 text-center text-sm text-gray-600">No case reports yet.</p>
                             )}
                         </Card>
                     </div>
@@ -1023,7 +1023,7 @@ export default function StudentRecordView({
                         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                             <div>
                                 <h2 className="text-lg font-semibold text-[#15664f]">Case History</h2>
-                                <p className="text-sm text-gray-700">All health case reports, newest first.</p>
+                                <p className="text-sm text-gray-600">All health case reports, newest first.</p>
                             </div>
                         </div>
                         <div className="overflow-hidden rounded-xl border-2 border-[#cfe5d9] bg-white shadow-md shadow-[#15664f]/10">
@@ -1062,7 +1062,7 @@ export default function StudentRecordView({
                                     <InfoRow label="Status" value={<DentalStatus status={dental[0].status} />} />
                                 </dl>
                             ) : (
-                                <p className="py-6 text-center text-sm text-gray-500">No dental records yet.</p>
+                                <p className="py-6 text-center text-sm text-gray-600">No dental records yet.</p>
                             )}
                         </Card>
                     </div>
@@ -1070,7 +1070,7 @@ export default function StudentRecordView({
                     <section>
                         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                             <h2 className="text-lg font-semibold text-[#15664f]">Dental History</h2>
-                            <p className="text-sm text-gray-700">All dental visits, newest first.</p>
+                            <p className="text-sm text-gray-600">All dental visits, newest first.</p>
                         </div>
                         <div className="overflow-hidden rounded-xl border-2 border-[#cfe5d9] bg-white shadow-md shadow-[#15664f]/10">
                             <DentalTable canEdit={canEditDental} rows={dental} patientParam={`student=${encodeURIComponent(student.student_number)}`} />

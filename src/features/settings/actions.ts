@@ -123,3 +123,35 @@ export async function removeAvatar() {
 
     revalidatePath("/dashboard", "layout");
 }
+export type NameState = { error?: string; success?: string };
+
+/** Pangalang ipapakita sa dashboard at sidebar, kapalit ng email. */
+export async function saveDisplayName(_prev: NameState, formData: FormData): Promise<NameState> {
+    const session = await getSession();
+    if (!session) return { error: "Your session has expired. Please sign in again." };
+
+    const name = String(formData.get("displayName") ?? "")
+        .replace(/\s+/g, " ")
+        .trim();
+
+    if (name.length < 2) return { error: "Please enter at least 2 characters." };
+    if (name.length > 60) return { error: "Display name must be 60 characters or less." };
+    if (!/^[\p{L}][\p{L} .'-]*$/u.test(name)) {
+        return { error: "Use letters, spaces, periods, hyphens, or apostrophes only." };
+    }
+    if (name.includes("@")) return { error: "Please do not use an email address." };
+
+    try {
+        await prisma.user.update({
+            where: { user_id: session.userId },
+            data: { full_name: name },
+        });
+    } catch (err) {
+        console.error("Save display name error:", err);
+        return { error: "Could not save your display name. Please try again." };
+    }
+
+    // Para magbago agad ang pangalan sa sidebar at dashboard
+    revalidatePath("/dashboard", "layout");
+    return { success: "Display name saved." };
+}

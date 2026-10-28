@@ -9,6 +9,8 @@ export type StudentListRow = {
     middle_name: string | null;
     grade_level: string | null;
     program: string | null;
+    /** Kasarian (kasama na sa listahan para sa Gender column) */
+    gender?: string | null;
     /** Profile picture (data URL); wala sa ibang query kaya optional. */
     avatar?: string | null;
 };

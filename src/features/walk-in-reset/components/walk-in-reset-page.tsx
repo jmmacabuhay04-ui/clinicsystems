@@ -20,6 +20,7 @@ import {
     UserRoundSearch,
     X,
 } from "lucide-react";
+import SearchInput from "@/components/shared/search-input";
 
 const BASE = "/dashboard/walk-in-reset";
 
@@ -60,7 +61,7 @@ function StepCard({
         >
             <div className="flex items-start gap-3">
                 <span
-                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold ${amber ? "bg-amber-300 text-gray-900" : "bg-[#15664f] text-white"
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${amber ? "bg-amber-300 text-gray-900" : "bg-[#15664f] text-white"
                         }`}
                 >
                     {step}
@@ -210,7 +211,7 @@ export default async function WalkInResetPage({
                             </span>
                             <div>
                                 <h2 className="text-lg font-semibold text-gray-900">Find the Account</h2>
-                                <p className="text-sm text-gray-500">Choose the account type, then search by name or ID number.</p>
+                                <p className="text-sm text-gray-600">Choose the account type, then search by name or ID number.</p>
                             </div>
                         </div>
 
@@ -236,8 +237,8 @@ export default async function WalkInResetPage({
                         <form className="mt-4 flex flex-wrap gap-2" action={BASE} method="get">
                             <input type="hidden" name="type" value={type} />
                             <div className="relative min-w-0 flex-1 basis-60">
-                                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                                <input
+                                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-600" />
+                                <SearchInput
                                     type="text"
                                     name="q"
                                     autoComplete="off"
@@ -258,7 +259,7 @@ export default async function WalkInResetPage({
                             {q && (
                                 <Link
                                     href={`${BASE}?type=${type}`}
-                                    className="inline-flex h-11 items-center justify-center gap-1 rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                                    className="inline-flex h-11 items-center justify-center gap-1 rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-600 hover:bg-gray-50"
                                 >
                                     <X className="h-4 w-4" />
                                     Clear
@@ -271,18 +272,18 @@ export default async function WalkInResetPage({
                             {!q ? (
                                 <div className="flex flex-col items-center rounded-lg border-2 border-dashed border-[#cfe5d9] p-8 text-center">
                                     <UserRoundSearch className="h-10 w-10 text-[#15664f]/30" />
-                                    <p className="mt-2 text-sm text-gray-500">
+                                    <p className="mt-2 text-sm text-gray-600">
                                         Search for the {type} standing in front of you.
                                     </p>
                                 </div>
                             ) : results.length === 0 ? (
                                 <div className="flex flex-col items-center rounded-lg border-2 border-dashed border-[#cfe5d9] p-8 text-center">
                                     <Search className="h-10 w-10 text-[#15664f]/30" />
-                                    <p className="mt-2 text-sm text-gray-500">No match found for &quot;{q}&quot;.</p>
+                                    <p className="mt-2 text-sm text-gray-600">No match found for &quot;{q}&quot;.</p>
                                 </div>
                             ) : (
                                 <>
-                                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                    <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-gray-600">
                                         {results.length} result{results.length === 1 ? "" : "s"}
                                     </p>
                                     <ul className="divide-y divide-gray-100 overflow-hidden rounded-lg border border-gray-200">
@@ -292,21 +293,21 @@ export default async function WalkInResetPage({
                                                 className="flex items-center gap-3 px-4 py-3 hover:bg-[#f6faf8]"
                                             >
                                                 <span
-                                                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold ${type === "student" ? "bg-[#eef6f2] text-[#15664f]" : "bg-amber-100 text-amber-800"
+                                                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${type === "student" ? "bg-[#eef6f2] text-[#15664f]" : "bg-amber-100 text-amber-800"
                                                         }`}
                                                 >
                                                     {initialsOf(person.full_name)}
                                                 </span>
                                                 <div className="min-w-0 flex-1">
                                                     <p className="break-words font-semibold text-gray-900">{person.full_name}</p>
-                                                    {person.ref_no && <p className="text-xs text-gray-500">{person.ref_no}</p>}
+                                                    {person.ref_no && <p className="text-sm text-gray-600">{person.ref_no}</p>}
                                                 </div>
                                                 <ConfirmLink
                                                     href={`${BASE}?type=${type}&id=${person.id}`}
                                                     title="Reset this password?"
                                                     message={`Start a walk-in password reset for ${person.full_name}? Make sure this person is in front of you with a valid ID.`}
                                                     confirmLabel="Continue"
-                                                    className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md bg-[#15664f] px-3 text-xs font-semibold text-white hover:bg-[#10523f]"
+                                                    className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md bg-[#15664f] px-3 text-sm font-semibold text-white hover:bg-[#10523f]"
                                                 >
                                                     <UserCheck className="h-3.5 w-3.5" />
                                                     Select
@@ -366,7 +367,7 @@ export default async function WalkInResetPage({
                             <p className="mt-3 break-words text-lg font-semibold text-gray-900">{selected.full_name}</p>
                             {selected.ref_no && <p className="text-sm text-gray-600">{selected.ref_no}</p>}
                             <span
-                                className={`mt-2 rounded-full px-3 py-0.5 text-xs font-semibold ${type === "student" ? "bg-[#15664f] text-white" : "bg-amber-300 text-gray-900"
+                                className={`mt-2 rounded-full px-3 py-0.5 text-sm font-semibold ${type === "student" ? "bg-[#15664f] text-white" : "bg-amber-300 text-gray-900"
                                     }`}
                             >
                                 {typeLabel}
@@ -476,7 +477,7 @@ export default async function WalkInResetPage({
                             </ConfirmSubmit>
                             <Link
                                 href={`${BASE}?type=${type}`}
-                                className="inline-flex h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-6 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                                className="inline-flex h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-6 text-sm font-semibold text-gray-600 hover:bg-gray-50"
                             >
                                 Cancel
                             </Link>

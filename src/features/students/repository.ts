@@ -9,7 +9,7 @@ export const studentRepository = {
     const like = `%${f.q}%`;
     return prisma.$queryRaw<StudentListRow[]>`
       SELECT student_id, student_number, last_name, first_name, middle_name,
-             grade_level, program, avatar
+             grade_level, program, gender, avatar
       FROM students
       WHERE archived_at IS NULL
         AND (${f.grade}::text = '' OR grade_level = ${f.grade})

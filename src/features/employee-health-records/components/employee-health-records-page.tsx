@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { HeartPulse, Plus, Search } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { canManageRecords, canManageStudents, canManageDental } from "@/lib/permissions";
@@ -15,6 +15,18 @@ import EmployeeRecordView, {
     type RecordRow,
     type RecordTab,
 } from "./employee-record-view";
+import SearchInput from "@/components/shared/search-input";
+import RedirectNotice from "@/components/shared/redirect-notice";
+import RowActionMenu, { type RowAction } from "@/components/shared/row-action-menu";
+import {
+    ActiveBadge,
+    PersonAvatar,
+    addButtonClass,
+    formatGender,
+    listCardClass,
+    listSearchClass,
+    listSelectClass,
+} from "@/components/shared/list-ui";
 
 const BASE = "/dashboard/employee-health-records";
 const PAGE_SIZE = 10;
@@ -46,26 +58,6 @@ type Props = {
         tab?: string;
     }>;
 };
-
-const selectClass =
-    "h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20";
-const viewBtn =
-    "inline-flex h-8 items-center rounded-md bg-[#15664f] px-4 text-xs font-semibold text-white hover:bg-[#10523f]";
-
-// Profile picture; initials kapag wala pang picture
-function ProfileAvatar({ src, first, last }: { src?: string | null; first: string; last: string }) {
-    if (src) {
-        return (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={src} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover ring-2 ring-amber-300" />
-        );
-    }
-    return (
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-bold bg-amber-300 text-gray-900">
-            {`${first?.[0] ?? ""}${last?.[0] ?? ""}`.toUpperCase()}
-        </span>
-    );
-}
 
 export default async function EmployeeHealthRecordsPage({ searchParams }: Props) {
     const session = await getSession();
@@ -113,9 +105,10 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
         if (!selected) {
             return (
                 <main className="min-w-0 space-y-6 p-4 pb-8 md:p-8">
-                    <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-                        No active employee found with number {employeeNumber}. It may have been archived.
-                    </div>
+                    <RedirectNotice
+                        message={`No active employee found with number ${employeeNumber}. It may have been archived.`}
+                        href={listHref(page)}
+                    />
                 </main>
             );
         }
@@ -281,22 +274,30 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
     const viewMessage = (e: EmployeeRow) =>
         `Open the health record of ${e.first_name} ${e.last_name} (${e.employee_number})? This contains confidential medical information and your access will be recorded.`;
 
-    const viewButton = (e: EmployeeRow) => (
-        <ConfirmLink href={viewHref(e)} title="View health record" message={viewMessage(e)} className={viewBtn}>
-            View Record
-        </ConfirmLink>
-    );
+    // Mga pagpipilian sa "⋮" menu ng bawat row
+    const actions = (e: EmployeeRow): RowAction[] => [
+        { label: "View Health Record", href: viewHref(e), title: "View health record", message: viewMessage(e), confirmLabel: "View", icon: "view" },
+        ...(canEditRecords
+            ? [
+                {
+                    label: "Add Visit Record",
+                    href: `${BASE}/new?employee=${encodeURIComponent(e.employee_number)}`,
+                    title: "Add visit record",
+                    message: `Add a new clinic visit record for ${e.first_name} ${e.last_name} (${e.employee_number})?`,
+                    confirmLabel: "Continue",
+                    icon: "edit" as const,
+                },
+            ]
+            : []),
+    ];
 
     return (
         <main className="min-w-0 space-y-6 p-4 pb-8 md:p-8">
             {/* Header */}
             <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                    <HeartPulse className="h-10 w-10 shrink-0 text-[#15664f]" />
-                    <div className="min-w-0">
-                        <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">Employee Health Records</h1>
-                        <p className="text-sm text-gray-600">Select an employee to view their visits, case reports, and health information.</p>
-                    </div>
+                <div className="min-w-0">
+                    <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">Employee Health Records</h1>
+                    <p className="mt-1 text-sm text-gray-600">Select an employee to view their visits, case reports, and health information.</p>
                 </div>
                 {canEditRecords ? (
                     <ConfirmLink
@@ -305,69 +306,72 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
                         title="Add a new visit record?"
                         message="You will be taken to the form to add a new employee health record."
                         confirmLabel="Continue"
-                        className="inline-flex h-11 items-center gap-2 rounded-lg bg-[#15664f] px-5 text-sm font-semibold text-white shadow-sm hover:bg-[#10523f]"
+                        className={addButtonClass}
                     >
                         <Plus className="h-4 w-4" />
                         Add Record
                     </ConfirmLink>
                 ) : (
-                    <span className="rounded-full bg-gray-200 px-3 py-1 text-xs font-medium text-gray-600">View only</span>
+                    <span className="rounded-full bg-gray-200 px-3 py-1 text-sm font-medium text-gray-600">View only</span>
                 )}
             </div>
 
-            <section className="overflow-hidden rounded-xl border-2 border-[#cfe5d9] bg-white shadow-md shadow-[#15664f]/10">
-                {/* Search + filters */}
-                <form method="get" action={BASE} className="grid gap-3 p-4 md:grid-cols-[1fr_12rem_12rem] md:items-end md:p-5">
-                    <div className="relative">
-                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                        <input
+            <section className={listCardClass}>
+                {/* Filters sa kaliwa, search sa kanan */}
+                <form
+                    method="get"
+                    action={BASE}
+                    className="grid gap-3 p-4 sm:grid-cols-2 md:p-5 lg:grid-cols-[12rem_12rem_minmax(0,1fr)]"
+                >
+                    <AutoSubmitSelect
+                        name="department"
+                        defaultValue={department}
+                        options={departments.map((r) => r.value)}
+                        allLabel="All Departments"
+                        className={listSelectClass}
+                    />
+                    <AutoSubmitSelect
+                        name="position"
+                        defaultValue={position}
+                        options={positions.map((r) => r.value)}
+                        allLabel="All Positions"
+                        className={listSelectClass}
+                    />
+                    <div className="relative sm:col-span-2 lg:col-span-1 lg:ml-auto lg:w-full lg:max-w-sm">
+                        <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-600" />
+                        <SearchInput
                             name="q"
                             defaultValue={q}
                             autoComplete="off"
-                            placeholder="Search by name or employee number..."
+                            placeholder="Search by name or employee no..."
                             suppressHydrationWarning
-                            className="h-11 w-full rounded-lg border border-gray-300 bg-white pl-10 pr-3 text-base text-gray-900 outline-none placeholder:text-sm focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20 md:text-sm"
+                            className={listSearchClass}
                         />
                     </div>
-                    <label className="block space-y-1">
-                        <span className="text-xs font-medium text-gray-600">Department</span>
-                        <AutoSubmitSelect
-                            name="department"
-                            defaultValue={department}
-                            options={departments.map((r) => r.value)}
-                            className={selectClass}
-                        />
-                    </label>
-                    <label className="block space-y-1">
-                        <span className="text-xs font-medium text-gray-600">Position</span>
-                        <AutoSubmitSelect
-                            name="position"
-                            defaultValue={position}
-                            options={positions.map((r) => r.value)}
-                            className={selectClass}
-                        />
-                    </label>
                 </form>
 
                 {employees.length === 0 ? (
-                    <p className="border-t border-gray-100 p-8 text-center text-sm text-gray-500">No employees found.</p>
+                    <p className="border-t border-gray-100 p-8 text-center text-sm text-gray-600">No employees found.</p>
                 ) : (
                     <>
                         {/* MOBILE: card list */}
                         <ul className="space-y-2 border-t border-gray-100 p-3 md:hidden">
                             {employees.map((e) => (
-                                <li key={e.employee_id} className="rounded-lg border border-gray-200 p-3">
-                                    <div className="flex items-center gap-3">
-                                        <ProfileAvatar src={e.avatar} first={e.first_name} last={e.last_name} />
-                                        <div className="min-w-0">
-                                            <p className="break-words text-sm font-semibold text-gray-900">{fullName(e)}</p>
-                                            <p className="text-xs text-gray-500">{e.employee_number}</p>
+                                <li key={e.employee_id} className="flex items-start gap-3 rounded-xl border border-[#e4ede8] p-3">
+                                    <PersonAvatar src={e.avatar} first={e.first_name} last={e.last_name} type="employee" />
+                                    <div className="min-w-0 flex-1">
+                                        <p className="break-words text-sm font-semibold text-gray-900">{fullName(e)}</p>
+                                        <p className="text-sm text-gray-600">{e.employee_number}</p>
+                                        <p className="mt-1 text-sm text-gray-600">
+                                            {[e.position, e.department, e.gender ? formatGender(e.gender) : null]
+                                                .filter(Boolean)
+                                                .join(" · ") || "—"}
+                                        </p>
+                                        <div className="mt-2">
+                                            <ActiveBadge />
                                         </div>
                                     </div>
-                                    <p className="mt-1 text-sm text-gray-700">
-                                        {[e.position, e.department].filter(Boolean).join(" · ") || "—"}
-                                    </p>
-                                    <div className="mt-3">{viewButton(e)}</div>
+                                    <RowActionMenu actions={actions(e)} />
                                 </li>
                             ))}
                         </ul>
@@ -375,28 +379,36 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
                         {/* DESKTOP: table */}
                         <div className="hidden overflow-x-auto md:block">
                             <table className="w-full text-left text-sm">
-                                <thead className="border-y border-gray-200 bg-[#f6faf8] text-gray-700">
+                                <thead className="border-y border-[#e4ede8] bg-[#f6faf8] text-gray-600">
                                     <tr>
                                         <th className="whitespace-nowrap px-5 py-3 font-semibold">Employee Number</th>
-                                        <th className="px-5 py-3 font-semibold">Full Name</th>
+                                        <th className="px-5 py-3 font-semibold">Name</th>
                                         <th className="px-5 py-3 font-semibold">Department</th>
                                         <th className="px-5 py-3 font-semibold">Position</th>
-                                        <th className="px-5 py-3 font-semibold">Action</th>
+                                        <th className="px-5 py-3 font-semibold">Gender</th>
+                                        <th className="px-5 py-3 font-semibold">Status</th>
+                                        <th className="px-5 py-3 text-center font-semibold">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {employees.map((e) => (
                                         <tr key={e.employee_id} className="border-t border-gray-100 hover:bg-[#f6faf8]">
-                                            <td className="whitespace-nowrap px-5 py-4 font-medium text-gray-900">{e.employee_number}</td>
-                                            <td className="px-5 py-4 text-gray-900">
+                                            <td className="whitespace-nowrap px-5 py-3 text-gray-600">{e.employee_number}</td>
+                                            <td className="px-5 py-3">
                                                 <div className="flex items-center gap-3">
-                                                    <ProfileAvatar src={e.avatar} first={e.first_name} last={e.last_name} />
-                                                    <span className="font-medium">{fullName(e)}</span>
+                                                    <PersonAvatar src={e.avatar} first={e.first_name} last={e.last_name} type="employee" />
+                                                    <span className="font-medium text-gray-900">{fullName(e)}</span>
                                                 </div>
                                             </td>
-                                            <td className="px-5 py-4 text-gray-700">{e.department ?? "—"}</td>
-                                            <td className="px-5 py-4 text-gray-700">{e.position ?? "—"}</td>
-                                            <td className="whitespace-nowrap px-5 py-4">{viewButton(e)}</td>
+                                            <td className="px-5 py-3 text-gray-600">{e.department ?? "—"}</td>
+                                            <td className="px-5 py-3 text-gray-600">{e.position ?? "—"}</td>
+                                            <td className="px-5 py-3 text-gray-600">{formatGender(e.gender)}</td>
+                                            <td className="px-5 py-3">
+                                                <ActiveBadge />
+                                            </td>
+                                            <td className="px-5 py-3 text-center">
+                                                <RowActionMenu actions={actions(e)} />
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>

@@ -8,6 +8,7 @@ import ConfirmLink from "@/components/shared/confirm-link";
 import AutoSubmitSelect from "@/components/shared/auto-submit-select";
 import AutoSubmitInput from "@/components/shared/auto-submit-input";
 import ListPagination from "@/components/shared/list-pagination";
+import SearchInput from "@/components/shared/search-input";
 
 type CaseRow = {
     case_id: number;
@@ -23,12 +24,28 @@ type CaseRow = {
 };
 
 type Props = {
-    searchParams: Promise<{ status?: string; q?: string; from?: string; to?: string; page?: string }>;
+    searchParams: Promise<{ status?: string; type?: string; diagnosis?: string; q?: string; from?: string; to?: string; page?: string }>;
 };
 
 const BASE = "/dashboard/health-case-reports";
 const PAGE_SIZE = 10;
 const STATUSES = ["pending", "referred", "resolved"];
+// Mga diagnosis na pagpipilian sa New/Edit Case Report form. Lagi itong nasa Diagnosis filter,
+// kahit wala pang case report na may ganitong diagnosis.
+const COMMON_DIAGNOSES = [
+    "Fever",
+    "Headache",
+    "Stomachache",
+    "Cough and colds",
+    "Dizziness",
+    "Toothache",
+    "Menstrual cramps",
+    "Allergy",
+    "Wound / Injury",
+    "Asthma attack",
+];
+// Uri ng case: kung kanino ang case report
+const TYPES: Record<string, string> = { student: "Student", employee: "Employee" };
 
 const statusStyles: Record<string, { label: string; className: string }> = {
     pending: { label: "Pending", className: "bg-yellow-100 text-yellow-800" },
@@ -39,7 +56,7 @@ const statusStyles: Record<string, { label: string; className: string }> = {
 const fieldClass =
     "h-11 w-full rounded-lg border border-gray-300 bg-white text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20";
 const viewBtn =
-    "inline-flex h-8 items-center rounded-md bg-[#15664f] px-4 text-xs font-semibold text-white hover:bg-[#10523f]";
+    "inline-flex h-8 items-center rounded-md bg-[#15664f] px-4 text-sm font-semibold text-white hover:bg-[#10523f]";
 
 function formatDate(date: Date) {
     // YYYY-MM-DD, gaya ng nasa design
@@ -58,9 +75,9 @@ function cleanDate(value?: string) {
 }
 
 function StatusBadge({ status }: { status: string }) {
-    const badge = statusStyles[status] ?? { label: status, className: "bg-gray-100 text-gray-700" };
+    const badge = statusStyles[status] ?? { label: status, className: "bg-gray-100 text-gray-600" };
     return (
-        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${badge.className}`}>
+        <span className={`inline-flex rounded-full px-3 py-1 text-sm font-semibold ${badge.className}`}>
             {badge.label}
         </span>
     );
@@ -70,7 +87,7 @@ function TypeBadge({ type }: { type: string }) {
     const isEmployee = type === "employee";
     return (
         <span
-            className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${isEmployee ? "bg-amber-300 text-gray-900" : "bg-[#15664f] text-white"
+            className={`rounded-full px-2 py-0.5 text-sm font-medium ${isEmployee ? "bg-amber-300 text-gray-900" : "bg-[#15664f] text-white"
                 }`}
         >
             {isEmployee ? "Employee" : "Student"}
@@ -87,6 +104,10 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
     const params = await searchParams;
     const rawStatus = (params.status ?? "").trim().toLowerCase();
     const status = STATUSES.includes(rawStatus) ? rawStatus : "";
+    const rawType = (params.type ?? "").trim().toLowerCase();
+    const type = rawType in TYPES ? rawType : "";
+    // Diagnosis (hal. Fever, Headache). Hindi case-sensitive ang paghahambing.
+    const diagnosis = (params.diagnosis ?? "").trim().slice(0, 255);
     const q = (params.q ?? "").trim();
     const from = cleanDate(params.from);
     const to = cleanDate(params.to);
@@ -96,7 +117,7 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
 
     // Link na may parehong filters, iba lang ang ilang value.
     const hrefWith = (changes: Record<string, string>) => {
-        const current: Record<string, string> = { status, q, from, to, ...changes };
+        const current: Record<string, string> = { status, type, diagnosis, q, from, to, ...changes };
         const sp = new URLSearchParams();
         for (const [k, v] of Object.entries(current)) if (v) sp.set(k, v);
         const qs = sp.toString();
@@ -106,7 +127,7 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
 
     // LEFT JOIN on both sides: a case report belongs to a student OR an
     // employee, and the other column is NULL. Newest date first.
-    const [reports, count] = await Promise.all([
+    const [reports, count, diagnosisRows] = await Promise.all([
         prisma.$queryRaw<CaseRow[]>`
         SELECT c.case_id, c.case_number,
                CASE WHEN c.employee_id IS NOT NULL THEN 'employee' ELSE 'student' END AS patient_type,
@@ -119,6 +140,10 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
         LEFT JOIN employees e ON e.employee_id = c.employee_id
         WHERE c.archived_at IS NULL
         AND (${status} = '' OR c.status = ${status})
+        AND (${type} = ''
+            OR (${type} = 'employee' AND c.employee_id IS NOT NULL)
+            OR (${type} = 'student' AND c.employee_id IS NULL))
+        AND (${diagnosis} = '' OR LOWER(TRIM(c.complaint)) = LOWER(${diagnosis}))
         AND (${from} = '' OR c.report_date >= CAST(NULLIF(${from}, '') AS DATE))
         AND (${to} = '' OR c.report_date <= CAST(NULLIF(${to}, '') AS DATE))
         AND (${q} = ''
@@ -137,6 +162,10 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
         LEFT JOIN employees e ON e.employee_id = c.employee_id
         WHERE c.archived_at IS NULL
         AND (${status} = '' OR c.status = ${status})
+        AND (${type} = ''
+            OR (${type} = 'employee' AND c.employee_id IS NOT NULL)
+            OR (${type} = 'student' AND c.employee_id IS NULL))
+        AND (${diagnosis} = '' OR LOWER(TRIM(c.complaint)) = LOWER(${diagnosis}))
         AND (${from} = '' OR c.report_date >= CAST(NULLIF(${from}, '') AS DATE))
         AND (${to} = '' OR c.report_date <= CAST(NULLIF(${to}, '') AS DATE))
         AND (${q} = ''
@@ -146,7 +175,23 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
             OR c.case_number ILIKE ${like}
             OR c.complaint ILIKE ${like})
     `,
+        // Mga pagpipilian sa Diagnosis filter: lahat ng diagnosis na nasa case reports,
+        // pinakamadalas muna (Fever, Headache, atbp.)
+        prisma.$queryRaw<{ label: string }[]>`
+        SELECT MIN(TRIM(complaint)) AS label
+        FROM health_case_reports
+        WHERE archived_at IS NULL AND TRIM(complaint) <> ''
+        GROUP BY LOWER(TRIM(complaint))
+        ORDER BY COUNT(*) DESC, 1
+        LIMIT 50
+    `,
     ]);
+    // Una ang mga diagnosis ng form (Fever, Headache, atbp.), tapos ang iba pang
+    // diagnosis na tinype sa mga case report. Walang doble kahit iba ang malaki/maliit na titik.
+    const diagnosisOptions: string[] = [];
+    for (const d of [...COMMON_DIAGNOSES, ...diagnosisRows.map((r) => r.label)]) {
+        if (!diagnosisOptions.some((o) => o.toLowerCase() === d.toLowerCase())) diagnosisOptions.push(d);
+    }
 
     const total = count[0]?.count ?? 0;
     const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -166,7 +211,7 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
                 </ConfirmLink>
             </div>
         ) : (
-            <span className="text-xs text-gray-400">—</span>
+            <span className="text-sm text-gray-600">—</span>
         );
 
     return (
@@ -194,7 +239,7 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
                         New Case Report
                     </ConfirmLink>
                 ) : (
-                    <span className="rounded-full bg-gray-200 px-3 py-1 text-xs font-medium text-gray-600">View only</span>
+                    <span className="rounded-full bg-gray-200 px-3 py-1 text-sm font-medium text-gray-600">View only</span>
                 )}
             </div>
 
@@ -203,13 +248,13 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
                 <form
                     method="get"
                     action={BASE}
-                    className="grid gap-3 p-4 md:grid-cols-[1fr_auto_12rem] md:items-end md:p-5"
+                    className="grid gap-3 p-4 sm:grid-cols-2 md:items-end md:p-5 xl:grid-cols-[minmax(0,1fr)_auto_10rem_11rem_9rem]"
                 >
                     <label className="block space-y-1">
-                        <span className="text-xs font-medium text-gray-600">Search</span>
+                        <span className="text-sm font-medium text-gray-600">Search</span>
                         <div className="relative">
-                            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                            <input
+                            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-600" />
+                            <SearchInput
                                 name="q"
                                 defaultValue={q}
                                 autoComplete="off"
@@ -221,25 +266,25 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
                     </label>
 
                     <div className="space-y-1">
-                        <span className="block text-xs font-medium text-gray-600">Date Range</span>
-                        <div className="flex flex-wrap items-center gap-2">
+                        <span className="block text-sm font-medium text-gray-600">Date Range</span>
+                        <div className="flex flex-wrap items-center gap-1.5">
                             {(["from", "to"] as const).map((key) => {
                                 const value = key === "from" ? from : to;
                                 return (
                                     <div key={key} className="relative">
-                                        <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                                        <CalendarDays className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-600" />
                                         <AutoSubmitInput
                                             type="date"
                                             name={key}
                                             defaultValue={value}
                                             aria-label={key === "from" ? "From date" : "To date"}
-                                            className={`${fieldClass} w-44 pl-9 pr-8`}
+                                            className={`${fieldClass} relative w-36 cursor-pointer pl-8 pr-6 text-sm [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0`}
                                         />
                                         {value && (
                                             <Link
                                                 href={hrefWith({ [key]: "", page: "" })}
                                                 aria-label="Clear date"
-                                                className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                                                className="absolute right-1.5 top-1/2 z-10 -translate-y-1/2 rounded p-0.5 text-gray-600 hover:bg-gray-100 hover:text-gray-700"
                                             >
                                                 <X className="h-3.5 w-3.5" />
                                             </Link>
@@ -251,7 +296,27 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
                     </div>
 
                     <label className="block space-y-1">
-                        <span className="text-xs font-medium text-gray-600">Status</span>
+                        <span className="text-sm font-medium text-gray-600">Type of Case</span>
+                        <AutoSubmitSelect
+                            name="type"
+                            defaultValue={TYPES[type] ?? ""}
+                            options={Object.values(TYPES)}
+                            className={`${fieldClass} px-3`}
+                        />
+                    </label>
+
+                    <label className="block space-y-1">
+                        <span className="text-sm font-medium text-gray-600">Diagnosis</span>
+                        <AutoSubmitSelect
+                            name="diagnosis"
+                            defaultValue={diagnosisOptions.find((d) => d.toLowerCase() === diagnosis.toLowerCase()) ?? ""}
+                            options={diagnosisOptions}
+                            className={`${fieldClass} px-3`}
+                        />
+                    </label>
+
+                    <label className="block space-y-1">
+                        <span className="text-sm font-medium text-gray-600">Status</span>
                         <AutoSubmitSelect
                             name="status"
                             defaultValue={statusStyles[status]?.label ?? ""}
@@ -262,7 +327,7 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
                 </form>
 
                 {reports.length === 0 ? (
-                    <p className="border-t border-gray-100 p-8 text-center text-sm text-gray-500">No case reports found.</p>
+                    <p className="border-t border-gray-100 p-8 text-center text-sm text-gray-600">No case reports found.</p>
                 ) : (
                     <>
                         {/* MOBILE: card list */}
@@ -277,8 +342,8 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
                                         <p className="break-words text-sm text-gray-900">{fullName(c)}</p>
                                         <TypeBadge type={c.patient_type} />
                                     </div>
-                                    <p className="mt-1 text-sm text-gray-700">{c.complaint}</p>
-                                    <p className="text-xs text-gray-500">{formatDate(c.report_date)}</p>
+                                    <p className="mt-1 text-sm text-gray-600">{c.complaint}</p>
+                                    <p className="text-sm text-gray-600">{formatDate(c.report_date)}</p>
                                     <div className="mt-3">{actions(c)}</div>
                                 </li>
                             ))}
@@ -287,11 +352,12 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
                         {/* DESKTOP: table */}
                         <div className="hidden overflow-x-auto md:block">
                             <table className="w-full text-left text-sm">
-                                <thead className="border-y border-gray-200 bg-[#f6faf8] text-gray-700">
+                                <thead className="border-y border-gray-200 bg-[#f6faf8] text-gray-600">
                                     <tr>
                                         <th className="whitespace-nowrap px-5 py-3 font-semibold">Report ID</th>
                                         <th className="whitespace-nowrap px-5 py-3 font-semibold">Date</th>
                                         <th className="px-5 py-3 font-semibold">Patient Name</th>
+                                        <th className="px-5 py-3 font-semibold">Type</th>
                                         <th className="px-5 py-3 font-semibold">Diagnosis</th>
                                         <th className="px-5 py-3 font-semibold">Status</th>
                                         <th className="px-5 py-3 font-semibold">Action</th>
@@ -301,15 +367,16 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
                                     {reports.map((c) => (
                                         <tr key={c.case_id} className="border-t border-gray-100 hover:bg-[#f6faf8]">
                                             <td className="whitespace-nowrap px-5 py-4 font-medium text-gray-900">{c.case_number}</td>
-                                            <td className="whitespace-nowrap px-5 py-4 text-gray-700">{formatDate(c.report_date)}</td>
+                                            <td className="whitespace-nowrap px-5 py-4 text-gray-600">{formatDate(c.report_date)}</td>
                                             <td className="px-5 py-4">
-                                                <div className="flex flex-wrap items-center gap-2">
-                                                    <span className="text-gray-900">{fullName(c)}</span>
-                                                    <TypeBadge type={c.patient_type} />
-                                                </div>
-                                                {c.id_number && <p className="text-xs text-gray-500">{c.id_number}</p>}
+                                                <p className="text-gray-900">{fullName(c)}</p>
+                                                {c.id_number && <p className="text-sm text-gray-600">{c.id_number}</p>}
                                             </td>
-                                            <td className="px-5 py-4 text-gray-700">{c.complaint}</td>
+                                            {/* Sariling column ang Type para pantay-pantay ang badge */}
+                                            <td className="px-5 py-4">
+                                                <TypeBadge type={c.patient_type} />
+                                            </td>
+                                            <td className="px-5 py-4 text-gray-600">{c.complaint}</td>
                                             <td className="px-5 py-4">
                                                 <StatusBadge status={c.status} />
                                             </td>

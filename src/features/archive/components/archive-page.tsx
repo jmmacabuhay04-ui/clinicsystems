@@ -17,6 +17,7 @@ import {
     X,
 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { InactiveBadge } from "@/components/shared/list-ui";
 import { getSession } from "@/lib/auth/session";
 import { canManageDental, canManageRecords, canManageStaff } from "@/lib/permissions";
 
@@ -40,6 +41,7 @@ import {
     RETENTION_YEARS,
     type RecordKind,
 } from "@/lib/retention";
+import SearchInput from "@/components/shared/search-input";
 
 type ArchivedStudent = {
     student_id: number;
@@ -185,7 +187,7 @@ function RetentionGate({
     return (
         <span
             title={retentionText(kind)}
-            className="inline-flex h-8 items-center gap-1.5 rounded-md bg-gray-100 px-3 text-xs font-medium text-gray-500 sm:whitespace-nowrap"
+            className="inline-flex h-8 items-center gap-1.5 rounded-md bg-gray-100 px-3 text-sm font-medium text-gray-600 sm:whitespace-nowrap"
         >
             <Lock className="h-3.5 w-3.5 shrink-0" />
             Deletable on {formatDeletableOn(archivedAt, kind)}
@@ -200,9 +202,9 @@ function RetentionGate({
 type FormAction = React.ComponentProps<"form">["action"];
 
 const RESTORE_CLASS =
-    "inline-flex h-8 items-center gap-1.5 rounded-md bg-[#15664f] px-3 text-xs font-semibold text-white hover:bg-[#10523f]";
+    "inline-flex h-8 items-center gap-1.5 rounded-md bg-[#15664f] px-3 text-sm font-semibold text-white hover:bg-[#10523f]";
 const DELETE_CLASS =
-    "inline-flex h-8 items-center gap-1.5 rounded-md border border-red-300 bg-white px-3 text-xs font-semibold text-red-600 hover:bg-red-50";
+    "inline-flex h-8 items-center gap-1.5 rounded-md border border-red-300 bg-white px-3 text-sm font-semibold text-red-600 hover:bg-red-50";
 
 function RestoreForm({
     action,
@@ -314,7 +316,7 @@ function ArchiveSection({
                     </span>
                     <h2 className="text-base font-semibold text-gray-900 md:text-lg">{title}</h2>
                 </div>
-                <span className="shrink-0 rounded-full bg-[#eef6f2] px-3 py-1 text-xs font-semibold text-[#15664f]">
+                <span className="shrink-0 rounded-full bg-[#eef6f2] px-3 py-1 text-sm font-semibold text-[#15664f]">
                     {items.length} item{items.length === 1 ? "" : "s"}
                 </span>
             </div>
@@ -322,7 +324,7 @@ function ArchiveSection({
             {items.length === 0 ? (
                 <div className="flex flex-col items-center border-t border-gray-100 p-8 text-center">
                     <Archive className="h-10 w-10 text-[#15664f]/30" />
-                    <p className="mt-2 text-sm text-gray-500">{empty}</p>
+                    <p className="mt-2 text-sm text-gray-600">{empty}</p>
                 </div>
             ) : (
                 <>
@@ -331,11 +333,11 @@ function ArchiveSection({
                         {items.map((item) => (
                             <li key={item.key} className="rounded-lg border border-gray-200 p-3">
                                 <p className="break-words text-sm font-semibold text-gray-900">{item.title}</p>
-                                {item.sub && <p className="break-words text-xs text-gray-500">{item.sub}</p>}
+                                {item.sub && <p className="break-words text-sm text-gray-600">{item.sub}</p>}
                                 <dl className="mt-2 space-y-1">
                                     {item.fields.map((f) => (
                                         <div key={f.label} className="flex gap-2 text-sm">
-                                            <dt className="w-24 shrink-0 text-gray-500">{f.label}</dt>
+                                            <dt className="w-24 shrink-0 text-gray-600">{f.label}</dt>
                                             <dd className="min-w-0 flex-1 break-words text-gray-900">{f.value}</dd>
                                         </div>
                                     ))}
@@ -352,7 +354,7 @@ function ArchiveSection({
                     {/* DESKTOP: table */}
                     <div className="hidden overflow-x-auto border-t border-gray-100 md:block">
                         <table className="w-full text-left text-sm">
-                            <thead className="bg-[#f6faf8] text-xs uppercase tracking-wide text-gray-600">
+                            <thead className="bg-[#f6faf8] text-sm uppercase tracking-wide text-gray-600">
                                 <tr>
                                     {columns.map((c) => (
                                         <th
@@ -518,6 +520,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
             fields: [
                 { label: "Grade/Level", value: s.grade_level ?? "—" },
                 { label: "Program", value: s.program ?? "—" },
+                { label: "Status", value: <InactiveBadge /> },
                 { label: "Archived On", value: formatDate(s.archived_at) },
             ],
             cells: [
@@ -525,6 +528,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                 name,
                 s.grade_level ?? "—",
                 s.program ?? "—",
+                <InactiveBadge key="status" />,
                 formatDate(s.archived_at),
             ],
             actions: canEdit ? (
@@ -560,6 +564,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
             fields: [
                 { label: "Department", value: e.department ?? "—" },
                 { label: "Position", value: e.position ?? "—" },
+                { label: "Status", value: <InactiveBadge /> },
                 { label: "Archived On", value: formatDate(e.archived_at) },
             ],
             cells: [
@@ -567,6 +572,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                 name,
                 e.department ?? "—",
                 e.position ?? "—",
+                <InactiveBadge key="status" />,
                 formatDate(e.archived_at),
             ],
             actions: canEdit ? (
@@ -608,7 +614,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                 c.case_number,
                 <>
                     {name}
-                    {c.id_number && <span className="block text-xs text-gray-500">{c.id_number}</span>}
+                    {c.id_number && <span className="block text-sm text-gray-600">{c.id_number}</span>}
                 </>,
                 c.complaint,
                 formatDate(c.report_date),
@@ -870,7 +876,8 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                 { label: "Name", td: "font-semibold text-gray-900" },
                 { label: "Grade/Level", nowrap: true, td: "text-gray-600" },
                 { label: "Program", td: "text-gray-600" },
-                { label: "Archived On", nowrap: true, td: "whitespace-nowrap text-gray-500" },
+                { label: "Status", nowrap: true },
+                { label: "Archived On", nowrap: true, td: "whitespace-nowrap text-gray-600" },
             ],
         },
         {
@@ -886,7 +893,8 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                 { label: "Name", td: "font-semibold text-gray-900" },
                 { label: "Department", td: "text-gray-600" },
                 { label: "Position", td: "text-gray-600" },
-                { label: "Archived On", nowrap: true, td: "whitespace-nowrap text-gray-500" },
+                { label: "Status", nowrap: true },
+                { label: "Archived On", nowrap: true, td: "whitespace-nowrap text-gray-600" },
             ],
         },
         {
@@ -902,7 +910,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                 { label: "Patient", td: "text-gray-900" },
                 { label: "Complaint", td: "text-gray-900" },
                 { label: "Date", nowrap: true, td: "whitespace-nowrap text-gray-600" },
-                { label: "Archived On", nowrap: true, td: "whitespace-nowrap text-gray-500" },
+                { label: "Archived On", nowrap: true, td: "whitespace-nowrap text-gray-600" },
             ],
         },
         {
@@ -918,7 +926,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                 { label: "Name", td: "font-semibold text-gray-900" },
                 { label: "Visit Date", nowrap: true, td: "whitespace-nowrap text-gray-900" },
                 { label: "Complaint", td: "text-gray-900" },
-                { label: "Archived On", nowrap: true, td: "whitespace-nowrap text-gray-500" },
+                { label: "Archived On", nowrap: true, td: "whitespace-nowrap text-gray-600" },
             ],
         },
         {
@@ -934,7 +942,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                 { label: "Name", td: "font-semibold text-gray-900" },
                 { label: "Visit Date", nowrap: true, td: "whitespace-nowrap text-gray-900" },
                 { label: "Complaint", td: "text-gray-900" },
-                { label: "Archived On", nowrap: true, td: "whitespace-nowrap text-gray-500" },
+                { label: "Archived On", nowrap: true, td: "whitespace-nowrap text-gray-600" },
             ],
         },
         {
@@ -949,9 +957,9 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                 { label: "ID Number", nowrap: true, td: "font-medium text-gray-900" },
                 { label: "Name", td: "font-semibold text-gray-900" },
                 { label: "Procedure", td: "text-gray-900" },
-                { label: "Tooth", td: "text-gray-700" },
+                { label: "Tooth", td: "text-gray-600" },
                 { label: "Visit Date", nowrap: true, td: "whitespace-nowrap text-gray-600" },
-                { label: "Archived On", nowrap: true, td: "whitespace-nowrap text-gray-500" },
+                { label: "Archived On", nowrap: true, td: "whitespace-nowrap text-gray-600" },
             ],
         },
         {
@@ -965,12 +973,12 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
             columns: [
                 { label: "Student Number", nowrap: true, td: "font-medium text-gray-900" },
                 { label: "Name", td: "font-semibold text-gray-900" },
-                { label: "Type", td: "capitalize text-gray-700" },
-                { label: "Teacher", td: "text-gray-700" },
+                { label: "Type", td: "capitalize text-gray-600" },
+                { label: "Teacher", td: "text-gray-600" },
                 { label: "Reason", td: "text-gray-900" },
                 { label: "Slip Date", nowrap: true, td: "whitespace-nowrap text-gray-600" },
-                { label: "Status", td: "capitalize text-gray-700" },
-                { label: "Archived On", nowrap: true, td: "whitespace-nowrap text-gray-500" },
+                { label: "Status", td: "capitalize text-gray-600" },
+                { label: "Archived On", nowrap: true, td: "whitespace-nowrap text-gray-600" },
             ],
         },
         {
@@ -983,10 +991,10 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
             items: staffItems,
             columns: [
                 { label: "Name", td: "font-semibold text-gray-900" },
-                { label: "Role", td: "text-gray-700" },
-                { label: "Email", td: "text-gray-700" },
+                { label: "Role", td: "text-gray-600" },
+                { label: "Email", td: "text-gray-600" },
                 { label: "License / PRC No.", nowrap: true, td: "whitespace-nowrap text-gray-600" },
-                { label: "Archived On", nowrap: true, td: "whitespace-nowrap text-gray-500" },
+                { label: "Archived On", nowrap: true, td: "whitespace-nowrap text-gray-600" },
             ],
         },
     ];
@@ -1025,7 +1033,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                     </div>
                 </div>
                 {!canEdit && (
-                    <span className="rounded-full bg-gray-200 px-3 py-1 text-xs font-medium text-gray-600">View only</span>
+                    <span className="rounded-full bg-gray-200 px-3 py-1 text-sm font-medium text-gray-600">View only</span>
                 )}
             </div>
 
@@ -1062,8 +1070,8 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
             <form method="get" className="flex flex-wrap items-center gap-2 md:gap-3">
                 {activeType !== "all" && <input type="hidden" name="type" value={activeType} />}
                 <div className="relative w-full md:max-w-md md:flex-1">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                    <input
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-600" />
+                    <SearchInput
                         name="q"
                         defaultValue={q}
                         autoComplete="off"
@@ -1083,7 +1091,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                 {q && (
                     <Link
                         href={activeType === "all" ? BASE : `${BASE}?type=${activeType}`}
-                        className="inline-flex h-11 items-center justify-center gap-1 rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                        className="inline-flex h-11 items-center justify-center gap-1 rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-600 hover:bg-gray-50"
                     >
                         <X className="h-4 w-4" />
                         Clear
@@ -1102,13 +1110,13 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                             href={tabHref(t.key)}
                             className={`inline-flex h-10 items-center gap-2 rounded-lg border-2 px-3 text-sm font-semibold transition-colors ${active
                                 ? "border-[#15664f] bg-[#15664f] text-white shadow-sm"
-                                : "border-[#cfe5d9] bg-white text-gray-700 hover:bg-[#eef6f2] hover:text-[#15664f]"
+                                : "border-[#cfe5d9] bg-white text-gray-600 hover:bg-[#eef6f2] hover:text-[#15664f]"
                                 }`}
                         >
                             <Icon className="h-4 w-4" />
                             {t.label}
                             <span
-                                className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${active ? "bg-white/20 text-white" : t.count > 0 ? "bg-amber-100 text-amber-800" : "bg-gray-100 text-gray-500"
+                                className={`rounded-full px-2 py-0.5 text-sm font-semibold ${active ? "bg-white/20 text-white" : t.count > 0 ? "bg-amber-100 text-amber-800" : "bg-gray-100 text-gray-600"
                                     }`}
                             >
                                 {t.count}
@@ -1130,7 +1138,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                     <p className="mt-3 text-base font-semibold text-gray-800">
                         {q ? "No archived items match your search" : "The archive is empty"}
                     </p>
-                    <p className="mt-1 text-sm text-gray-500">
+                    <p className="mt-1 text-sm text-gray-600">
                         {q ? "Try a different ID number or name." : "Archived records will appear here."}
                     </p>
                 </div>

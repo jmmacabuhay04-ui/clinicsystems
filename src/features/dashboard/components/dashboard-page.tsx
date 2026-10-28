@@ -2,14 +2,15 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import {
     Activity,
-    ArrowRight,
     BarChart3,
+    Bell,
     CalendarDays,
     Briefcase,
-    ChevronRight,
     FileText,
     ClipboardList,
+    Heart,
     PieChart,
+    Search,
     Stethoscope,
     Sun,
     UserCheck,
@@ -18,11 +19,11 @@ import {
     Moon,
     Sunset,
     Zap,
-    type LucideIcon,
 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import ConfirmLink from "@/components/shared/confirm-link";
+import { staffDisplayName } from "@/lib/display-name";
 
 type VisitRow = {
     record_id: number;
@@ -63,6 +64,9 @@ type ActivityRow = {
     event_clock: string | null;
 };
 
+// Mga dahilan ng pagbisita ngayong linggo (para sa "Visit Reasons" donut)
+type ReasonRow = { label: string; total: bigint };
+
 type ActivityItem = {
     key: string;
     kind: "clinic" | "dental" | "report";
@@ -72,25 +76,6 @@ type ActivityItem = {
     clock: string;
 };
 
-function formatVisitDate(date: Date) {
-    return new Date(date).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-        timeZone: "UTC",
-    });
-}
-
-type RecentRow = {
-    key: string;
-    name: string;
-    type: "student" | "employee";
-    detail: string;
-    date: Date;
-    href: string;
-    message: string;
-    avatar: string | null;
-};
 
 function PatientAvatar({
     name,
@@ -125,7 +110,7 @@ function PatientAvatar({
     return (
         <span
             aria-hidden="true"
-            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${type === "employee" ? "bg-amber-300 text-gray-900" : "bg-[#15664f] text-white"
+            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${type === "employee" ? "bg-amber-300 text-gray-900" : "bg-[#15664f] text-white"
                 }`}
         >
             {initials}
@@ -133,219 +118,6 @@ function PatientAvatar({
     );
 }
 
-function TypeBadge({ type }: { type: "student" | "employee" }) {
-    return (
-        <span
-            className={`inline-block whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ${type === "employee" ? "bg-amber-300 text-gray-900" : "bg-[#15664f] text-white"
-                }`}
-        >
-            {type === "employee" ? "Employee" : "Student"}
-        </span>
-    );
-}
-
-function RecentTable({
-    title,
-    detailLabel,
-    rows,
-    empty,
-    viewTitle,
-    viewAllHref,
-    icon: Icon,
-    iconClass,
-}: {
-    title: string;
-    detailLabel: string;
-    rows: RecentRow[];
-    empty: string;
-    viewTitle: string;
-    viewAllHref: string;
-    icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
-    iconClass: string;
-}) {
-    return (
-        <div className="min-w-0 overflow-hidden rounded-xl border-2 border-[#cfe5d9] bg-white shadow-md shadow-[#15664f]/10">
-            <div className="flex items-center justify-between gap-2 p-4 md:px-5">
-                <div className="flex min-w-0 items-center gap-3">
-                    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${iconClass}`}>
-                        <Icon className="h-5 w-5" strokeWidth={1.8} />
-                    </div>
-                    <div className="min-w-0">
-                        <h2 className="truncate text-base font-semibold text-gray-900 md:text-lg">{title}</h2>
-                        <p className="text-xs text-gray-500">
-                            {rows.length} record{rows.length === 1 ? "" : "s"} today
-                        </p>
-                    </div>
-                </div>
-                <Link
-                    href={viewAllHref}
-                    className="inline-flex h-8 shrink-0 items-center gap-1 rounded-md border border-[#cfe5d9] px-3 text-xs font-semibold text-[#15664f] hover:bg-[#eef6f2]"
-                >
-                    View All <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
-            </div>
-
-            <div className="border-t border-gray-100">
-                {rows.length === 0 ? (
-                    <div className="flex flex-col items-center p-8 text-center">
-                        <Icon className="h-10 w-10 text-[#15664f]/30" />
-                        <p className="mt-2 text-sm text-gray-500">{empty}</p>
-                    </div>
-                ) : (
-                    <>
-                        {/* MOBILE: card list (walang horizontal scroll) */}
-                        <ul className="space-y-2 p-3 md:hidden">
-                            {rows.map((r) => (
-                                <li key={r.key} className="rounded-lg border border-gray-200 p-3">
-                                    <div className="flex items-start gap-3">
-                                        <PatientAvatar name={r.name} type={r.type} avatar={r.avatar} />
-                                        <div className="min-w-0 flex-1">
-                                            <p className="break-words text-sm font-medium text-gray-900">{r.name}</p>
-                                            <p className="break-words text-sm text-gray-700">
-                                                <span className="text-gray-500">{detailLabel}: </span>
-                                                {r.detail}
-                                            </p>
-                                            <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                                                <TypeBadge type={r.type} />
-                                                <span className="text-xs text-gray-600">{formatVisitDate(r.date)}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <ConfirmLink
-                                        href={r.href}
-                                        title={viewTitle}
-                                        message={r.message}
-                                        className="mt-3 block w-full rounded-md bg-[#15664f] px-3 py-2 text-center text-sm font-semibold text-white hover:bg-[#10523f]"
-                                    >
-                                        View
-                                    </ConfirmLink>
-                                </li>
-                            ))}
-                        </ul>
-
-                        {/* DESKTOP: table */}
-                        <div className="hidden overflow-x-auto md:block">
-                            <table className="w-full text-left text-sm">
-                                <thead className="bg-[#f6faf8] text-xs uppercase tracking-wide text-gray-600">
-                                    <tr>
-                                        <th className="px-4 py-3 font-semibold">Name</th>
-                                        <th className="px-4 py-3 font-semibold">{detailLabel}</th>
-                                        <th className="px-4 py-3 font-semibold">Type</th>
-                                        <th className="whitespace-nowrap px-4 py-3 font-semibold">Date</th>
-                                        <th className="px-4 py-3 text-center font-semibold">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {rows.map((r) => (
-                                        <tr key={r.key} className="border-t border-gray-100 hover:bg-[#f6faf8]">
-                                            <td className="px-4 py-3 font-semibold text-gray-900">
-                                                <div className="flex items-center gap-2">
-                                                    <PatientAvatar name={r.name} type={r.type} avatar={r.avatar} />
-                                                    <span>{r.name}</span>
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-3 capitalize text-gray-700">{r.detail}</td>
-                                            <td className="px-4 py-3">
-                                                <TypeBadge type={r.type} />
-                                            </td>
-                                            <td className="whitespace-nowrap px-4 py-3 text-gray-600">
-                                                {formatVisitDate(r.date)}
-                                            </td>
-                                            <td className="px-4 py-3 text-center">
-                                                <ConfirmLink
-                                                    href={r.href}
-                                                    title={viewTitle}
-                                                    message={r.message}
-                                                    className="inline-flex h-8 items-center rounded-md bg-[#15664f] px-3 text-xs font-semibold text-white hover:bg-[#10523f]"
-                                                >
-                                                    View
-                                                </ConfirmLink>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </>
-                )}
-            </div>
-        </div>
-    );
-}
-
-function DentalList({
-    title,
-    rows,
-    empty,
-    viewHref,
-}: {
-    title: string;
-    rows: DentalRow[];
-    empty: string;
-    viewHref: (row: DentalRow) => string;
-}) {
-    return (
-        <RecentTable
-            title={title}
-            detailLabel="Procedure"
-            empty={empty}
-            viewTitle="View dental record"
-            viewAllHref="/dashboard/dental-visits"
-            icon={ToothIcon}
-            iconClass="bg-cyan-50 text-cyan-700"
-            rows={rows.map((d) => {
-                const name = `${d.first_name ?? ""} ${d.last_name ?? ""}`.trim() || "Unknown";
-                return {
-                    key: `${d.patient_type}-${d.dental_id}`,
-                    name,
-                    type: d.patient_type === "employee" ? "employee" : "student",
-                    detail: d.procedure_name,
-                    date: d.visit_date,
-                    avatar: d.avatar,
-                    href: viewHref(d),
-                    message: `Open the dental record of ${name}? This contains confidential medical information and your access will be recorded.`,
-                };
-            })}
-        />
-    );
-}
-
-function VisitList({
-    title,
-    rows,
-    empty,
-    viewHref,
-}: {
-    title: string;
-    rows: VisitRow[];
-    empty: string;
-    viewHref: (visit: VisitRow) => string;
-}) {
-    return (
-        <RecentTable
-            title={title}
-            detailLabel="Complaint"
-            empty={empty}
-            viewTitle="View health record"
-            viewAllHref="/dashboard/clinic-visits"
-            icon={Stethoscope}
-            iconClass="bg-[#eef6f2] text-[#15664f]"
-            rows={rows.map((v) => {
-                const name = `${v.first_name} ${v.last_name}`;
-                return {
-                    key: `${v.patient_type}-${v.record_id}`,
-                    name,
-                    type: v.patient_type,
-                    detail: v.complaint,
-                    date: v.visit_date,
-                    avatar: v.avatar,
-                    href: viewHref(v),
-                    message: `Open the health record of ${name}? This contains confidential medical information and your access will be recorded.`,
-                };
-            })}
-        />
-    );
-}
 
 // Custom tooth icon (same props as the lucide icons used here).
 function ToothIcon({ className, strokeWidth = 2 }: { className?: string; strokeWidth?: number }) {
@@ -383,38 +155,111 @@ function QuickActionsSection({
     className?: string;
 }) {
     return (
-        <div className={`min-w-0 overflow-hidden rounded-xl border-2 border-[#cfe5d9] bg-white shadow-md shadow-[#15664f]/10 ${className ?? ""}`}>
-            <div className="flex items-center gap-3 p-4 md:px-5">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#eef6f2] text-[#15664f]">
-                    <Zap className="h-5 w-5" strokeWidth={1.8} />
-                </div>
-                <div>
-                    <h2 className="text-base font-semibold text-gray-900 md:text-lg">Quick Actions</h2>
-                    <p className="text-xs text-gray-500">Shortcuts to common tasks</p>
-                </div>
-            </div>
-            <div className="grid gap-2 border-t border-gray-100 p-3 sm:grid-cols-2 xl:grid-cols-1">
+        <div className={`min-w-0 rounded-2xl border border-[#dcebe3] bg-white p-4 shadow-sm shadow-[#15664f]/5 md:p-5 ${className ?? ""}`}>
+            <h2 className="mb-4 flex items-center gap-2 text-base font-semibold text-gray-900 md:text-lg">
+                <Zap className="h-[18px] w-[18px] text-amber-500" strokeWidth={2} />
+                Quick Actions
+            </h2>
+            {/* Mga tile na 2 bawat hanay, icon sa itaas at label sa ilalim */}
+            <div className="grid grid-cols-2 gap-2.5">
                 {actions.map((a) => {
                     const Icon = a.icon;
                     return (
                         <Link
                             key={a.label}
                             href={a.href}
-                            className={`group flex items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors ${a.cardClass}`}
+                            title={a.description}
+                            className="group flex min-h-[5.5rem] flex-col items-center justify-center gap-2 rounded-xl border border-[#dcebe3] bg-[#f3f9f5] p-2.5 text-center transition hover:-translate-y-0.5 hover:border-[#15664f]/40 hover:bg-[#e6f2eb] hover:shadow-md hover:shadow-[#15664f]/10"
                         >
-                            <div
-                                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors ${a.iconClass}`}
+                            <span
+                                className={`flex h-9 w-9 items-center justify-center rounded-lg transition-colors ${a.iconClass}`}
                             >
                                 <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                                <p className="text-sm font-semibold leading-tight text-gray-900 group-hover:text-[#15664f]">{a.label}</p>
-                                <p className="text-xs leading-tight text-gray-500">{a.description}</p>
-                            </div>
-                            <ChevronRight className="h-4 w-4 shrink-0 text-gray-300 transition group-hover:translate-x-0.5 group-hover:text-[#15664f]" />
+                            </span>
+                            <span className="text-sm font-medium leading-tight text-gray-900 group-hover:text-[#15664f]">
+                                {a.label}
+                            </span>
                         </Link>
                     );
                 })}
+            </div>
+        </div>
+    );
+}
+
+// Listahan ng mga pumunta sa clinic ngayong araw (nasa kanang column, gaya ng "Upcoming" list)
+type TodayItem = {
+    key: string;
+    name: string;
+    detail: string;
+    type: "student" | "employee";
+    kind: "clinic" | "dental";
+    avatar: string | null;
+    href: string;
+    message: string;
+};
+
+function TodayList({ items, viewAllHref }: { items: TodayItem[]; viewAllHref: string }) {
+    return (
+        <CardShell
+            title="Today's Visits"
+            action={
+                <Link href={viewAllHref} className="shrink-0 text-sm font-semibold text-[#15664f] hover:underline">
+                    View All
+                </Link>
+            }
+        >
+            {items.length === 0 ? (
+                <div className="flex flex-col items-center py-8 text-center">
+                    <Stethoscope className="h-10 w-10 text-[#15664f]/30" />
+                    <p className="mt-2 text-sm text-gray-600">No visits today yet.</p>
+                </div>
+            ) : (
+                <ul className="-mx-1 divide-y divide-gray-100">
+                    {items.map((item) => (
+                        <li key={item.key}>
+                            <ConfirmLink
+                                href={item.href}
+                                title={item.kind === "dental" ? "View dental record" : "View health record"}
+                                message={item.message}
+                                className="flex items-center gap-3 rounded-lg px-1 py-2.5 hover:bg-[#f6faf8]"
+                            >
+                                <PatientAvatar name={item.name} type={item.type} avatar={item.avatar} />
+                                <span className="min-w-0 flex-1">
+                                    <span className="block truncate text-sm font-semibold text-gray-900">{item.name}</span>
+                                    <span className="block truncate text-sm capitalize text-gray-600">{item.detail}</span>
+                                </span>
+                                <span
+                                    className={`shrink-0 rounded-full px-2.5 py-0.5 text-sm font-medium ${item.kind === "dental"
+                                        ? "bg-amber-100 text-amber-800"
+                                        : "bg-[#e3f1e9] text-[#15664f]"
+                                        }`}
+                                >
+                                    {item.kind === "dental" ? "Dental" : "Clinic"}
+                                </span>
+                            </ConfirmLink>
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </CardShell>
+    );
+}
+
+// Maliit na card na may paalala (sa ibaba ng kanang column)
+function HealthyCard() {
+    return (
+        <div className="relative overflow-hidden rounded-2xl border border-[#dcebe3] bg-gradient-to-br from-[#eef6f2] to-[#e2f0e7] p-4 md:p-5">
+            <svg aria-hidden="true" viewBox="0 0 120 120" className="absolute -bottom-6 -right-4 h-24 w-24 text-[#15664f]/15">
+                <path d="M20 110 C 20 50, 60 15, 115 10 C 112 70, 75 108, 20 110 Z" fill="currentColor" />
+            </svg>
+            <div className="relative flex items-start gap-3">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#15664f] text-white">
+                    <Heart className="h-[18px] w-[18px]" strokeWidth={2} fill="currentColor" />
+                </span>
+                <p className="text-sm leading-relaxed text-gray-600">
+                    Healthy students build a stronger tomorrow. Let&apos;s keep them safe and well!
+                </p>
             </div>
         </div>
     );
@@ -428,29 +273,35 @@ const CLINIC_COLOR = "#15664f";
 const DENTAL_COLOR = "#f59e0b";
 const REPORT_COLOR = "#3b82f6";
 
+// Kapal ng linya at laki ng tuldok: pababa ang laki para kita lahat kapag nagpatong
+const LINE_WIDTH = { clinic: 6, dental: 3.5, reports: 1.5 } as const;
+const DOT_SIZE = { clinic: 6.5, dental: 4.5, reports: 2.5 } as const;
+
 function CardShell({
     title,
-    subtitle,
-    icon: Icon,
+    badge,
+    action,
     children,
     className,
 }: {
     title: string;
-    subtitle?: string;
-    icon: LucideIcon;
+    /** Maliit na label sa kanan ng title (hal. "This Week") */
+    badge?: string;
+    /** Link o button sa kanan ng title (hal. "View All") */
+    action?: React.ReactNode;
     children: React.ReactNode;
     className?: string;
 }) {
     return (
-        <div className={`min-w-0 rounded-xl border-2 border-[#cfe5d9] bg-white shadow-md shadow-[#15664f]/10 p-4 md:p-5 ${className ?? ""}`}>
-            <div className="mb-4 flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#eef6f2] text-[#15664f]">
-                    <Icon className="h-5 w-5" strokeWidth={1.8} />
-                </div>
-                <div className="min-w-0">
-                    <h2 className="break-words text-base font-semibold leading-tight text-gray-900 md:text-lg">{title}</h2>
-                    {subtitle && <p className="text-xs text-gray-600">{subtitle}</p>}
-                </div>
+        <div className={`min-w-0 rounded-2xl border border-[#dcebe3] bg-white p-4 shadow-sm shadow-[#15664f]/5 md:p-5 ${className ?? ""}`}>
+            <div className="mb-4 flex items-center justify-between gap-3">
+                <h2 className="min-w-0 truncate text-base font-semibold text-gray-900 md:text-lg">{title}</h2>
+                {badge && (
+                    <span className="shrink-0 rounded-lg border border-[#dcebe3] bg-[#f6faf8] px-2.5 py-1 text-sm font-medium text-gray-600">
+                        {badge}
+                    </span>
+                )}
+                {action}
             </div>
             {children}
         </div>
@@ -459,7 +310,7 @@ function CardShell({
 
 function LegendDot({ color, label }: { color: string; label: string }) {
     return (
-        <span className="inline-flex items-center gap-1.5 text-xs text-gray-700">
+        <span className="inline-flex items-center gap-1.5 text-sm text-gray-600">
             <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
             {label}
         </span>
@@ -505,7 +356,7 @@ function VisitsOverviewChart({
     ];
 
     return (
-        <CardShell title="Visits & Case Reports Overview" subtitle="This week (Mon–Sat)" icon={BarChart3}>
+        <CardShell title="Clinic Visits Overview" badge="This Week">
             <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 sm:justify-end">
                 {showClinic && <LegendDot color={CLINIC_COLOR} label="Clinic Visits" />}
                 {showDental && <LegendDot color={DENTAL_COLOR} label="Dental Visits" />}
@@ -513,40 +364,53 @@ function VisitsOverviewChart({
             </div>
 
             {data.length === 0 ? (
-                <p className="py-10 text-center text-sm text-gray-500">No visit data yet.</p>
+                <p className="py-10 text-center text-sm text-gray-600">No visit data yet.</p>
             ) : (
                 <>
                     <svg
                         viewBox={`0 0 ${W} ${H}`}
-                        className="mx-auto h-auto max-h-[200px] w-full"
+                        className="mx-auto h-auto max-h-[220px] w-full"
                         role="img"
                         aria-label="Clinic visits, dental visits, and case reports for this week, Monday to Saturday"
                     >
+                        <defs>
+                            {/* Malambot na green na kulay sa ilalim ng linya */}
+                            <linearGradient id="clinic-area" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor={CLINIC_COLOR} stopOpacity={0.28} />
+                                <stop offset="100%" stopColor={CLINIC_COLOR} stopOpacity={0.02} />
+                            </linearGradient>
+                        </defs>
                         {/* grid + y labels */}
                         {ticks.map((t) => (
                             <g key={t}>
-                                <line x1={L} x2={W - R} y1={y(t)} y2={y(t)} stroke="#e5e7eb" strokeWidth={1} />
+                                <line x1={L} x2={W - R} y1={y(t)} y2={y(t)} stroke="#eef2f0" strokeWidth={1} />
                                 <text x={L - 6} y={y(t) + 4} textAnchor="end" fontSize={12} fill="#6b7280">
                                     {t}
                                 </text>
                             </g>
                         ))}
 
-                        {/* area + line + dots. Huling iginuguhit ang Clinic Visits para nasa ibabaw ito. */}
-                        {[...series]
-                            .reverse()
+                        {/* area + line + dots.
+                            Kapag pareho ang bilang, nagpapatong ang mga linya. Kaya magkakaiba ang kapal:
+                            pinakamakapal sa ilalim ang Clinic, gitna ang Dental, pinakamanipis sa ibabaw ang
+                            Case Reports — kita pa rin ang lahat ng kulay na parang guhit-guhit. */}
+                        {series
                             .filter((s) => s.show)
                             .map((s) => {
                                 const pts = data.map((d, i) => `${x(i)},${y(d[s.key])}`).join(" ");
                                 const area = `${x(0)},${baseY} ${pts} ${x(data.length - 1)},${baseY}`;
                                 return (
                                     <g key={s.key}>
-                                        <polygon points={area} fill={s.color} opacity={0.12} />
+                                        <polygon
+                                            points={area}
+                                            fill={s.key === "clinic" ? "url(#clinic-area)" : s.color}
+                                            opacity={s.key === "clinic" ? 1 : 0.08}
+                                        />
                                         <polyline
                                             points={pts}
                                             fill="none"
                                             stroke={s.color}
-                                            strokeWidth={2.5}
+                                            strokeWidth={LINE_WIDTH[s.key]}
                                             strokeLinejoin="round"
                                             strokeLinecap="round"
                                         />
@@ -555,8 +419,10 @@ function VisitsOverviewChart({
                                                 key={i}
                                                 cx={x(i)}
                                                 cy={y(d[s.key])}
-                                                r={3.5}
+                                                r={DOT_SIZE[s.key]}
                                                 fill={s.color}
+                                                stroke="#fff"
+                                                strokeWidth={1}
                                             >
                                                 <title>{`${d.label}: ${d[s.key]}`}</title>
                                             </circle>
@@ -580,19 +446,19 @@ function VisitsOverviewChart({
                     >
                         {data.map((d) => (
                             <div key={d.label} className="rounded-md bg-[#f6faf8] px-1 py-1">
-                                <p className="text-[10px] text-gray-500">{d.label}</p>
+                                <p className="text-sm text-gray-600">{d.label}</p>
                                 {showClinic && (
-                                    <p className="text-xs font-semibold" style={{ color: CLINIC_COLOR }}>
+                                    <p className="text-sm font-semibold" style={{ color: CLINIC_COLOR }}>
                                         {d.clinic}
                                     </p>
                                 )}
                                 {showDental && (
-                                    <p className="text-xs font-semibold" style={{ color: DENTAL_COLOR }}>
+                                    <p className="text-sm font-semibold" style={{ color: DENTAL_COLOR }}>
                                         {d.dental}
                                     </p>
                                 )}
                                 {showReports && (
-                                    <p className="text-xs font-semibold" style={{ color: REPORT_COLOR }}>
+                                    <p className="text-sm font-semibold" style={{ color: REPORT_COLOR }}>
                                         {d.reports}
                                     </p>
                                 )}
@@ -605,63 +471,83 @@ function VisitsOverviewChart({
     );
 }
 
-function VisitDistribution({
-    segments,
-}: {
-    segments: { label: string; value: number; color: string }[];
-}) {
+// Kulay ng bawat dahilan sa donut (green at dilaw, kapareho ng dashboard)
+const REASON_COLORS = ["#15664f", "#3f9a76", "#8fcaa9", "#f2c94c", "#d7e9df"];
+
+function VisitReasons({ reasons, unit }: { reasons: { label: string; value: number }[]; unit: string }) {
+    // Top 4 + "Others"
+    const top = reasons.slice(0, 4);
+    const othersValue = reasons.slice(4).reduce((sum, r) => sum + r.value, 0);
+    const segments = [
+        ...top.map((r, i) => ({ ...r, color: REASON_COLORS[i] })),
+        ...(othersValue > 0 ? [{ label: "Others", value: othersValue, color: REASON_COLORS[4] }] : []),
+    ];
     const total = segments.reduce((sum, s) => sum + s.value, 0);
-    const R = 40;
+    const R = 42;
     const C = 2 * Math.PI * R;
 
     let offset = 0;
-    const arcs = segments
-        .filter((s) => s.value > 0)
-        .map((s) => {
-            const len = (s.value / total) * C;
-            const arc = { ...s, len, offset };
-            offset += len;
-            return arc;
-        });
+    const arcs = segments.map((s) => {
+        const len = total ? (s.value / total) * C : 0;
+        const arc = { ...s, len, offset };
+        offset += len;
+        return arc;
+    });
 
     return (
-        <CardShell title="Visit Distribution" subtitle="This week (Mon–Sat)" icon={PieChart}>
-            <div className="flex flex-col items-center gap-4 sm:flex-row xl:flex-col 2xl:flex-row">
-                <div className="relative h-32 w-32 shrink-0 select-none sm:h-28 sm:w-28">
-                    <svg viewBox="0 0 120 120" className="h-full w-full" role="img" aria-label="Visit distribution">
-                        <circle cx={60} cy={60} r={R} fill="none" stroke="#f3f4f6" strokeWidth={16} />
-                        <g transform="rotate(-90 60 60)">
-                            {arcs.map((a) => (
-                                <circle
-                                    key={a.label}
-                                    cx={60}
-                                    cy={60}
-                                    r={R}
-                                    fill="none"
-                                    stroke={a.color}
-                                    strokeWidth={16}
-                                    strokeDasharray={`${a.len} ${C - a.len}`}
-                                    strokeDashoffset={-a.offset}
-                                />
-                            ))}
-                        </g>
-                    </svg>
-                    {/* Gitna ng donut: HTML para malinaw ang text */}
-                    <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                        <span className="text-[10px] font-medium uppercase tracking-wide text-gray-500">Total</span>
-                        <span className="text-xl font-bold leading-none text-[#15664f]">{total.toLocaleString("en-US")}</span>
-                    </div>
+        <CardShell title="Visit Reasons" badge="This Week">
+            {total === 0 ? (
+                <div className="flex flex-col items-center py-10 text-center">
+                    <PieChart className="h-10 w-10 text-[#15664f]/30" />
+                    <p className="mt-2 text-sm text-gray-600">No visits this week yet.</p>
                 </div>
+            ) : (
+                <div className="flex flex-col items-center gap-5 sm:flex-row lg:flex-col 2xl:flex-row">
+                    <div className="relative h-36 w-36 shrink-0 select-none">
+                        <svg viewBox="0 0 120 120" className="h-full w-full" role="img" aria-label="Visit reasons this week">
+                            <circle cx={60} cy={60} r={R} fill="none" stroke="#f1f5f3" strokeWidth={18} />
+                            <g transform="rotate(-90 60 60)">
+                                {arcs.map((a) => (
+                                    <circle
+                                        key={a.label}
+                                        cx={60}
+                                        cy={60}
+                                        r={R}
+                                        fill="none"
+                                        stroke={a.color}
+                                        strokeWidth={18}
+                                        strokeDasharray={`${a.len} ${C - a.len}`}
+                                        strokeDashoffset={-a.offset}
+                                    >
+                                        <title>{`${a.label}: ${a.value}`}</title>
+                                    </circle>
+                                ))}
+                            </g>
+                        </svg>
+                        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                            <span className="text-sm text-gray-600">Total</span>
+                            <span className="text-2xl font-bold leading-tight text-[#15664f]">{total.toLocaleString("en-US")}</span>
+                            <span className="text-sm text-gray-600">{unit}</span>
+                        </div>
+                    </div>
 
-                <ul className="w-full min-w-0 space-y-2 text-sm">
-                    {segments.map((s) => (
-                        <li key={s.label} className="flex items-center justify-between gap-3 rounded-lg bg-[#f6faf8] px-3 py-2">
-                            <LegendDot color={s.color} label={s.label} />
-                            <span className="shrink-0 font-bold text-gray-900">{s.value.toLocaleString("en-US")}</span>
-                        </li>
-                    ))}
-                </ul>
-            </div>
+                    <ul className="w-full min-w-0 space-y-2.5 text-sm">
+                        {segments.map((s) => (
+                            <li key={s.label} className="flex items-center justify-between gap-3">
+                                <span className="flex min-w-0 items-center gap-2 text-gray-600">
+                                    <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
+                                    <span className="truncate capitalize" title={s.label}>
+                                        {s.label}
+                                    </span>
+                                </span>
+                                <span className="shrink-0 font-semibold text-gray-900">
+                                    {Math.round((s.value / total) * 100)}%
+                                </span>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
         </CardShell>
     );
 }
@@ -675,45 +561,98 @@ function relativeDay(date: Date, today: string) {
     return new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 }
 
-function RecentActivity({ items, today }: { items: ActivityItem[]; today: string }) {
+function RecentActivity({
+    items,
+    today,
+    viewAllHref,
+    compact = false,
+}: {
+    items: ActivityItem[];
+    today: string;
+    viewAllHref: string;
+    /** Makitid na bersyon (listahan lang, walang table) para sa kanang column */
+    compact?: boolean;
+}) {
     const meta = {
-        clinic: { icon: Stethoscope, tile: "bg-[#eef6f2] text-[#15664f]", label: "Clinic visit", tag: "text-[#15664f]" },
-        dental: { icon: ToothIcon, tile: "bg-cyan-50 text-cyan-700", label: "Dental visit", tag: "text-cyan-700" },
-        report: { icon: ClipboardList, tile: "bg-amber-100 text-amber-700", label: "Case report", tag: "text-amber-700" },
+        clinic: { icon: Stethoscope, tile: "bg-[#eef6f2] text-[#15664f]", label: "New Clinic Visit" },
+        dental: { icon: ToothIcon, tile: "bg-cyan-50 text-cyan-700", label: "New Dental Visit" },
+        report: { icon: ClipboardList, tile: "bg-amber-100 text-amber-700", label: "Case Report Created" },
     } as const;
 
     return (
-        <CardShell title="Recent Activity" subtitle="Latest records" icon={Activity}>
+        <CardShell
+            title="Recent Activities"
+            action={
+                <Link href={viewAllHref} className="shrink-0 text-sm font-semibold text-[#15664f] hover:underline">
+                    View All
+                </Link>
+            }
+        >
             {items.length === 0 ? (
                 <div className="flex flex-col items-center py-8 text-center">
                     <Activity className="h-10 w-10 text-[#15664f]/30" />
-                    <p className="mt-2 text-sm text-gray-500">No recent activity.</p>
+                    <p className="mt-2 text-sm text-gray-600">No recent activity.</p>
                 </div>
             ) : (
-                <ul className="-mx-1 divide-y divide-gray-100">
-                    {items.map((item) => {
-                        const m = meta[item.kind];
-                        const Icon = m.icon;
-                        return (
-                            <li key={item.key} className="flex items-center gap-3 rounded-lg px-1 py-2.5 transition-colors hover:bg-[#f6faf8]">
-                                <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${m.tile}`}>
-                                    <Icon className="h-4 w-4" strokeWidth={1.8} />
-                                </div>
-                                {/* Pangalan sa itaas, uri ng record sa ilalim */}
-                                <div className="min-w-0 flex-1">
-                                    <p className="truncate text-sm font-semibold text-gray-900" title={item.name}>
-                                        {item.name}
-                                    </p>
-                                    <p className={`text-xs font-medium ${m.tag}`}>{m.label}</p>
-                                </div>
-                                <div className="shrink-0 text-right">
-                                    <p className="text-xs font-semibold text-gray-700">{item.clock}</p>
-                                    <p className="text-[11px] text-gray-500">{relativeDay(item.date, today)}</p>
-                                </div>
-                            </li>
-                        );
-                    })}
-                </ul>
+                <>
+                    {/* MOBILE (at kanang column): listahan */}
+                    <ul className={`-mx-1 divide-y divide-gray-100 ${compact ? "" : "md:hidden"}`}>
+                        {items.map((item) => {
+                            const m = meta[item.kind];
+                            const Icon = m.icon;
+                            return (
+                                <li key={item.key} className="flex items-center gap-3 px-1 py-2.5">
+                                    <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${m.tile}`}>
+                                        <Icon className="h-4 w-4" strokeWidth={1.8} />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                        <p className="truncate text-sm font-semibold text-gray-900">{item.name}</p>
+                                        <p className="text-sm text-gray-600">{m.label}</p>
+                                    </div>
+                                    <div className="shrink-0 text-right">
+                                        <p className="text-sm font-semibold text-gray-600">{item.clock}</p>
+                                        <p className="text-sm text-gray-600">{relativeDay(item.date, today)}</p>
+                                    </div>
+                                </li>
+                            );
+                        })}
+                    </ul>
+
+                    {/* DESKTOP: table */}
+                    <div className={`-mx-1 hidden overflow-x-auto ${compact ? "" : "md:block"}`}>
+                        <table className="w-full text-left text-sm">
+                            <thead className="border-b border-gray-100 text-gray-600">
+                                <tr>
+                                    <th className="whitespace-nowrap px-2 py-2.5 font-semibold">Time</th>
+                                    <th className="px-2 py-2.5 font-semibold">Activity</th>
+                                    <th className="px-2 py-2.5 font-semibold">Patient</th>
+                                    <th className="whitespace-nowrap px-2 py-2.5 font-semibold">Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {items.map((item) => {
+                                    const m = meta[item.kind];
+                                    const Icon = m.icon;
+                                    return (
+                                        <tr key={item.key} className="border-b border-gray-50 last:border-0 hover:bg-[#f6faf8]">
+                                            <td className="whitespace-nowrap px-2 py-3 text-gray-600">{item.clock || "—"}</td>
+                                            <td className="px-2 py-3">
+                                                <span className="flex items-center gap-2 text-gray-900">
+                                                    <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${m.tile}`}>
+                                                        <Icon className="h-3.5 w-3.5" strokeWidth={1.8} />
+                                                    </span>
+                                                    {m.label}
+                                                </span>
+                                            </td>
+                                            <td className="px-2 py-3 text-gray-600">{item.name}</td>
+                                            <td className="whitespace-nowrap px-2 py-3 text-gray-600">{relativeDay(item.date, today)}</td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </>
             )}
         </CardShell>
     );
@@ -827,7 +766,8 @@ async function loadDashboard(isDentist: boolean, isDoctor: boolean, showEmployee
             activityClinicEmployee,
             activityDental,
             activityReports,
-        ]: [WeeklyRow[], ActivityRow[], ActivityRow[], ActivityRow[], ActivityRow[]] = await Promise.all([
+            reasonRows,
+        ]: [WeeklyRow[], ActivityRow[], ActivityRow[], ActivityRow[], ActivityRow[], ReasonRow[]] = await Promise.all([
             // ---- visits per day for this week (Mon -> Sat) ----
             prisma.$queryRaw<WeeklyRow[]>`
           SELECT (CAST(date_trunc('week', CAST(${today} AS DATE)) AS DATE) + n) AS day,
@@ -912,6 +852,31 @@ async function loadDashboard(isDentist: boolean, isDoctor: boolean, showEmployee
           ORDER BY h.created_at DESC
           LIMIT 5
         `,
+            // ---- Visit Reasons ngayong linggo (Mon -> Sat) ----
+            // Dentist: mga procedure sa dental visits. Iba pa: mga complaint sa clinic visits.
+            isDentist
+                ? prisma.$queryRaw<ReasonRow[]>`
+          SELECT MIN(TRIM(procedure_name)) AS label, COUNT(*) AS total
+          FROM dental_records
+          WHERE archived_at IS NULL AND TRIM(procedure_name) <> ''
+            AND CAST(visit_date AS DATE) BETWEEN CAST(date_trunc('week', CAST(${today} AS DATE)) AS DATE)
+                                             AND CAST(date_trunc('week', CAST(${today} AS DATE)) AS DATE) + 5
+          GROUP BY LOWER(TRIM(procedure_name))
+          ORDER BY total DESC, label ASC
+        `
+                : prisma.$queryRaw<ReasonRow[]>`
+          SELECT MIN(TRIM(v.complaint)) AS label, COUNT(*) AS total
+          FROM (
+            SELECT complaint, visit_date FROM health_records WHERE archived_at IS NULL
+            UNION ALL
+            SELECT complaint, visit_date FROM employee_health_records WHERE archived_at IS NULL
+          ) v
+          WHERE TRIM(v.complaint) <> ''
+            AND CAST(v.visit_date AS DATE) BETWEEN CAST(date_trunc('week', CAST(${today} AS DATE)) AS DATE)
+                                               AND CAST(date_trunc('week', CAST(${today} AS DATE)) AS DATE) + 5
+          GROUP BY LOWER(TRIM(v.complaint))
+          ORDER BY total DESC, label ASC
+        `,
         ]);
 
         const weeklyPoints: WeeklyPoint[] = weekly.map((w) => ({
@@ -971,6 +936,7 @@ async function loadDashboard(isDentist: boolean, isDoctor: boolean, showEmployee
             recentDental,
             weeklyPoints,
             activity,
+            reasons: reasonRows.map((r) => ({ label: r.label, value: Number(r.total) })),
         };
     } catch (err) {
         console.error("Dashboard error:", err);
@@ -986,6 +952,7 @@ async function loadDashboard(isDentist: boolean, isDoctor: boolean, showEmployee
             recentDental: [] as DentalRow[],
             weeklyPoints: [] as WeeklyPoint[],
             activity: [] as ActivityItem[],
+            reasons: [] as { label: string; value: number }[],
         };
     }
 }
@@ -1027,37 +994,43 @@ export default async function DashboardPage() {
         dentist: "Dentist",
     };
     const roleName = ROLE_NAMES[role] ?? (role ? role.charAt(0).toUpperCase() + role.slice(1) : "");
-    const greetingText = `${greeting}${roleName ? `, ${roleName}` : ""}!`;
+    // Pangalan mula sa username (hal. "santos@bcas.edu.ph" -> "Santos"); "Dr." para sa doctor/dentist
+    // Display Name mula sa Settings; kung wala pa, galing sa email
+    const me = await prisma.user
+        .findUnique({ where: { user_id: session.userId }, select: { avatar: true, full_name: true } })
+        .catch(() => null);
+    const displayName = staffDisplayName(me?.full_name, String(session.username ?? ""), role) || roleName;
+    const baseName = displayName.replace(/^Dr\.?\s*/i, "");
+    const greetingText = `${greeting}${displayName ? `, ${displayName}` : ""}!`;
     const GreetingIcon = hour < 12 ? Sun : hour < 18 ? Sunset : Moon;
-    const longToday = new Intl.DateTimeFormat("en-US", {
-        weekday: "long",
+    const dateToday = new Intl.DateTimeFormat("en-US", {
         month: "long",
         day: "numeric",
         year: "numeric",
         timeZone: "Asia/Manila",
     }).format(new Date());
+    const weekdayToday = new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: "Asia/Manila" }).format(new Date());
 
     const isItTech = role === "ittech";
 
-    // Welcome banner (makikita ng lahat ng role)
+    // Pagbati sa itaas: pangalan at petsa (makikita ng lahat ng role)
     const banner = (
-        <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#15664f] to-[#0f4d3b] p-5 text-white shadow-lg shadow-[#15664f]/20 md:p-6">
-            <div className="pointer-events-none absolute -right-10 -top-12 h-40 w-40 rounded-full bg-white/10" />
-            <div className="pointer-events-none absolute -bottom-16 right-24 h-32 w-32 rounded-full bg-white/5" />
-            <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center">
-                <div className="flex min-w-0 flex-1 items-center gap-4">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/15 text-amber-300 ring-4 ring-white/10">
-                        <GreetingIcon className="h-6 w-6" strokeWidth={1.8} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                        <h1 className="break-words text-xl font-bold sm:text-2xl md:text-3xl">{greetingText}</h1>
-                        <p className="text-sm text-white/80">Here&apos;s what&apos;s happening at the clinic today.</p>
-                    </div>
-                </div>
-                <span className="inline-flex w-fit shrink-0 items-center gap-2 rounded-lg bg-white/15 px-3 py-2 text-xs font-medium sm:text-sm">
-                    <CalendarDays className="h-4 w-4" />
-                    {longToday}
+        <section className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-center gap-3">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-600 sm:hidden">
+                    <GreetingIcon className="h-5 w-5" strokeWidth={1.8} />
                 </span>
+                <div className="min-w-0">
+                    <h1 className="break-words text-2xl font-bold text-[#10523f] md:text-[1.75rem]">{greetingText}</h1>
+                    <p className="mt-0.5 text-sm text-gray-600">Here&apos;s an overview of your school clinic today.</p>
+                </div>
+            </div>
+            <div className="flex w-fit shrink-0 items-center gap-2.5 rounded-xl border border-[#dcebe3] bg-white px-3.5 py-2 shadow-sm shadow-[#15664f]/5">
+                <CalendarDays className="h-5 w-5 text-[#15664f]" strokeWidth={1.8} />
+                <div className="leading-tight">
+                    <p className="text-sm font-semibold text-gray-900">{dateToday}</p>
+                    <p className="text-sm text-gray-600">{weekdayToday}</p>
+                </div>
             </div>
         </section>
     );
@@ -1092,22 +1065,9 @@ export default async function DashboardPage() {
             { label: "Visitors Today", value: data.visitorsToday, icon: UserCheck, hint: "Logged today", tone: "amber" },
         ];
 
-    const gridCols = isDentist
-        ? "xl:grid-cols-4"
-        : isDoctor
-            ? "xl:grid-cols-5"
-            : "xl:grid-cols-3 2xl:grid-cols-6";
 
-    // Visit Distribution = totals for the same week window as the overview chart.
-    const weekClinic = data.weeklyPoints.reduce((sum, p) => sum + p.clinic, 0);
-    const weekDental = data.weeklyPoints.reduce((sum, p) => sum + p.dental, 0);
-    const weekReports = data.weeklyPoints.reduce((sum, p) => sum + p.reports, 0);
-    const distributionSegments = [
-        ...(isDentist ? [] : [{ label: "Clinic Visits", value: weekClinic, color: CLINIC_COLOR }]),
-        ...(isDoctor ? [] : [{ label: "Dental Visits", value: weekDental, color: DENTAL_COLOR }]),
-        // Case reports na ginawa ngayong linggo (tugma sa "This week")
-        ...(isDentist ? [] : [{ label: "Case Reports", value: weekReports, color: REPORT_COLOR }]),
-    ];
+    // Iisang kulay ang icon ng lahat ng Quick Action tile (green, nagiging solid kapag hover)
+    const TILE_ICON = "bg-white text-[#15664f] shadow-sm ring-1 ring-[#dcebe3] group-hover:bg-[#15664f] group-hover:text-white group-hover:ring-[#15664f]";
 
     // NOTE: adjust the href values below to match your actual routes.
     const quickActions: QuickAction[] = [
@@ -1117,7 +1077,7 @@ export default async function DashboardPage() {
             href: "/dashboard/students/new",
             icon: UserPlus,
             cardClass: "border-gray-100 bg-white hover:border-[#15664f]/30 hover:bg-[#eef6f2] hover:shadow-md hover:shadow-[#15664f]/10",
-            iconClass: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100 group-hover:bg-emerald-600 group-hover:text-white group-hover:ring-emerald-600",
+            iconClass: TILE_ICON,
         },
         ...(showEmployees
             ? [
@@ -1128,7 +1088,7 @@ export default async function DashboardPage() {
                     href: "/dashboard/employees/new",
                     icon: Briefcase,
                     cardClass: "border-gray-100 bg-white hover:border-[#15664f]/30 hover:bg-[#eef6f2] hover:shadow-md hover:shadow-[#15664f]/10",
-                    iconClass: "bg-teal-50 text-teal-700 ring-1 ring-teal-100 group-hover:bg-teal-600 group-hover:text-white group-hover:ring-teal-600",
+                    iconClass: TILE_ICON,
                 },
             ]
             : []),
@@ -1141,7 +1101,7 @@ export default async function DashboardPage() {
                     href: "/dashboard/student-health-records/new",
                     icon: Stethoscope,
                     cardClass: "border-gray-100 bg-white hover:border-[#15664f]/30 hover:bg-[#eef6f2] hover:shadow-md hover:shadow-[#15664f]/10",
-                    iconClass: "bg-sky-50 text-sky-700 ring-1 ring-sky-100 group-hover:bg-sky-600 group-hover:text-white group-hover:ring-sky-600",
+                    iconClass: TILE_ICON,
                 },
                 // Doctors do not handle dental records.
                 ...(isDoctor
@@ -1154,7 +1114,7 @@ export default async function DashboardPage() {
                             href: "/dashboard/dental-records/new",
                             icon: ToothIcon,
                             cardClass: "border-gray-100 bg-white hover:border-[#15664f]/30 hover:bg-[#eef6f2] hover:shadow-md hover:shadow-[#15664f]/10",
-                            iconClass: "bg-violet-50 text-violet-700 ring-1 ring-violet-100 group-hover:bg-violet-600 group-hover:text-white group-hover:ring-violet-600",
+                            iconClass: TILE_ICON,
                         },
                     ]),
 
@@ -1164,7 +1124,7 @@ export default async function DashboardPage() {
                     href: "/dashboard/health-case-reports/new",
                     icon: ClipboardList,
                     cardClass: "border-gray-100 bg-white hover:border-[#15664f]/30 hover:bg-[#eef6f2] hover:shadow-md hover:shadow-[#15664f]/10",
-                    iconClass: "bg-amber-50 text-amber-700 ring-1 ring-amber-100 group-hover:bg-amber-600 group-hover:text-white group-hover:ring-amber-600",
+                    iconClass: TILE_ICON,
                 },
             ]),
         {
@@ -1173,95 +1133,170 @@ export default async function DashboardPage() {
             href: "/dashboard/illness-alerts",
             icon: BarChart3,
             cardClass: "border-gray-100 bg-white hover:border-[#15664f]/30 hover:bg-[#eef6f2] hover:shadow-md hover:shadow-[#15664f]/10",
-            iconClass: "bg-rose-50 text-rose-700 ring-1 ring-rose-100 group-hover:bg-rose-600 group-hover:text-white group-hover:ring-rose-600",
+            iconClass: TILE_ICON,
         },
     ];
 
+    // Mga pumunta ngayong araw (clinic + dental), para sa "Today's Visits" sa kanan
+    const todayItems: TodayItem[] = [
+        ...(isDentist
+            ? []
+            : data.recentVisits.map((v) => {
+                const name = `${v.first_name} ${v.last_name}`;
+                return {
+                    key: `clinic-${v.patient_type}-${v.record_id}`,
+                    name,
+                    detail: v.complaint,
+                    type: v.patient_type,
+                    kind: "clinic" as const,
+                    avatar: v.avatar,
+                    href:
+                        v.patient_type === "employee"
+                            ? `/dashboard/employee-health-records?employee=${encodeURIComponent(v.ref_number)}&view=history&record=${v.record_id}`
+                            : `/dashboard/student-health-records?student=${encodeURIComponent(v.ref_number)}&view=history&record=${v.record_id}`,
+                    message: `Open the health record of ${name}? This contains confidential medical information and your access will be recorded.`,
+                };
+            })),
+        ...(isDoctor
+            ? []
+            : data.recentDental.map((d) => {
+                const name = `${d.first_name ?? ""} ${d.last_name ?? ""}`.trim() || "Unknown";
+                const type: "student" | "employee" = d.patient_type === "employee" ? "employee" : "student";
+                return {
+                    key: `dental-${d.patient_type}-${d.dental_id}`,
+                    name,
+                    detail: d.procedure_name,
+                    type,
+                    kind: "dental" as const,
+                    avatar: d.avatar,
+                    href:
+                        type === "employee"
+                            ? `/dashboard/dental-records?employee=${encodeURIComponent(d.ref_number)}&view=history&record=${d.dental_id}`
+                            : `/dashboard/dental-records?student=${encodeURIComponent(d.ref_number)}&view=history&record=${d.dental_id}`,
+                    message: `Open the dental record of ${name}? This contains confidential medical information and your access will be recorded.`,
+                };
+            })),
+    ].slice(0, 6);
+
+    // Search sa itaas: dentist -> dental records, iba -> student health records
+    const searchAction = isDentist ? "/dashboard/dental-records" : "/dashboard/student-health-records";
+    const initials = (baseName || "U").charAt(0).toUpperCase();
+
+    // Top bar (desktop/tablet): search, notification bell (pending reports) at user
+    const topBar = (
+        <header className="hidden items-center gap-3 md:flex">
+            <form method="get" action={searchAction} className="relative min-w-0 flex-1">
+                <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-600" />
+                <input
+                    name="q"
+                    type="search"
+                    autoComplete="off"
+                    placeholder={isDentist ? "Search dental records..." : "Search students or records..."}
+                    suppressHydrationWarning
+                    className="h-11 w-full max-w-xl rounded-full border border-[#dcebe3] bg-white pl-11 pr-4 text-sm text-gray-900 shadow-sm shadow-[#15664f]/5 outline-none transition focus:border-[#15664f] focus:ring-4 focus:ring-[#15664f]/10"
+                />
+            </form>
+
+            {!isDentist && (
+                <Link
+                    href="/dashboard/health-case-reports?status=pending"
+                    title={`${data.pendingReports} pending case report${data.pendingReports === 1 ? "" : "s"}`}
+                    className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#dcebe3] bg-white text-[#15664f] shadow-sm shadow-[#15664f]/5 hover:bg-[#eef6f2]"
+                >
+                    <Bell className="h-5 w-5" strokeWidth={1.8} />
+                    {data.pendingReports > 0 && (
+                        <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-400 px-1 text-sm font-semibold leading-none text-[#10523f] ring-2 ring-[#e7f3e2]">
+                            {data.pendingReports > 99 ? "99+" : data.pendingReports}
+                        </span>
+                    )}
+                </Link>
+            )}
+
+            <Link
+                href="/dashboard/settings"
+                className="flex shrink-0 items-center gap-2.5 rounded-full border border-[#dcebe3] bg-white py-1 pl-1 pr-4 shadow-sm shadow-[#15664f]/5 hover:bg-[#eef6f2]"
+            >
+                {me?.avatar ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={me.avatar} alt="" className="h-9 w-9 rounded-full object-cover" />
+                ) : (
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#15664f] text-sm font-semibold text-white">
+                        {initials}
+                    </span>
+                )}
+                <span className="leading-tight">
+                    <span className="block text-sm font-semibold text-gray-900">{displayName}</span>
+                    <span className="block text-sm text-gray-600">{roleName}</span>
+                </span>
+            </Link>
+        </header>
+    );
+
     return (
-        <main className="min-w-0 space-y-6 p-4 pb-8 md:p-8">
-            {banner}
-            <section className={`grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-3 ${gridCols}`}>
-                {stats.map((stat) => {
-                    const Icon = stat.icon;
-                    return (
-                        <div
-                            key={stat.label}
-                            className={`relative flex h-full min-w-0 flex-col overflow-hidden rounded-xl border-2 border-[#cfe5d9] bg-white p-3 shadow-md shadow-[#15664f]/10 sm:p-4`}
-                        >
-                            {/* manipis na kulay sa itaas ng card */}
-                            <span
-                                className={`absolute inset-x-0 top-0 h-1 ${stat.tone === "amber" ? "bg-amber-400" : "bg-[#15664f]"}`}
-                            />
-                            {/* Mobile: 2 card bawat hilera, compact. sm pataas: mas maluwag */}
-                            <div className="flex items-start justify-between gap-2">
-                                <p className="min-h-[2rem] break-words text-xs font-medium leading-4 text-gray-600 sm:text-sm">
-                                    {stat.label}
-                                </p>
+        <main className="min-w-0 space-y-5 p-4 pb-8 md:p-6">
+            {topBar}
+
+            {/* Kaliwa: pagbati, stats, chart, Recent Activities. Kanan (malaking screen): Quick Actions, Today's Visits */}
+            <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_20rem] 2xl:grid-cols-[minmax(0,1fr)_22rem]">
+                <div className="min-w-0 space-y-5">
+                    {banner}
+
+                    {/* Stat cards (siksik): icon sa kaliwa, bilang at label sa kanan */}
+                    <section className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+                        {stats.map((stat) => {
+                            const Icon = stat.icon;
+                            const amber = stat.tone === "amber";
+                            return (
                                 <div
-                                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg sm:h-10 sm:w-10 ${stat.tone === "amber" ? "bg-amber-100 text-amber-700" : "bg-[#eef6f2] text-[#15664f]"
+                                    key={stat.label}
+                                    title={stat.hint}
+                                    className={`flex min-w-0 items-center gap-4 rounded-2xl border p-4 shadow-sm sm:p-5 ${amber ? "border-[#f3e4b3] bg-[#fdf7e6]" : "border-[#d3e8dc] bg-[#eaf5ef]"
                                         }`}
                                 >
-                                    <Icon className="h-4 w-4 sm:h-5 sm:w-5" strokeWidth={1.8} />
+                                    <span
+                                        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full sm:h-14 sm:w-14 ${amber ? "bg-amber-300/70 text-[#7a5a00]" : "bg-[#15664f]/15 text-[#15664f]"
+                                            }`}
+                                    >
+                                        <Icon className="h-6 w-6" strokeWidth={1.8} />
+                                    </span>
+                                    <div className="min-w-0">
+                                        <p className="text-[1.75rem] font-bold leading-tight text-gray-900 sm:text-[2rem]">{stat.value.toLocaleString("en-US")}</p>
+                                        <p className="break-words text-sm font-medium text-gray-600">{stat.label}</p>
+                                        <p className="hidden text-sm text-gray-600 sm:block">{stat.hint}</p>
+                                    </div>
                                 </div>
-                            </div>
-                            <p className="mt-1 text-2xl font-bold text-gray-900 sm:text-3xl">
-                                {stat.value.toLocaleString("en-US")}
-                            </p>
-                            <p className="mt-auto pt-0.5 text-[11px] text-gray-500 sm:text-xs">{stat.hint}</p>
-                        </div>
-                    );
-                })}
-            </section>
+                            );
+                        })}
+                    </section>
 
-            <section className="grid gap-6 xl:grid-cols-5">
-                {/* Lists on the left, Quick Actions on the right (same layout for every role) */}
-                <div className="min-w-0 space-y-6 xl:col-span-3">
-                    {!isDentist && (
-                        <VisitList
-                            title="Today's Clinic Visits"
-                            rows={data.recentVisits}
-                            empty="No clinic visits today."
-                            viewHref={(v) =>
-                                v.patient_type === "employee"
-                                    ? `/dashboard/employee-health-records?employee=${encodeURIComponent(v.ref_number)}&view=history&record=${v.record_id}`
-                                    : `/dashboard/student-health-records?student=${encodeURIComponent(v.ref_number)}&view=history&record=${v.record_id}`
-                            }
+                    {/* Chart + Visit Reasons */}
+                    <section className="grid gap-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+                        <VisitsOverviewChart
+                            data={data.weeklyPoints}
+                            showClinic={!isDentist}
+                            showDental={!isDoctor}
+                            showReports={!isDentist}
                         />
-                    )}
-                    {!isDoctor && (
-                        <DentalList
-                            title="Today's Dental Visits"
-                            rows={data.recentDental}
-                            empty="No dental visits today."
-                            viewHref={(d) =>
-                                d.patient_type === "employee"
-                                    ? `/dashboard/dental-records?employee=${encodeURIComponent(d.ref_number)}&view=history&record=${d.dental_id}`
-                                    : `/dashboard/dental-records?student=${encodeURIComponent(d.ref_number)}&view=history&record=${d.dental_id}`
-                            }
-                        />
-                    )}
+                        <VisitReasons reasons={data.reasons} unit={isDentist ? "Dental Visits" : "Visits"} />
+                    </section>
+
+                    {/* Recent Activities: sa ilalim ng Visits Overview at Visit Reasons */}
+                    <RecentActivity
+                        items={data.activity}
+                        today={data.today}
+                        viewAllHref={isDentist ? "/dashboard/dental-visits" : "/dashboard/clinic-visits"}
+                        compact
+                    />
+
                 </div>
 
-                <QuickActionsSection
-                    actions={quickActions}
-                    className="xl:col-span-2 xl:self-start"
-                />
-            </section>
-
-            {/* Overview chart + Visit Distribution + Recent Activity */}
-            <section className="grid gap-6 lg:grid-cols-2 xl:grid-cols-[1.4fr_1fr_1.2fr]">
-                <VisitsOverviewChart
-                    data={data.weeklyPoints}
-                    showClinic={!isDentist}
-                    showDental={!isDoctor}
-                    showReports={!isDentist}
-                />
-                <VisitDistribution segments={distributionSegments} />
-                {/* Sa lg, full width para hindi mag-isa sa kalahating row */}
-                <div className="min-w-0 lg:col-span-2 xl:col-span-1">
-                    <RecentActivity items={data.activity} today={data.today} />
-                </div>
-            </section>
+                {/* KANAN */}
+                <aside className="grid min-w-0 content-start gap-5 md:grid-cols-2 xl:grid-cols-1">
+                    <QuickActionsSection actions={quickActions} />
+                    <TodayList items={todayItems} viewAllHref={isDentist ? "/dashboard/dental-visits" : "/dashboard/clinic-visits"} />
+                    <HealthyCard />
+                </aside>
+            </div>
         </main>
     );
 }
