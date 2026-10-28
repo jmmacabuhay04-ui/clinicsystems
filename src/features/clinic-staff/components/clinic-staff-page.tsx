@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { Archive, BadgeCheck, IdCard, Mail, Pencil, Phone, Plus, UserCog, UserMinus, Users } from "lucide-react";
+import { Archive, BadgeCheck, IdCard, Mail, Pencil, Phone, Plus, UserMinus, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { canManageStaff, canViewStaff } from "@/lib/permissions";
@@ -27,9 +27,9 @@ const statusStyles: Record<string, { label: string; className: string }> = {
 };
 
 const EDIT_CLASS =
-    "inline-flex h-8 items-center gap-1.5 rounded-md bg-[#15664f] px-3 text-xs font-semibold text-white hover:bg-[#10523f]";
+    "inline-flex h-8 items-center gap-1.5 rounded-md bg-[#15664f] px-3 text-sm font-semibold text-white hover:bg-[#10523f]";
 const ARCHIVE_CLASS =
-    "inline-flex h-8 items-center gap-1.5 rounded-md border border-amber-300 bg-white px-3 text-xs font-semibold text-amber-700 hover:bg-amber-50";
+    "inline-flex h-8 items-center gap-1.5 rounded-md border border-amber-300 bg-white px-3 text-sm font-semibold text-amber-700 hover:bg-amber-50";
 
 function initialsOf(name: string) {
     const parts = name.trim().split(/\s+/);
@@ -81,7 +81,7 @@ export default async function ClinicStaffPage() {
   `;
 
     const getBadge = (status: string) =>
-        statusStyles[status] ?? { label: status, className: "bg-gray-100 text-gray-700" };
+        statusStyles[status] ?? { label: status, className: "bg-gray-100 text-gray-600" };
 
     const activeCount = staff.filter((s) => s.status === "active").length;
     const stats = [
@@ -95,9 +95,8 @@ export default async function ClinicStaffPage() {
             {/* Header */}
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex min-w-0 items-center gap-3">
-                    <UserCog className="h-10 w-10 shrink-0 text-[#15664f]" />
                     <div className="min-w-0">
-                        <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">Clinic Staff</h1>
+                        <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">Clinic Staff</h1>
                         <p className="text-sm text-gray-600">Manage clinic personnel, their roles, and license details.</p>
                     </div>
                 </div>
@@ -115,7 +114,7 @@ export default async function ClinicStaffPage() {
                         Add Staff
                     </ConfirmLink>
                 ) : (
-                    <span className="rounded-full bg-gray-200 px-3 py-1 text-xs font-medium text-gray-600">View only</span>
+                    <span className="rounded-full bg-gray-200 px-3 py-1 text-sm font-medium text-gray-600">View only</span>
                 )}
             </div>
 
@@ -141,7 +140,7 @@ export default async function ClinicStaffPage() {
             <section className={`${card} min-w-0 overflow-hidden`}>
                 <div className="flex items-center justify-between gap-3 p-5 md:px-6">
                     <h2 className="text-lg font-semibold text-gray-900">Staff Directory</h2>
-                    <span className="rounded-full bg-[#eef6f2] px-3 py-1 text-xs font-semibold text-[#15664f]">
+                    <span className="rounded-full bg-[#eef6f2] px-3 py-1 text-sm font-semibold text-[#15664f]">
                         {staff.length} staff
                     </span>
                 </div>
@@ -150,7 +149,7 @@ export default async function ClinicStaffPage() {
                     <div className="flex flex-col items-center border-t border-gray-100 p-10 text-center md:p-14">
                         <Users className="h-12 w-12 text-[#15664f]/30" />
                         <p className="mt-3 text-base font-semibold text-gray-800">No clinic staff recorded yet</p>
-                        <p className="mt-1 text-sm text-gray-500">
+                        <p className="mt-1 text-sm text-gray-600">
                             {canEdit
                                 ? "Click Add Staff to record the first clinic staff member."
                                 : "Clinic staff will appear here once added."}
@@ -165,15 +164,15 @@ export default async function ClinicStaffPage() {
                                 return (
                                     <li key={s.staff_id} className="rounded-lg border border-gray-200 p-3">
                                         <div className="flex items-start gap-3">
-                                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#eef6f2] text-sm font-bold text-[#15664f]">
+                                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#eef6f2] text-sm font-semibold text-[#15664f]">
                                                 {initialsOf(s.full_name)}
                                             </span>
                                             <div className="min-w-0 flex-1">
                                                 <p className="break-words text-sm font-semibold text-gray-900">{s.full_name}</p>
-                                                <p className="break-words text-xs text-gray-600">{s.position}</p>
+                                                <p className="break-words text-sm text-gray-600">{s.position}</p>
                                             </div>
                                             <span
-                                                className={`shrink-0 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ${badge.className}`}
+                                                className={`shrink-0 whitespace-nowrap rounded-full px-2.5 py-0.5 text-sm font-semibold ${badge.className}`}
                                             >
                                                 {badge.label}
                                             </span>
@@ -181,15 +180,15 @@ export default async function ClinicStaffPage() {
 
                                         <dl className="mt-3 space-y-1.5 text-sm">
                                             <div className="flex items-center gap-2">
-                                                <Mail className="h-4 w-4 shrink-0 text-gray-400" />
+                                                <Mail className="h-4 w-4 shrink-0 text-gray-600" />
                                                 <dd className="min-w-0 flex-1 break-all text-gray-900">{s.email ?? "—"}</dd>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <Phone className="h-4 w-4 shrink-0 text-gray-400" />
+                                                <Phone className="h-4 w-4 shrink-0 text-gray-600" />
                                                 <dd className="min-w-0 flex-1 break-words text-gray-900">{s.contact ?? "—"}</dd>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <IdCard className="h-4 w-4 shrink-0 text-gray-400" />
+                                                <IdCard className="h-4 w-4 shrink-0 text-gray-600" />
                                                 <dd className="min-w-0 flex-1 break-words text-gray-900">{s.license_no ?? "—"}</dd>
                                             </div>
                                         </dl>
@@ -207,7 +206,7 @@ export default async function ClinicStaffPage() {
                         {/* DESKTOP: table */}
                         <div className="hidden overflow-x-auto border-t border-gray-100 md:block">
                             <table className="w-full text-left text-sm">
-                                <thead className="bg-[#f6faf8] text-xs uppercase tracking-wide text-gray-600">
+                                <thead className="bg-[#f6faf8] text-sm uppercase tracking-wide text-gray-600">
                                     <tr>
                                         <th className="px-4 py-3 font-semibold">Name</th>
                                         <th className="px-4 py-3 font-semibold">Email</th>
@@ -224,20 +223,20 @@ export default async function ClinicStaffPage() {
                                             <tr key={s.staff_id} className="border-t border-gray-100 hover:bg-[#f6faf8]">
                                                 <td className="px-4 py-3">
                                                     <div className="flex items-center gap-3">
-                                                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#eef6f2] text-xs font-bold text-[#15664f]">
+                                                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#eef6f2] text-sm font-semibold text-[#15664f]">
                                                             {initialsOf(s.full_name)}
                                                         </span>
                                                         <div className="min-w-0">
                                                             <p className="font-semibold text-gray-900">{s.full_name}</p>
-                                                            <p className="text-xs text-gray-500">{s.position}</p>
+                                                            <p className="text-sm text-gray-600">{s.position}</p>
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="px-4 py-3 text-gray-700">{s.email ?? "—"}</td>
-                                                <td className="whitespace-nowrap px-4 py-3 text-gray-700">{s.contact ?? "—"}</td>
+                                                <td className="px-4 py-3 text-gray-600">{s.email ?? "—"}</td>
+                                                <td className="whitespace-nowrap px-4 py-3 text-gray-600">{s.contact ?? "—"}</td>
                                                 <td className="whitespace-nowrap px-4 py-3 text-gray-600">{s.license_no ?? "—"}</td>
                                                 <td className="px-4 py-3">
-                                                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${badge.className}`}>
+                                                    <span className={`rounded-full px-3 py-1 text-sm font-semibold ${badge.className}`}>
                                                         {badge.label}
                                                     </span>
                                                 </td>

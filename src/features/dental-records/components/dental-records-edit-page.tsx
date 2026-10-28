@@ -92,13 +92,13 @@ export default async function EditDentalRecordPage({ searchParams }: Props) {
 
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="min-w-0">
-                    <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">Edit Dental Record</h1>
+                    <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">Edit Dental Record</h1>
                     <p className="text-sm text-gray-600">Update the procedure, tooth, and status of this dental visit.</p>
                 </div>
                 {/* Kung kaninong record ito */}
                 <div className="flex items-center gap-3 rounded-xl border-2 border-[#cfe5d9] bg-white px-3 py-2 shadow-sm">
                     <span
-                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold ${row.patient_type === "employee" ? "bg-amber-300 text-gray-900" : "bg-[#15664f] text-white"
+                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${row.patient_type === "employee" ? "bg-amber-300 text-gray-900" : "bg-[#15664f] text-white"
                             }`}
                     >
                         {`${row.first_name?.[0] ?? ""}${row.last_name?.[0] ?? ""}`.toUpperCase()}
@@ -107,10 +107,10 @@ export default async function EditDentalRecordPage({ searchParams }: Props) {
                         <p className="truncate text-sm font-semibold text-gray-900">
                             {row.last_name}, {row.first_name}
                         </p>
-                        <p className="text-xs text-gray-500">{row.patient_number}</p>
+                        <p className="text-sm text-gray-600">{row.patient_number}</p>
                     </div>
                     <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${row.patient_type === "employee" ? "bg-amber-300 text-gray-900" : "bg-[#15664f] text-white"
+                        className={`rounded-full px-2 py-0.5 text-sm font-semibold ${row.patient_type === "employee" ? "bg-amber-300 text-gray-900" : "bg-[#15664f] text-white"
                             }`}
                     >
                         {row.patient_type === "employee" ? "Employee" : "Student"}

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, UserPlus } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { getSession } from "@/lib/auth/session";
 import { canManageStaff } from "@/lib/permissions";
 import StaffForm, { type StaffValues } from "./staff-form";
@@ -32,9 +32,8 @@ export default async function NewStaffPage() {
             </Link>
 
             <div className="flex items-center gap-3">
-                <UserPlus className="h-10 w-10 shrink-0 text-[#15664f]" />
                 <div className="min-w-0">
-                    <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">Add Clinic Staff</h1>
+                    <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">Add Clinic Staff</h1>
                     <p className="text-sm text-gray-600">Add a nurse, physician, dentist, or other clinic personnel.</p>
                 </div>
             </div>

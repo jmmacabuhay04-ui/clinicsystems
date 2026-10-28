@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Eye, FileClock, Lock, ScrollText, Search, Users, X } from "lucide-react";
+import { Eye, Lock, ScrollText, Search, Users, X } from "lucide-react";
 import { getSession } from "@/lib/auth/session";
 import { getAccessLogs } from "@/lib/access-log";
 import AutoSubmitSelect from "@/components/shared/auto-submit-select";
@@ -137,9 +137,8 @@ export default async function AccessLogsPage({ searchParams }: Props) {
         <main className="min-w-0 space-y-6 p-4 pb-8 md:p-8">
             {/* Header */}
             <div className="flex items-center gap-3">
-                <FileClock className="h-10 w-10 shrink-0 text-[#15664f]" />
                 <div className="min-w-0">
-                    <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">Record Access Logs</h1>
+                    <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">Record Access Logs</h1>
                     <p className="text-sm text-gray-600">A trail of every health record viewed or changed.</p>
                 </div>
             </div>

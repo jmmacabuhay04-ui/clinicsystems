@@ -60,20 +60,8 @@ export default async function NewDentalRecordPage() {
                 Back to dashboard
             </Link>
             <div className="flex items-center gap-3">
-                <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-10 w-10 shrink-0 text-[#15664f]"
-                    aria-hidden="true"
-                >
-                    <path d="M7 3c-2.2 0-4 1.8-4 4.2 0 2 .8 3.3 1.5 4.6.6 1.2.9 2.6 1.1 4.2.3 2.4.8 5 2.4 5 1.3 0 1.6-1.8 2-3.6.3-1.4.8-2.4 2-2.4s1.7 1 2 2.4c.4 1.8.7 3.6 2 3.6 1.6 0 2.1-2.6 2.4-5 .2-1.6.5-3 1.1-4.2.7-1.3 1.5-2.6 1.5-4.6C21 4.8 19.2 3 17 3c-1.9 0-2.9 1-5 1S8.9 3 7 3z" />
-                </svg>
                 <div className="min-w-0">
-                    <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">Add Dental Record</h1>
+                    <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">Add Dental Record</h1>
                     <p className="text-sm text-gray-600">Record a dental procedure for a student or employee.</p>
                 </div>
             </div>

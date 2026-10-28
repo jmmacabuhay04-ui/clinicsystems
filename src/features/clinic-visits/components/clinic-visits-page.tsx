@@ -136,11 +136,8 @@ export default async function ClinicVisitsPage({
                         <ArrowLeft className="h-4 w-4" /> Back to Dashboard
                     </Link>
                     <div className="flex items-center gap-2">
-                        <div className="rounded-lg bg-[#dff1ea] p-1.5 text-[#15664f]">
-                            <Stethoscope className="h-5 w-5" strokeWidth={1.8} />
-                        </div>
                         <div>
-                            <h1 className="text-xl font-semibold text-[#14532D]">All Clinic Visits</h1>
+                            <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">All Clinic Visits</h1>
                             <p className="text-sm text-gray-600">{total.toLocaleString("en-US")} total records</p>
                         </div>
                     </div>

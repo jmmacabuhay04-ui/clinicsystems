@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CalendarDays, ClipboardList, Plus, Search, X } from "lucide-react";
+import { CalendarDays, Plus, Search, X } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { canManageRecords } from "@/lib/permissions";
@@ -219,9 +219,8 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
             {/* Header */}
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                    <ClipboardList className="h-10 w-10 shrink-0 text-[#15664f]" />
                     <div className="min-w-0">
-                        <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">Case Reports</h1>
+                        <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">Case Reports</h1>
                         <p className="text-sm text-gray-600">Manage and view all case reports.</p>
                     </div>
                 </div>

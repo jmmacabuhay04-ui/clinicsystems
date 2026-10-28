@@ -12,12 +12,9 @@ import {
     PieChart,
     Search,
     Stethoscope,
-    Sun,
     UserCheck,
     UserPlus,
     Users,
-    Moon,
-    Sunset,
     Zap,
 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
@@ -1002,7 +999,6 @@ export default async function DashboardPage() {
     const displayName = staffDisplayName(me?.full_name, String(session.username ?? ""), role) || roleName;
     const baseName = displayName.replace(/^Dr\.?\s*/i, "");
     const greetingText = `${greeting}${displayName ? `, ${displayName}` : ""}!`;
-    const GreetingIcon = hour < 12 ? Sun : hour < 18 ? Sunset : Moon;
     const dateToday = new Intl.DateTimeFormat("en-US", {
         month: "long",
         day: "numeric",
@@ -1017,9 +1013,6 @@ export default async function DashboardPage() {
     const banner = (
         <section className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex min-w-0 items-center gap-3">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-600 sm:hidden">
-                    <GreetingIcon className="h-5 w-5" strokeWidth={1.8} />
-                </span>
                 <div className="min-w-0">
                     <h1 className="break-words text-2xl font-bold text-[#10523f] md:text-[1.75rem]">{greetingText}</h1>
                     <p className="mt-0.5 text-sm text-gray-600">Here&apos;s an overview of your school clinic today.</p>

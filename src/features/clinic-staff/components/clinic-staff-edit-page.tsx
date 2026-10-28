@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, UserPen } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { canManageStaff } from "@/lib/permissions";
@@ -62,15 +62,14 @@ export default async function EditStaffPage({ searchParams }: Props) {
 
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                    <UserPen className="h-10 w-10 shrink-0 text-[#15664f]" />
                     <div className="min-w-0">
-                        <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">Edit Clinic Staff</h1>
+                        <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">Edit Clinic Staff</h1>
                         <p className="text-sm text-gray-600">Update the staff member&apos;s details.</p>
                     </div>
                 </div>
                 {/* Kung sino ang ine-edit */}
                 <div className="flex items-center gap-3 rounded-xl border-2 border-[#cfe5d9] bg-white px-3 py-2 shadow-sm">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#15664f] text-xs font-bold text-white">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#15664f] text-sm font-semibold text-white">
                         {row.full_name
                             .trim()
                             .split(/\s+/)
@@ -81,7 +80,7 @@ export default async function EditStaffPage({ searchParams }: Props) {
                     </span>
                     <div className="min-w-0 leading-tight">
                         <p className="truncate text-sm font-semibold text-gray-900">{row.full_name}</p>
-                        <p className="text-xs text-gray-500">{row.position}</p>
+                        <p className="text-sm text-gray-600">{row.position}</p>
                     </div>
                 </div>
             </div>

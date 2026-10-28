@@ -11,26 +11,7 @@ import PrintHeader from "@/components/layout/print-header";
 import FlashMessage from "@/components/shared/flash-message";
 import PersonPicker from "@/components/shared/person-picker";
 
-
 const BASE = "/dashboard/dental-health-form";
-
-/** Simpleng icon ng ngipin (walang tooth icon ang lucide-react). */
-function ToothIcon({ className }: { className?: string }) {
-    return (
-        <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className={className}
-            aria-hidden="true"
-        >
-            <path d="M7.5 3C5 3 3 5 3 7.8c0 2.3.9 3.6 1.6 5 .8 1.6.9 3.4 1.3 5.4.3 1.6.8 2.8 1.9 2.8 1.3 0 1.6-1.6 1.9-3.4.3-1.6.7-3.1 2.3-3.1s2 1.5 2.3 3.1c.3 1.8.6 3.4 1.9 3.4 1.1 0 1.6-1.2 1.9-2.8.4-2 .5-3.8 1.3-5.4.7-1.4 1.6-2.7 1.6-5C21 5 19 3 16.5 3c-1.9 0-2.8 1-4.5 1S9.4 3 7.5 3Z" />
-        </svg>
-    );
-}
 
 type StudentRow = {
     student_id: number;
@@ -91,12 +72,12 @@ function CheckList({
 }) {
     return (
         <div className="min-w-0">
-            <h3 className="border-l-4 border-[#15664f] pl-3 text-sm font-bold uppercase tracking-wide text-gray-900">{title}</h3>
-            <div className="mt-3 space-y-2 text-sm text-gray-700">
+            <h3 className="border-l-4 border-[#15664f] pl-3 text-sm font-semibold uppercase tracking-wide text-gray-900">{title}</h3>
+            <div className="mt-3 space-y-2 text-sm text-gray-600">
                 {items.map((item) => (
                     <p key={item.key} className="flex items-start gap-2">
                         <span
-                            className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px] font-bold ${checked[item.key]
+                            className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border text-sm font-semibold ${checked[item.key]
                                 ? "border-[#15664f] bg-[#15664f] text-white"
                                 : "border-gray-300 bg-white text-transparent"
                                 }`}
@@ -178,9 +159,8 @@ export default async function DentalHealthFormPage({ searchParams }: Props) {
 
             <div className="no-print flex flex-wrap items-center justify-between gap-4">
                 <div className="flex min-w-0 items-center gap-3">
-                    <ToothIcon className="h-10 w-10 shrink-0 text-[#15664f]" />
                     <div className="min-w-0">
-                        <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">Dental Health Form</h1>
+                        <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">Dental Health Form</h1>
                         <p className="text-sm text-gray-600">Tooth chart, findings, and treatment needed of each student.</p>
                     </div>
                 </div>
@@ -238,7 +218,7 @@ export default async function DentalHealthFormPage({ searchParams }: Props) {
                         <div className="flex flex-col items-center rounded-xl border-2 border-dashed border-[#cfe5d9] bg-white p-8 text-center md:p-16">
                             <ClipboardList className="h-12 w-12 text-[#15664f]/40" />
                             <p className="mt-3 text-base font-semibold text-gray-800">No student selected</p>
-                            <p className="mt-1 text-sm text-gray-500">
+                            <p className="mt-1 text-sm text-gray-600">
                                 Select a student <span className="lg:hidden">from the list above</span>
                                 <span className="hidden lg:inline">on the left</span> to view their dental health record.
                             </p>
@@ -254,31 +234,31 @@ export default async function DentalHealthFormPage({ searchParams }: Props) {
                                 </h2>
                                 <div className="mt-4 grid gap-x-8 gap-y-2 text-sm md:mt-5 md:grid-cols-2 md:gap-y-3">
                                     <p className="break-words">
-                                        <span className="font-semibold text-gray-700">Name:</span>{" "}
+                                        <span className="font-semibold text-gray-600">Name:</span>{" "}
                                         <span className="text-gray-900">{fullName(selected)}</span>
                                     </p>
                                     <p>
-                                        <span className="font-semibold text-gray-700">Date of Birth:</span>{" "}
+                                        <span className="font-semibold text-gray-600">Date of Birth:</span>{" "}
                                         <span className="text-gray-900">{fmtDate(selected.date_of_birth)}</span>
                                     </p>
                                     <p className="break-words">
-                                        <span className="font-semibold text-gray-700">Level:</span>{" "}
+                                        <span className="font-semibold text-gray-600">Level:</span>{" "}
                                         <span className="text-gray-900">
                                             {form?.level || selected.grade_level || "—"}
                                         </span>
                                     </p>
                                     <p className="break-words">
-                                        <span className="font-semibold text-gray-700">Section:</span>{" "}
+                                        <span className="font-semibold text-gray-600">Section:</span>{" "}
                                         <span className="text-gray-900">
                                             {form?.section || selected.program || "—"}
                                         </span>
                                     </p>
                                     <p>
-                                        <span className="font-semibold text-gray-700">Age:</span>{" "}
+                                        <span className="font-semibold text-gray-600">Age:</span>{" "}
                                         <span className="text-gray-900">{form?.age ?? "—"}</span>
                                     </p>
                                     <p>
-                                        <span className="font-semibold text-gray-700">Sex:</span>{" "}
+                                        <span className="font-semibold text-gray-600">Sex:</span>{" "}
                                         <span className="text-gray-900">
                                             {form?.sex || selected.gender || "—"}
                                         </span>
@@ -288,7 +268,7 @@ export default async function DentalHealthFormPage({ searchParams }: Props) {
 
                             {!form ? (
                                 <div className="rounded-xl border-2 border-dashed border-[#cfe5d9] bg-white p-6 text-center md:p-12">
-                                    <p className="text-sm text-gray-500 md:text-base">
+                                    <p className="text-sm text-gray-600 md:text-base">
                                         No dental health record yet for this student.
                                     </p>
                                     {canEdit && (
@@ -315,13 +295,13 @@ export default async function DentalHealthFormPage({ searchParams }: Props) {
                                         </div>
 
                                         <div className="mt-5 rounded-lg border border-gray-200 bg-gray-50 p-3 md:mt-6 md:p-4">
-                                            <h3 className="text-sm font-bold uppercase tracking-wide text-gray-800">
+                                            <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-800">
                                                 Legend
                                             </h3>
-                                            <div className="mt-3 grid gap-x-6 gap-y-1.5 text-xs text-gray-700 sm:grid-cols-2 lg:grid-cols-3">
+                                            <div className="mt-3 grid gap-x-6 gap-y-1.5 text-sm text-gray-600 sm:grid-cols-2 lg:grid-cols-3">
                                                 {LEGEND.map((item) => (
                                                     <p key={item.code}>
-                                                        <span className="font-bold text-gray-900">{item.code}</span> –{" "}
+                                                        <span className="font-semibold text-gray-900">{item.code}</span> –{" "}
                                                         {item.meaning}
                                                     </p>
                                                 ))}
@@ -342,7 +322,7 @@ export default async function DentalHealthFormPage({ searchParams }: Props) {
                                     </div>
 
                                     <div className="rounded-xl border-2 border-[#cfe5d9] bg-white p-5 shadow-md shadow-[#15664f]/10 md:p-6">
-                                        <h3 className="border-l-4 border-[#15664f] pl-3 text-sm font-bold uppercase tracking-wide text-gray-900">
+                                        <h3 className="border-l-4 border-[#15664f] pl-3 text-sm font-semibold uppercase tracking-wide text-gray-900">
                                             Remarks
                                         </h3>
                                         <p className="mt-2 whitespace-pre-wrap break-words text-sm text-gray-900">
@@ -351,7 +331,7 @@ export default async function DentalHealthFormPage({ searchParams }: Props) {
 
                                         <div className="mt-5 flex flex-col gap-4 border-t border-gray-200 pt-4 text-sm sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-6 md:mt-6 md:pt-5">
                                             <p>
-                                                <span className="font-semibold text-gray-700">
+                                                <span className="font-semibold text-gray-600">
                                                     Date of Examination:
                                                 </span>{" "}
                                                 <span className="text-gray-900">{fmtDate(form.exam_date)}</span>
@@ -360,7 +340,7 @@ export default async function DentalHealthFormPage({ searchParams }: Props) {
                                                 <p className="break-words font-semibold text-gray-900 underline">
                                                     {form.examined_by || "—"}
                                                 </p>
-                                                <p className="text-xs text-gray-600">Examined by · School Dentist</p>
+                                                <p className="text-sm text-gray-600">Examined by · School Dentist</p>
                                             </div>
                                         </div>
                                     </div>

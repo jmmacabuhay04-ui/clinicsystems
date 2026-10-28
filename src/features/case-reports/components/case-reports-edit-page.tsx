@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, FilePenLine } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { canManageRecords } from "@/lib/permissions";
@@ -83,9 +83,8 @@ export default async function EditCasePage({ searchParams }: Props) {
             </Link>
 
             <div className="flex items-center gap-3">
-                <FilePenLine className="h-10 w-10 shrink-0 text-[#15664f]" />
                 <div className="min-w-0">
-                    <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">Edit Case Report</h1>
+                    <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">Edit Case Report</h1>
                     <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-600">
                         <span className="font-medium text-gray-800">{row.case_number}</span>
                         <span className="text-gray-300">|</span>
@@ -95,7 +94,7 @@ export default async function EditCasePage({ searchParams }: Props) {
                         <span className="text-gray-300">|</span>
                         <span>{row.patient_number}</span>
                         <span
-                            className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${isEmployee ? "bg-amber-300 text-gray-900" : "bg-[#15664f] text-white"
+                            className={`rounded-full px-2 py-0.5 text-sm font-medium ${isEmployee ? "bg-amber-300 text-gray-900" : "bg-[#15664f] text-white"
                                 }`}
                         >
                             {isEmployee ? "Employee" : "Student"}

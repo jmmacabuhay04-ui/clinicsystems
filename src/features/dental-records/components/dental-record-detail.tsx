@@ -72,9 +72,9 @@ function ToothChart({ teeth }: { teeth: Set<number> }) {
     const cell = (n: number) => (
         <span
             key={n}
-            className={`flex h-7 items-center justify-center rounded text-[10px] font-semibold sm:h-8 sm:rounded-md sm:text-xs ${teeth.has(n)
+            className={`flex h-7 items-center justify-center rounded text-sm font-semibold sm:h-8 sm:rounded-md sm:text-sm ${teeth.has(n)
                 ? "bg-[#15664f] text-white shadow-sm"
-                : "border border-gray-200 bg-white text-gray-400"
+                : "border border-gray-200 bg-white text-gray-600"
                 }`}
         >
             {n}
@@ -91,7 +91,7 @@ function ToothChart({ teeth }: { teeth: Set<number> }) {
 
     return (
         <div className="space-y-1.5">
-            <div className="flex justify-between text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+            <div className="flex justify-between text-sm font-semibold uppercase tracking-wide text-gray-600">
                 <span>Right</span>
                 <span>Upper</span>
                 <span>Left</span>
@@ -99,7 +99,7 @@ function ToothChart({ teeth }: { teeth: Set<number> }) {
             {row(upperRight, upperLeft)}
             <div className="border-t border-dashed border-gray-300" />
             {row(lowerRight, lowerLeft)}
-            <div className="flex justify-between text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+            <div className="flex justify-between text-sm font-semibold uppercase tracking-wide text-gray-600">
                 <span>Right</span>
                 <span>Lower</span>
                 <span>Left</span>
@@ -151,7 +151,7 @@ export default async function DentalRecordDetail({
         return (
             <main className="min-w-0 space-y-6 p-4 pb-8 md:p-8">
                 {backLink}
-                <div className="rounded-xl border-2 border-dashed border-[#cfe5d9] bg-white p-10 text-center text-sm text-gray-500">
+                <div className="rounded-xl border-2 border-dashed border-[#cfe5d9] bg-white p-10 text-center text-sm text-gray-600">
                     This dental record could not be found. It may have been archived.
                 </div>
             </main>
@@ -188,9 +188,8 @@ export default async function DentalRecordDetail({
             {/* Header */}
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                    <ToothIcon className="h-10 w-10 shrink-0 text-[#15664f]" />
                     <div className="min-w-0">
-                        <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">Dental Visit Record</h1>
+                        <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">Dental Visit Record</h1>
                         <p className="text-sm text-gray-600">Details of this dental visit.</p>
                     </div>
                 </div>
@@ -229,7 +228,7 @@ export default async function DentalRecordDetail({
                         <p className="break-words text-lg font-semibold leading-tight text-gray-900">{fullName}</p>
                         <div className="mt-1 flex flex-wrap items-center gap-2">
                             <span
-                                className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${isEmployee ? "bg-amber-300 text-gray-900" : "bg-[#15664f] text-white"
+                                className={`rounded-full px-2.5 py-0.5 text-sm font-semibold ${isEmployee ? "bg-amber-300 text-gray-900" : "bg-[#15664f] text-white"
                                     }`}
                             >
                                 {isEmployee ? "Employee" : "Student"}
@@ -256,11 +255,11 @@ export default async function DentalRecordDetail({
                     <div className="space-y-4 p-5">
                         <div className="flex flex-wrap items-start justify-between gap-3">
                             <div className="min-w-0">
-                                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Procedure</p>
+                                <p className="text-sm font-semibold uppercase tracking-wide text-gray-600">Procedure</p>
                                 <p className="mt-1 break-words text-xl font-bold text-gray-900">{d.procedure_name}</p>
                             </div>
                             <span
-                                className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ${followUp ? "bg-amber-100 text-amber-800" : "bg-green-100 text-green-700"
+                                className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1 text-sm font-semibold ${followUp ? "bg-amber-100 text-amber-800" : "bg-green-100 text-green-700"
                                     }`}
                             >
                                 <span className={`h-1.5 w-1.5 rounded-full ${followUp ? "bg-amber-500" : "bg-green-500"}`} />
@@ -269,21 +268,21 @@ export default async function DentalRecordDetail({
                         </div>
 
                         <div className="rounded-lg bg-[#f6faf8] p-4">
-                            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                            <p className="flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-gray-600">
                                 <NotebookPen className="h-3.5 w-3.5" />
                                 Notes
                             </p>
                             <p className="mt-1 whitespace-pre-wrap break-words text-sm text-gray-900">
-                                {d.notes?.trim() ? d.notes : <span className="italic text-gray-400">No notes recorded.</span>}
+                                {d.notes?.trim() ? d.notes : <span className="italic text-gray-600">No notes recorded.</span>}
                             </p>
                         </div>
 
                         <div className="flex items-center gap-3 border-t border-gray-100 pt-4">
-                            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-gray-500">
+                            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-gray-600">
                                 <UserRound className="h-4 w-4" />
                             </span>
                             <div>
-                                <p className="text-xs text-gray-500">Dentist</p>
+                                <p className="text-sm text-gray-600">Dentist</p>
                                 <p className="text-sm font-semibold text-gray-900">{orDash(d.dentist_name)}</p>
                             </div>
                         </div>
@@ -300,7 +299,7 @@ export default async function DentalRecordDetail({
                             <h2 className="text-lg font-semibold text-gray-900">Teeth Treated</h2>
                         </div>
                         <span
-                            className={`rounded-full px-3 py-1 text-xs font-semibold ${teeth.size > 0 ? "bg-[#eef6f2] text-[#15664f]" : "bg-gray-100 text-gray-500"
+                            className={`rounded-full px-3 py-1 text-sm font-semibold ${teeth.size > 0 ? "bg-[#eef6f2] text-[#15664f]" : "bg-gray-100 text-gray-600"
                                 }`}
                         >
                             {teeth.size === ALL_FDI.length ? "Full mouth" : `${teeth.size} ${teeth.size === 1 ? "tooth" : "teeth"}`}
@@ -308,20 +307,20 @@ export default async function DentalRecordDetail({
                     </div>
                     <div className="space-y-4 p-4 sm:p-5">
                         <div>
-                            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Tooth</p>
+                            <p className="text-sm font-semibold uppercase tracking-wide text-gray-600">Tooth</p>
                             {toothParts.length > 0 ? (
                                 <div className="mt-2 flex flex-wrap gap-1.5">
                                     {toothParts.map((t) => (
                                         <span
                                             key={t}
-                                            className="rounded-md border border-[#cfe5d9] bg-[#f6faf8] px-2 py-0.5 text-xs font-semibold text-[#15664f]"
+                                            className="rounded-md border border-[#cfe5d9] bg-[#f6faf8] px-2 py-0.5 text-sm font-semibold text-[#15664f]"
                                         >
                                             {t}
                                         </span>
                                     ))}
                                 </div>
                             ) : (
-                                <p className="mt-1 text-sm italic text-gray-400">No tooth specified.</p>
+                                <p className="mt-1 text-sm italic text-gray-600">No tooth specified.</p>
                             )}
                         </div>
                         <div className="rounded-lg border border-gray-100 p-2 sm:p-3">
