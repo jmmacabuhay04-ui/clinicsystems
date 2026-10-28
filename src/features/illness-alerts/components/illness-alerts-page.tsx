@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, Activity, AlertTriangle, CalendarDays, CheckCircle2, School, ShieldAlert, Thermometer, Users } from "lucide-react";
+import { ArrowLeft, AlertTriangle, CalendarDays, CheckCircle2, School, ShieldAlert, Thermometer, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import WeekPicker from "./week-picker";
@@ -373,16 +373,13 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                 href="/dashboard"
                 className="inline-flex items-center gap-1 text-sm font-medium text-[#15664f] hover:underline"
             >
-                <ArrowLeft className="h-4 w-4" />
-                Back to Dashboard
             </Link>
 
             {/* Header */}
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                    <Activity className="h-10 w-10 shrink-0 text-[#15664f]" />
                     <div className="min-w-0">
-                        <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">Weekly Illness Alert</h1>
+                        <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">Weekly Illness Alert</h1>
                         <p className="text-sm text-gray-600">
                             Daily sick persons and the recommended class mode for {label(weekStart, weekEnd)}.
                         </p>

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, Stethoscope } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { canManageRecords } from "@/lib/permissions";
@@ -53,9 +53,8 @@ export default async function NewHealthRecordPage({ searchParams }: Props) {
             </Link>
 
             <div className="flex items-center gap-3">
-                <Stethoscope className="h-10 w-10 shrink-0 text-[#15664f]" />
                 <div className="min-w-0">
-                    <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">Log Clinic Visit</h1>
+                    <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">Log Clinic Visit</h1>
                     <p className="text-sm text-gray-600">Record a new clinic visit for a student or employee.</p>
                 </div>
             </div>

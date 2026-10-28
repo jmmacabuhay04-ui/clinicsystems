@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, FilePenLine } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { canManageRecords } from "@/lib/permissions";
@@ -74,24 +74,23 @@ export default async function EditRecordPage({ searchParams }: Props) {
 
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                    <FilePenLine className="h-10 w-10 shrink-0 text-[#15664f]" />
                     <div className="min-w-0">
-                        <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">Edit Health Record</h1>
+                        <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">Edit Health Record</h1>
                         <p className="text-sm text-gray-600">Update the details and vital signs of this clinic visit.</p>
                     </div>
                 </div>
                 {/* Kung kaninong record ito */}
                 <div className="flex items-center gap-3 rounded-xl border-2 border-[#cfe5d9] bg-white px-3 py-2 shadow-sm">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#15664f] text-xs font-bold text-white">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#15664f] text-sm font-semibold text-white">
                         {`${row.first_name[0] ?? ""}${row.last_name[0] ?? ""}`.toUpperCase()}
                     </span>
                     <div className="min-w-0 leading-tight">
                         <p className="truncate text-sm font-semibold text-gray-900">
                             {row.last_name}, {row.first_name}
                         </p>
-                        <p className="text-xs text-gray-500">{row.student_number}</p>
+                        <p className="text-sm text-gray-600">{row.student_number}</p>
                     </div>
-                    <span className="rounded-full bg-[#15664f] px-2 py-0.5 text-[10px] font-semibold text-white">Student</span>
+                    <span className="rounded-full bg-[#15664f] px-2 py-0.5 text-sm font-semibold text-white">Student</span>
                 </div>
             </div>
 

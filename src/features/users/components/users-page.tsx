@@ -1,7 +1,13 @@
 import { redirect } from "next/navigation";
 import { Fragment } from "react";
 import Link from "next/link";
-import { KeyRound, Mail, Pencil, ShieldCheck, Trash2, UserPlus, UsersRound } from "lucide-react";
+import {
+    KeyRound,
+    Mail,
+    Pencil,
+    ShieldCheck,
+    Trash2,
+} from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import UserForm from "./user-form";
@@ -51,16 +57,16 @@ const card = "rounded-xl border-2 border-[#cfe5d9] bg-white shadow-md shadow-[#1
 const tr =
     "mb-3 block rounded-lg border border-gray-200 py-2 md:mb-0 md:table-row md:rounded-none md:border-0 md:border-t md:border-gray-100 md:py-0 md:hover:bg-[#f6faf8]";
 const td =
-    "flex items-start justify-between gap-3 px-4 py-1.5 text-right text-sm before:shrink-0 before:text-left before:text-xs before:font-semibold before:uppercase before:text-gray-500 before:content-[attr(data-label)] md:table-cell md:py-3.5 md:text-left md:align-middle md:before:hidden";
+    "flex items-start justify-between gap-3 px-4 py-1.5 text-right text-sm before:shrink-0 before:text-left before:text-sm before:font-semibold before:uppercase before:text-gray-600 before:content-[attr(data-label)] md:table-cell md:py-3.5 md:text-left md:align-middle md:before:hidden";
 // Para sa mga cell na may form: nasa ilalim ng label ang laman sa mobile.
 const tdBlock = "block px-4 py-2 md:table-cell md:py-3.5 md:align-middle";
-const mobileLabel = "mb-1 text-xs font-semibold uppercase text-gray-500 md:hidden";
+const mobileLabel = "mb-1 text-sm font-semibold uppercase text-gray-600 md:hidden";
 
 const smallInput =
     "h-9 rounded-lg border border-gray-300 bg-white px-3 text-base text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20 md:text-sm";
 const btnGreen =
-    "inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg bg-[#15664f] px-3 text-xs font-semibold text-white hover:bg-[#10523f]";
-const btnCancel = "inline-flex h-9 items-center px-2 text-sm font-medium text-gray-500 hover:text-gray-800 hover:underline";
+    "inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg bg-[#15664f] px-3 text-sm font-semibold text-white hover:bg-[#10523f]";
+const btnCancel = "inline-flex h-9 items-center px-2 text-sm font-medium text-gray-600 hover:text-gray-800 hover:underline";
 
 function formatCreated(d: Date) {
     return new Date(d).toLocaleDateString("en-US", {
@@ -100,9 +106,8 @@ export default async function UsersPage({ searchParams }: Props) {
         <main className="min-w-0 space-y-6 p-4 pb-8 md:p-8">
             {/* Header */}
             <div className="flex items-center gap-3">
-                <UsersRound className="h-10 w-10 shrink-0 text-[#15664f]" />
                 <div className="min-w-0">
-                    <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">Manage Accounts</h1>
+                    <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">Manage Accounts</h1>
                     <p className="text-sm text-gray-600">Create staff accounts, change roles, and reset passwords.</p>
                 </div>
             </div>
@@ -140,15 +145,15 @@ export default async function UsersPage({ searchParams }: Props) {
             <section className="flex flex-wrap gap-2">
                 <span className="inline-flex h-9 items-center gap-2 rounded-lg border-2 border-[#cfe5d9] bg-white px-3 text-sm font-semibold text-gray-800">
                     Total
-                    <span className="rounded-full bg-[#15664f] px-2 py-0.5 text-[11px] font-bold text-white">{users.length}</span>
+                    <span className="rounded-full bg-[#15664f] px-2 py-0.5 text-sm font-semibold text-white">{users.length}</span>
                 </span>
                 {ROLE_ORDER.filter((r) => roleCounts[r]).map((r) => (
                     <span
                         key={r}
-                        className="inline-flex h-9 items-center gap-2 rounded-lg border-2 border-[#cfe5d9] bg-white px-3 text-sm text-gray-700"
+                        className="inline-flex h-9 items-center gap-2 rounded-lg border-2 border-[#cfe5d9] bg-white px-3 text-sm text-gray-600"
                     >
                         <RoleBadge role={r} />
-                        <span className="font-bold text-gray-900">{roleCounts[r]}</span>
+                        <span className="font-semibold text-gray-900">{roleCounts[r]}</span>
                     </span>
                 ))}
             </section>
@@ -158,12 +163,9 @@ export default async function UsersPage({ searchParams }: Props) {
                 {/* New account */}
                 <section className={`${card} min-w-0 self-start p-5 md:p-6`}>
                     <div className="mb-5 flex items-start gap-3">
-                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#eef6f2] text-[#15664f]">
-                            <UserPlus className="h-5 w-5" />
-                        </span>
                         <div>
                             <h2 className="text-lg font-semibold text-gray-900">New Account</h2>
-                            <p className="text-sm text-gray-500">Add a clinic staff login.</p>
+                            <p className="text-sm text-gray-600">Add a clinic staff login.</p>
                         </div>
                     </div>
                     <UserForm />
@@ -173,14 +175,14 @@ export default async function UsersPage({ searchParams }: Props) {
                 <section className={`${card} min-w-0 self-start overflow-hidden`}>
                     <div className="flex items-center justify-between gap-3 p-5 md:px-6">
                         <h2 className="text-lg font-semibold text-gray-900">All Accounts</h2>
-                        <span className="rounded-full bg-[#eef6f2] px-3 py-1 text-xs font-semibold text-[#15664f]">
+                        <span className="rounded-full bg-[#eef6f2] px-3 py-1 text-sm font-semibold text-[#15664f]">
                             {users.length} account{users.length === 1 ? "" : "s"}
                         </span>
                     </div>
 
                     <div className="border-t border-gray-100 p-3 md:p-0">
                         <table className="block w-full text-left md:table md:table-auto">
-                            <thead className="hidden bg-[#f6faf8] text-xs uppercase tracking-wide text-gray-600 md:table-header-group">
+                            <thead className="hidden bg-[#f6faf8] text-sm uppercase tracking-wide text-gray-600 md:table-header-group">
                                 <tr>
                                     <th className="px-4 py-3 font-semibold">Account</th>
                                     <th className="px-4 py-3 font-semibold">Role</th>
@@ -210,7 +212,7 @@ export default async function UsersPage({ searchParams }: Props) {
                                                                 className="h-11 w-11 shrink-0 rounded-full object-cover ring-2 ring-[#15664f]/30 md:h-9 md:w-9"
                                                             />
                                                         ) : (
-                                                            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#eef6f2] text-sm font-bold text-[#15664f] md:h-9 md:w-9 md:text-xs">
+                                                            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#eef6f2] text-sm font-semibold text-[#15664f] md:h-9 md:w-9 md:text-sm">
                                                                 {u.username.charAt(0).toUpperCase()}
                                                             </span>
                                                         )}
@@ -226,7 +228,7 @@ export default async function UsersPage({ searchParams }: Props) {
                                                                     )}
                                                                 </span>
                                                                 {isMe && (
-                                                                    <span className="shrink-0 rounded-full bg-[#15664f] px-2 py-0.5 text-[10px] font-bold text-white">
+                                                                    <span className="shrink-0 rounded-full bg-[#15664f] px-2 py-0.5 text-sm font-semibold text-white">
                                                                         You
                                                                     </span>
                                                                 )}
@@ -234,7 +236,7 @@ export default async function UsersPage({ searchParams }: Props) {
                                                             {/* Mobile lang: role at petsa sa ilalim ng email */}
                                                             <span className="mt-1 flex flex-wrap items-center gap-2 md:hidden">
                                                                 <RoleBadge role={u.role} />
-                                                                <span className="text-xs text-gray-500">Created {formatCreated(u.created_at)}</span>
+                                                                <span className="text-sm text-gray-600">Created {formatCreated(u.created_at)}</span>
                                                             </span>
                                                         </span>
                                                     </div>
@@ -324,7 +326,7 @@ export default async function UsersPage({ searchParams }: Props) {
                                                                     title="Permanently delete account?"
                                                                     message={`The account ${u.username} will be permanently deleted if the OTP is correct. This can't be undone.`}
                                                                     confirmLabel="Delete"
-                                                                    className="inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg bg-red-600 px-3 text-xs font-semibold text-white hover:bg-red-700"
+                                                                    className="inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg bg-red-600 px-3 text-sm font-semibold text-white hover:bg-red-700"
                                                                 >
                                                                     <Trash2 className="h-3.5 w-3.5" />
                                                                     Confirm Delete
@@ -337,7 +339,7 @@ export default async function UsersPage({ searchParams }: Props) {
                                                             <div className="flex items-center gap-2">
                                                                 <Link
                                                                     href={`/dashboard/users?edit=${u.user_id}`}
-                                                                    className={`inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg border px-3 text-xs font-semibold ${u.user_id === editId
+                                                                    className={`inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg border px-3 text-sm font-semibold ${u.user_id === editId
                                                                         ? "border-[#15664f] bg-[#eef6f2] text-[#15664f]"
                                                                         : "border-[#15664f] bg-white text-[#15664f] hover:bg-[#eef6f2]"
                                                                         }`}
@@ -351,7 +353,7 @@ export default async function UsersPage({ searchParams }: Props) {
                                                                     <button
                                                                         type="submit"
                                                                         title={`Send a deletion OTP to ${u.username}`}
-                                                                        className="inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg border border-red-300 bg-white px-3 text-xs font-semibold text-red-600 hover:bg-red-50"
+                                                                        className="inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg border border-red-300 bg-white px-3 text-sm font-semibold text-red-600 hover:bg-red-50"
                                                                     >
                                                                         <Trash2 className="h-3.5 w-3.5" />
                                                                         Delete
@@ -366,7 +368,7 @@ export default async function UsersPage({ searchParams }: Props) {
                                             {canReset && u.user_id === editId && (
                                                 <tr className="mb-3 block rounded-lg border border-[#cfe5d9] bg-[#eef6f2] md:mb-0 md:table-row md:rounded-none md:border-0">
                                                     <td colSpan={5} className="block px-4 py-4 md:table-cell">
-                                                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#15664f]">
+                                                        <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-[#15664f]">
                                                             Edit account
                                                         </p>
                                                         <form action={updateUser} className="flex flex-wrap items-center gap-3">

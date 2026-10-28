@@ -169,9 +169,8 @@ export default async function StudentHealthFormPage({ searchParams }: Props) {
 
             <div className="no-print flex flex-wrap items-center justify-between gap-4">
                 <div className="flex min-w-0 items-center gap-3">
-                    <FileHeart className="h-10 w-10 shrink-0 text-[#15664f]" />
                     <div className="min-w-0">
-                        <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">Student Health Form</h1>
+                        <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">Student Health Form</h1>
                         <p className="text-sm text-gray-600">
                             Medical history, review of system, and consent of each student.
                         </p>

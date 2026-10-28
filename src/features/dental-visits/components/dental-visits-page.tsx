@@ -1,10 +1,15 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Search } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
-import ConfirmLink from "@/components/shared/confirm-link";
 import SearchInput from "@/components/shared/search-input";
+import AutoSubmitSelect from "@/components/shared/auto-submit-select";
+import ListPagination from "@/components/shared/list-pagination";
+import RowActionMenu, { type RowAction } from "@/components/shared/row-action-menu";
+import { PersonAvatar, listCardClass, listSearchClass, listSelectClass } from "@/components/shared/list-ui";
+
+// All Dental Visits: kapareho ng itsura ng Students / Employees page.
 
 type Row = {
     dental_id: number;
@@ -14,10 +19,13 @@ type Row = {
     first_name: string | null;
     procedure_name: string;
     visit_date: Date;
+    avatar: string | null;
     total_count: bigint;
 };
 
-const PAGE_SIZE = 15;
+const BASE = "/dashboard/dental-visits";
+const PAGE_SIZE = 10;
+const TYPE_LABELS: Record<string, string> = { student: "Students", employee: "Employees" };
 
 function formatVisitDate(date: Date) {
     return new Date(date).toLocaleDateString("en-US", {
@@ -28,44 +36,7 @@ function formatVisitDate(date: Date) {
     });
 }
 
-// Same tooth icon used on the dashboard.
-function ToothIcon({ className, strokeWidth = 2 }: { className?: string; strokeWidth?: number }) {
-    return (
-        <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={strokeWidth}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className={className}
-            aria-hidden="true"
-        >
-            <path d="M7 3C5 3 3.5 4.7 3.5 7C3.5 9 4.3 10.4 4.9 12C5.5 13.7 5.5 15.5 6 17.2C6.4 18.7 7.2 21 8.5 21C10 21 10.1 18.4 10.6 16.7C10.8 16 11.2 15.5 12 15.5C12.8 15.5 13.2 16 13.4 16.7C13.9 18.4 14 21 15.5 21C16.8 21 17.6 18.7 18 17.2C18.5 15.5 18.5 13.7 19.1 12C19.7 10.4 20.5 9 20.5 7C20.5 4.7 19 3 17 3C15.3 3 14.4 4 12 4C9.6 4 8.7 3 7 3Z" />
-        </svg>
-    );
-}
-
-function PatientAvatar({ name, type }: { name: string; type: "student" | "employee" }) {
-    const initials = name
-        .split(" ")
-        .filter(Boolean)
-        .slice(0, 2)
-        .map((w) => w[0])
-        .join("")
-        .toUpperCase();
-
-    return (
-        <span
-            aria-hidden="true"
-            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${type === "employee" ? "bg-amber-400 text-gray-900" : "bg-[#15664f] text-white"
-                }`}
-        >
-            {initials}
-        </span>
-    );
-}
-
+// Student = green, Employee = dilaw
 function TypeBadge({ type }: { type: "student" | "employee" }) {
     return (
         <span
@@ -80,7 +51,7 @@ function TypeBadge({ type }: { type: "student" | "employee" }) {
 export default async function DentalVisitsPage({
     searchParams,
 }: {
-    searchParams: Promise<{ q?: string; type?: string; page?: string }>;
+    searchParams: Promise<{ q?: string; type?: string; procedure?: string; page?: string }>;
 }) {
     const session = await getSession();
     if (!session) redirect("/login");
@@ -91,10 +62,23 @@ export default async function DentalVisitsPage({
 
     const sp = await searchParams;
     const q = (sp.q ?? "").trim();
-    const type = sp.type === "student" || sp.type === "employee" ? sp.type : "all";
+    const rawType = (sp.type ?? "").toLowerCase();
+    const type = rawType === "student" || rawType === "employee" ? rawType : "all";
+    // Procedure filter (hal. Oral prophylaxis, Tooth extraction). Hindi case-sensitive.
+    const procedure = (sp.procedure ?? "").trim().slice(0, 255);
     const page = Math.max(1, Number(sp.page) || 1);
     const offset = (page - 1) * PAGE_SIZE;
     const like = `%${q}%`;
+
+    // Mga pagpipilian sa "All Procedures" filter
+    const procedureRows = await prisma.$queryRaw<{ value: string }[]>`
+      SELECT MIN(TRIM(procedure_name)) AS value
+      FROM dental_records
+      WHERE archived_at IS NULL AND TRIM(procedure_name) <> ''
+      GROUP BY LOWER(TRIM(procedure_name))
+      ORDER BY 1
+    `;
+    const procedures = procedureRows.map((r) => r.value);
 
     const rows = await prisma.$queryRaw<Row[]>`
       WITH v AS (
@@ -102,6 +86,7 @@ export default async function DentalVisitsPage({
                COALESCE(s.student_number, e.employee_number) AS ref_number,
                COALESCE(s.last_name, e.last_name)            AS last_name,
                COALESCE(s.first_name, e.first_name)          AS first_name,
+               COALESCE(s.avatar, e.avatar)                  AS avatar,
                CASE WHEN d.employee_id IS NOT NULL THEN 'employee' ELSE 'student' END AS patient_type,
                d.procedure_name,
                d.visit_date
@@ -113,11 +98,12 @@ export default async function DentalVisitsPage({
       SELECT v.*, COUNT(*) OVER () AS total_count
       FROM v
       WHERE (CAST(${type} AS TEXT) = 'all' OR v.patient_type = CAST(${type} AS TEXT))
+        AND (CAST(${procedure} AS TEXT) = '' OR LOWER(TRIM(v.procedure_name)) = LOWER(CAST(${procedure} AS TEXT)))
         AND (CAST(${q} AS TEXT) = ''
              OR (COALESCE(v.first_name, '') || ' ' || COALESCE(v.last_name, '')) ILIKE CAST(${like} AS TEXT)
              OR v.procedure_name ILIKE CAST(${like} AS TEXT)
              OR v.ref_number ILIKE CAST(${like} AS TEXT))
-      ORDER BY (CASE WHEN v.patient_type = 'employee' THEN 1 ELSE 0 END) ASC, v.visit_date DESC, v.ref_number ASC, v.dental_id ASC
+      ORDER BY v.visit_date DESC, v.dental_id DESC
       LIMIT CAST(${PAGE_SIZE} AS INT) OFFSET CAST(${offset} AS INT)
     `;
 
@@ -128,200 +114,148 @@ export default async function DentalVisitsPage({
         const params = new URLSearchParams();
         if (q) params.set("q", q);
         if (type !== "all") params.set("type", type);
-        params.set("page", String(p));
-        return `/dashboard/dental-visits?${params.toString()}`;
+        if (procedure) params.set("procedure", procedure);
+        if (p > 1) params.set("page", String(p));
+        const qs = params.toString();
+        return qs ? `${BASE}?${qs}` : BASE;
     };
+    if (page > totalPages && total > 0) redirect(pageHref(totalPages));
 
     const viewHref = (r: Row) =>
         r.patient_type === "employee"
             ? `/dashboard/dental-records?employee=${encodeURIComponent(r.ref_number)}&view=history`
             : `/dashboard/dental-records?student=${encodeURIComponent(r.ref_number)}&view=history`;
 
-    const confirmMessage = (name: string) =>
-        `Open the dental record of ${name}? This contains confidential medical information and your access will be recorded.`;
-
     const getName = (r: Row) => `${r.first_name ?? ""} ${r.last_name ?? ""}`.trim() || "Unknown";
 
-    return (
-        <main className="min-w-0 space-y-4 p-4 pb-8 md:p-6">
-            <div className="flex flex-wrap items-end justify-between gap-3">
-                {/* Left side: Back to Dashboard + title */}
-                <div className="space-y-2">
-                    <Link
-                        href="/dashboard"
-                        className="inline-flex items-center gap-1 text-sm font-medium text-[#15664f] hover:underline"
-                    >
-                        <ArrowLeft className="h-4 w-4" /> Back to Dashboard
-                    </Link>
-                    <div className="flex items-center gap-2">
-                        <div className="rounded-lg bg-amber-100 p-1.5 text-amber-600">
-                            <ToothIcon className="h-5 w-5" strokeWidth={1.8} />
-                        </div>
-                        <div>
-                            <h1 className="text-xl font-semibold text-[#14532D]">All Dental Visits</h1>
-                            <p className="text-sm text-gray-600">{total.toLocaleString("en-US")} total records</p>
-                        </div>
-                    </div>
-                </div>
+    // "⋮" menu ng bawat row
+    const actions = (r: Row): RowAction[] => [
+        {
+            label: "View Dental Record",
+            href: viewHref(r),
+            title: "View dental record",
+            message: `Open the dental record of ${getName(r)}? This contains confidential medical information and your access will be recorded.`,
+            confirmLabel: "View",
+            icon: "view",
+        },
+    ];
 
-                {/* Right side: Search (full width sa mobile) */}
-                <form method="get" className="flex w-full flex-wrap items-center gap-2 md:w-auto md:justify-end">
-                    <SearchInput
-                        name="q"
-                        defaultValue={q}
-                        placeholder="Search name, ID or procedure..."
-                        className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-base placeholder:text-sm md:w-64 md:py-1.5 md:text-sm"
-                    />
-                    <select
-                        name="type"
-                        defaultValue={type}
-                        className="min-w-0 flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-base md:flex-none md:py-1.5 md:text-sm"
-                    >
-                        <option value="all">All types</option>
-                        <option value="student">Student</option>
-                        <option value="employee">Employee</option>
-                    </select>
-                    <button
-                        type="submit"
-                        className="rounded-md bg-[#15664f] px-4 py-2 text-sm font-medium text-white hover:bg-[#124f3d] md:py-1.5"
-                    >
-                        Search
-                    </button>
-                    {(q || type !== "all") && (
-                        <Link href="/dashboard/dental-visits" className="text-sm text-gray-600 hover:underline">
-                            Clear
-                        </Link>
-                    )}
-                </form>
+    return (
+        <main className="min-w-0 space-y-6 p-4 pb-8 md:p-8">
+            {/* Header */}
+            <div className="space-y-2">
+                <Link href="/dashboard" className="inline-flex items-center gap-1 text-sm font-medium text-[#15664f] hover:underline">
+                    <ArrowLeft className="h-4 w-4" /> Back to Dashboard
+                </Link>
+                <div className="min-w-0">
+                    <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">All Dental Visits</h1>
+                    <p className="mt-1 text-sm text-gray-600">All dental visits of students and employees, newest first.</p>
+                </div>
             </div>
 
-            <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
+            <section className={listCardClass}>
+                {/* Filter sa kaliwa, search sa kanan */}
+                <form
+                    method="get"
+                    action={BASE}
+                    className="grid gap-3 p-4 sm:grid-cols-2 md:p-5 lg:grid-cols-[12rem_12rem_minmax(0,1fr)]"
+                >
+                    <AutoSubmitSelect
+                        name="type"
+                        defaultValue={type === "all" ? "" : type}
+                        options={["student", "employee"]}
+                        labels={TYPE_LABELS}
+                        allLabel="All Types"
+                        className={listSelectClass}
+                    />
+                    <AutoSubmitSelect
+                        name="procedure"
+                        defaultValue={procedures.find((p) => p.toLowerCase() === procedure.toLowerCase()) ?? ""}
+                        options={procedures}
+                        allLabel="All Procedures"
+                        className={listSelectClass}
+                    />
+                    <div className="relative sm:col-span-2 lg:col-span-1 lg:ml-auto lg:w-full lg:max-w-sm">
+                        <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-600" />
+                        <SearchInput
+                            name="q"
+                            defaultValue={q}
+                            autoComplete="off"
+                            placeholder="Search name, ID, or procedure..."
+                            suppressHydrationWarning
+                            className={listSearchClass}
+                        />
+                    </div>
+                </form>
+
                 {rows.length === 0 ? (
-                    <p className="p-6 text-center text-sm text-gray-600">No dental visits found.</p>
+                    <p className="border-t border-gray-100 p-8 text-center text-sm text-gray-600">No dental visits found.</p>
                 ) : (
                     <>
-                        {/* MOBILE: card list (walang horizontal scroll) */}
-                        <ul className="space-y-2 md:hidden">
-                            {rows.map((r) => {
-                                const name = getName(r);
-                                return (
-                                    <li
-                                        key={`${r.patient_type}-${r.dental_id}`}
-                                        className="rounded-lg border border-gray-100 p-3"
-                                    >
-                                        <div className="flex items-start gap-3">
-                                            <PatientAvatar name={name} type={r.patient_type} />
-                                            <div className="min-w-0 flex-1">
-                                                <p className="break-words text-sm font-medium text-gray-900">{name}</p>
-                                                <p className="text-sm text-gray-600">ID: {r.ref_number}</p>
-                                                <p className="mt-1 break-words text-sm text-gray-600">
-                                                    <span className="text-gray-600">Procedure: </span>
-                                                    {r.procedure_name}
-                                                </p>
-                                                <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                                                    <TypeBadge type={r.patient_type} />
-                                                    <span className="text-sm text-gray-600">
-                                                        {formatVisitDate(r.visit_date)}
-                                                    </span>
-                                                </div>
-                                            </div>
+                        {/* MOBILE: card list */}
+                        <ul className="space-y-2 border-t border-gray-100 p-3 md:hidden">
+                            {rows.map((r) => (
+                                <li
+                                    key={`${r.patient_type}-${r.dental_id}`}
+                                    className="flex items-start gap-3 rounded-xl border border-[#e4ede8] p-3"
+                                >
+                                    <PersonAvatar src={r.avatar} first={r.first_name} last={r.last_name} type={r.patient_type} />
+                                    <div className="min-w-0 flex-1">
+                                        <p className="break-words text-sm font-semibold text-gray-900">{getName(r)}</p>
+                                        <p className="text-sm text-gray-600">{r.ref_number}</p>
+                                        <p className="mt-1 break-words text-sm capitalize text-gray-600">
+                                            {r.procedure_name} · {formatVisitDate(r.visit_date)}
+                                        </p>
+                                        <div className="mt-2">
+                                            <TypeBadge type={r.patient_type} />
                                         </div>
-                                        <ConfirmLink
-                                            href={viewHref(r)}
-                                            title="View dental record"
-                                            message={confirmMessage(name)}
-                                            className="mt-3 block w-full rounded-md bg-[#15664f] px-3 py-2 text-center text-sm font-medium text-white hover:bg-[#124f3d]"
-                                        >
-                                            View
-                                        </ConfirmLink>
-                                    </li>
-                                );
-                            })}
+                                    </div>
+                                    <RowActionMenu actions={actions(r)} />
+                                </li>
+                            ))}
                         </ul>
 
                         {/* DESKTOP: table */}
                         <div className="hidden overflow-x-auto md:block">
                             <table className="w-full text-left text-sm">
-                                <thead className="bg-[#EEEEEE] text-[#15664f]">
+                                <thead className="border-y border-[#e4ede8] bg-[#f6faf8] text-gray-600">
                                     <tr>
-                                        <th className="whitespace-nowrap px-3 py-2 font-medium">ID</th>
-                                        <th className="px-3 py-2 font-medium">Name</th>
-                                        <th className="px-3 py-2 font-medium">Procedure</th>
-                                        <th className="px-3 py-2 font-medium">Type</th>
-                                        <th className="whitespace-nowrap px-3 py-2 font-medium">Date</th>
-                                        <th className="px-3 py-2 text-center font-medium">Action</th>
+                                        <th className="whitespace-nowrap px-5 py-3 font-semibold">ID Number</th>
+                                        <th className="px-5 py-3 font-semibold">Name</th>
+                                        <th className="px-5 py-3 font-semibold">Procedure</th>
+                                        <th className="px-5 py-3 font-semibold">Type</th>
+                                        <th className="whitespace-nowrap px-5 py-3 font-semibold">Visit Date</th>
+                                        <th className="px-5 py-3 text-center font-semibold">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {rows.map((r) => {
-                                        const name = getName(r);
-                                        return (
-                                            <tr
-                                                key={`${r.patient_type}-${r.dental_id}`}
-                                                className="border-t border-gray-100"
-                                            >
-                                                <td className="whitespace-nowrap px-3 py-2 text-gray-600">
-                                                    {r.ref_number}
-                                                </td>
-                                                <td className="px-3 py-2 font-medium text-gray-900">
-                                                    <div className="flex items-center gap-2">
-                                                        <PatientAvatar name={name} type={r.patient_type} />
-                                                        <span>{name}</span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-3 py-2 text-gray-600">{r.procedure_name}</td>
-                                                <td className="px-3 py-2">
-                                                    <TypeBadge type={r.patient_type} />
-                                                </td>
-                                                <td className="whitespace-nowrap px-3 py-2 text-gray-600">
-                                                    {formatVisitDate(r.visit_date)}
-                                                </td>
-                                                <td className="px-3 py-2 text-center">
-                                                    <ConfirmLink
-                                                        href={viewHref(r)}
-                                                        title="View dental record"
-                                                        message={confirmMessage(name)}
-                                                        className="inline-block rounded-md bg-[#15664f] px-3 py-1 text-sm font-medium text-white hover:bg-[#124f3d]"
-                                                    >
-                                                        View
-                                                    </ConfirmLink>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
+                                    {rows.map((r) => (
+                                        <tr key={`${r.patient_type}-${r.dental_id}`} className="border-t border-gray-100 hover:bg-[#f6faf8]">
+                                            <td className="whitespace-nowrap px-5 py-3 text-gray-600">{r.ref_number}</td>
+                                            <td className="px-5 py-3">
+                                                <div className="flex items-center gap-3">
+                                                    <PersonAvatar src={r.avatar} first={r.first_name} last={r.last_name} type={r.patient_type} />
+                                                    <span className="font-medium text-gray-900">{getName(r)}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-5 py-3 capitalize text-gray-600">{r.procedure_name}</td>
+                                            <td className="px-5 py-3">
+                                                <TypeBadge type={r.patient_type} />
+                                            </td>
+                                            <td className="whitespace-nowrap px-5 py-3 text-gray-600">{formatVisitDate(r.visit_date)}</td>
+                                            <td className="px-5 py-3 text-center">
+                                                <RowActionMenu actions={actions(r)} />
+                                            </td>
+                                        </tr>
+                                    ))}
                                 </tbody>
                             </table>
                         </div>
                     </>
                 )}
 
-                {/* Pagination */}
-                {totalPages > 1 && (
-                    <div className="mt-3 flex items-center justify-between text-sm">
-                        <span className="text-gray-600">
-                            Page {page} of {totalPages}
-                        </span>
-                        <div className="flex gap-2">
-                            {page > 1 && (
-                                <Link
-                                    href={pageHref(page - 1)}
-                                    className="rounded-md border border-gray-300 px-3 py-1.5 text-[#15664f] hover:bg-gray-50"
-                                >
-                                    Previous
-                                </Link>
-                            )}
-                            {page < totalPages && (
-                                <Link
-                                    href={pageHref(page + 1)}
-                                    className="rounded-md border border-gray-300 px-3 py-1.5 text-[#15664f] hover:bg-gray-50"
-                                >
-                                    Next
-                                </Link>
-                            )}
-                        </div>
-                    </div>
-                )}
-            </div>
+                <ListPagination page={page} totalPages={totalPages} total={total} pageSize={PAGE_SIZE} hrefFor={pageHref} />
+            </section>
         </main>
     );
 }

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { ClipboardList, FileHeart, Pencil, Plus, Trash2 } from "lucide-react";
+import { ClipboardList, Pencil, Plus, Trash2 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { canManageRecords } from "@/lib/permissions";
@@ -114,7 +114,7 @@ function answerLabel(answer?: string) {
 function Row({ label, value }: { label: string; value: string }) {
     return (
         <p className="break-words text-sm">
-            <span className="font-semibold text-gray-700">{label}:</span>{" "}
+            <span className="font-semibold text-gray-600">{label}:</span>{" "}
             <span className="text-gray-900">{value}</span>
         </p>
     );
@@ -123,7 +123,7 @@ function Row({ label, value }: { label: string; value: string }) {
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
     return (
         <div className="min-w-0 rounded-xl border-2 border-[#cfe5d9] bg-white p-5 shadow-md shadow-[#15664f]/10 md:p-6">
-            <h3 className="border-l-4 border-[#15664f] pl-3 text-sm font-bold uppercase tracking-wide text-gray-900">{title}</h3>
+            <h3 className="border-l-4 border-[#15664f] pl-3 text-sm font-semibold uppercase tracking-wide text-gray-900">{title}</h3>
             <div className="mt-3 md:mt-4">{children}</div>
         </div>
     );
@@ -203,9 +203,8 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
 
             <div className="no-print flex flex-wrap items-center justify-between gap-4">
                 <div className="flex min-w-0 items-center gap-3">
-                    <ClipboardList className="h-10 w-10 shrink-0 text-[#15664f]" />
                     <div className="min-w-0">
-                        <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">Employee Health Form</h1>
+                        <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">Employee Health Form</h1>
                         <p className="text-sm text-gray-600">Medical history and medical examination of each employee.</p>
                     </div>
                 </div>
@@ -262,7 +261,7 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
                         <div className="flex flex-col items-center rounded-xl border-2 border-dashed border-[#cfe5d9] bg-white p-8 text-center md:p-16">
                             <ClipboardList className="h-12 w-12 text-[#15664f]/40" />
                             <p className="mt-3 text-base font-semibold text-gray-800">No employee selected</p>
-                            <p className="mt-1 text-sm text-gray-500">
+                            <p className="mt-1 text-sm text-gray-600">
                                 Select an employee <span className="lg:hidden">from the list above</span>
                                 <span className="hidden lg:inline">on the left</span> to view the form.
                             </p>
@@ -302,7 +301,7 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
 
                             {!form && (
                                 <div className="rounded-xl border-2 border-dashed border-[#cfe5d9] bg-white p-6 text-center md:p-8">
-                                    <p className="text-sm text-gray-500 md:text-base">
+                                    <p className="text-sm text-gray-600 md:text-base">
                                         No health form yet for this employee.
                                     </p>
                                     {canEdit && (
@@ -352,9 +351,9 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
                                         <div className="grid gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2 lg:grid-cols-3">
                                             {PAST_HISTORY.map((item) => (
                                                 <p key={item.key} className="flex items-start justify-between gap-3">
-                                                    <span className="min-w-0 break-words text-gray-700">{item.label}</span>
+                                                    <span className="min-w-0 break-words text-gray-600">{item.label}</span>
                                                     <span
-                                                        className={`shrink-0 font-semibold ${past[item.key] === "yes" ? "text-red-600" : "text-gray-500"
+                                                        className={`shrink-0 font-semibold ${past[item.key] === "yes" ? "text-red-600" : "text-gray-600"
                                                             }`}
                                                     >
                                                         {answerLabel(past[item.key])}
@@ -364,7 +363,7 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
                                         </div>
                                         {form.past_others && (
                                             <p className="mt-4 whitespace-pre-wrap break-words text-sm text-gray-900">
-                                                <span className="font-semibold text-gray-700">Others:</span>{" "}
+                                                <span className="font-semibold text-gray-600">Others:</span>{" "}
                                                 {form.past_others}
                                             </p>
                                         )}
@@ -373,7 +372,7 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
                                     <Card title="B. Family Medical History">
                                         <div className="overflow-x-auto">
                                             <table className="w-full text-left text-sm">
-                                                <thead className="bg-[#f6faf8] text-gray-700">
+                                                <thead className="bg-[#f6faf8] text-gray-600">
                                                     <tr>
                                                         <th className="px-2 py-2 font-medium sm:px-3">Disease</th>
                                                         <th className="px-2 py-2 font-medium sm:px-3">Answer</th>
@@ -384,10 +383,10 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
                                                     {FAMILY_HISTORY.map((item) => (
                                                         <tr key={item.key} className="border-t border-gray-100">
                                                             <td className="px-2 py-2 text-gray-900 sm:px-3">{item.label}</td>
-                                                            <td className="px-2 py-2 font-semibold text-gray-700 sm:px-3">
+                                                            <td className="px-2 py-2 font-semibold text-gray-600 sm:px-3">
                                                                 {answerLabel(family[item.key]?.answer)}
                                                             </td>
-                                                            <td className="px-2 py-2 text-gray-700 sm:px-3">
+                                                            <td className="px-2 py-2 text-gray-600 sm:px-3">
                                                                 {val(family[item.key]?.relation)}
                                                             </td>
                                                         </tr>
@@ -401,12 +400,12 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
                                         <div className="space-y-2">
                                             {PSYCHOLOGICAL.map((item) => (
                                                 <p key={item.key} className="break-words text-sm">
-                                                    <span className="font-semibold text-gray-700">{item.label}:</span>{" "}
+                                                    <span className="font-semibold text-gray-600">{item.label}:</span>{" "}
                                                     <span className="text-gray-900">
                                                         {answerLabel(psych[item.key]?.answer)}
                                                     </span>
                                                     {psych[item.key]?.details && (
-                                                        <span className="text-gray-700"> — {psych[item.key]?.details}</span>
+                                                        <span className="text-gray-600"> — {psych[item.key]?.details}</span>
                                                     )}
                                                 </p>
                                             ))}
@@ -415,7 +414,7 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
 
                                     <Card title="D. Other Medical Information">
                                         {Object.keys(other).length === 0 ? (
-                                            <p className="text-sm text-gray-500">No entries.</p>
+                                            <p className="text-sm text-gray-600">No entries.</p>
                                         ) : (
                                             <div className="grid gap-x-8 gap-y-1.5 md:grid-cols-2">
                                                 {Object.entries(other).map(([key, value]) => (
@@ -426,7 +425,7 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
                                     </Card>
 
                                     <Card title="E. Review of System">
-                                        <p className="-mt-2 mb-4 text-xs text-gray-500">
+                                        <p className="-mt-2 mb-4 text-sm text-gray-600">
                                             Only items with an answer are shown.
                                         </p>
                                         <div className="space-y-5">
@@ -435,7 +434,7 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
                                                 if (answered.length === 0) return null;
                                                 return (
                                                     <div key={group.key}>
-                                                        <h4 className="text-xs font-bold uppercase tracking-wide text-gray-700">
+                                                        <h4 className="text-sm font-semibold uppercase tracking-wide text-gray-600">
                                                             {group.title}
                                                         </h4>
                                                         <div className="mt-2 space-y-1">
@@ -444,13 +443,13 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
                                                                     key={item.key}
                                                                     className="flex items-start justify-between gap-3 text-sm"
                                                                 >
-                                                                    <span className="min-w-0 break-words text-gray-700">
+                                                                    <span className="min-w-0 break-words text-gray-600">
                                                                         {item.label}
                                                                     </span>
                                                                     <span
                                                                         className={`shrink-0 text-right font-semibold ${ros[item.key]?.answer === "yes"
                                                                             ? "text-red-600"
-                                                                            : "text-gray-500"
+                                                                            : "text-gray-600"
                                                                             }`}
                                                                     >
                                                                         {answerLabel(ros[item.key]?.answer)}
@@ -473,7 +472,7 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
                                             <Row label="Date" value={fmt(form.consent_date)} />
                                         </div>
                                         {form.updated_by && (
-                                            <p className="no-print mt-4 text-xs text-gray-500">
+                                            <p className="no-print mt-4 text-sm text-gray-600">
                                                 Last updated by {form.updated_by}
                                                 {form.updated_at ? ` · ${fmt(form.updated_at)}` : ""}
                                             </p>
@@ -484,14 +483,14 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
 
                             <Card title="Part II-A. Physical Examination">
                                 {physicals.length === 0 ? (
-                                    <p className="text-sm text-gray-500">No physical examination recorded yet.</p>
+                                    <p className="text-sm text-gray-600">No physical examination recorded yet.</p>
                                 ) : (
                                     <>
                                         {/* Matrix ito (items x petsa), kaya i-swipe pakaliwa/pakanan sa mobile.
                                             Naka-sticky ang unang column para hindi mawala ang pangalan ng item. */}
                                         <div className="overflow-x-auto">
                                             <table className="w-full text-left text-sm">
-                                                <thead className="bg-[#f6faf8] text-gray-700">
+                                                <thead className="bg-[#f6faf8] text-gray-600">
                                                     <tr>
                                                         <th className="sticky left-0 bg-gray-50 px-3 py-2 font-medium">Item</th>
                                                         {physicals.map((exam) => (
@@ -502,7 +501,7 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
                                                                         <input type="hidden" name="examId" value={exam.exam_id} />
                                                                         <button
                                                                             type="submit"
-                                                                            className="inline-flex items-center gap-1 py-1 text-xs font-normal text-red-600 hover:underline"
+                                                                            className="inline-flex items-center gap-1 py-1 text-sm font-normal text-red-600 hover:underline"
                                                                         >
                                                                             <Trash2 className="h-3 w-3" />
                                                                             Delete
@@ -516,7 +515,7 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
                                                 <tbody>
                                                     {PHYSICAL_EXAM_ITEMS.map((item) => (
                                                         <tr key={item.key} className="border-t border-gray-100">
-                                                            <td className="sticky left-0 whitespace-nowrap bg-white px-3 py-2 font-medium text-gray-700">
+                                                            <td className="sticky left-0 whitespace-nowrap bg-white px-3 py-2 font-medium text-gray-600">
                                                                 {item.label}
                                                             </td>
                                                             {physicals.map((exam) => (
@@ -527,7 +526,7 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
                                                         </tr>
                                                     ))}
                                                     <tr className="border-t-2 border-gray-300">
-                                                        <td className="sticky left-0 bg-white px-3 py-2 font-bold text-gray-800">
+                                                        <td className="sticky left-0 bg-white px-3 py-2 font-semibold text-gray-800">
                                                             Physician&apos;s Signature
                                                         </td>
                                                         {physicals.map((exam) => (
@@ -539,7 +538,7 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
                                                 </tbody>
                                             </table>
                                         </div>
-                                        <p className="no-print mt-2 text-xs text-gray-500 md:hidden">
+                                        <p className="no-print mt-2 text-sm text-gray-600 md:hidden">
                                             Swipe pakaliwa o pakanan para makita ang ibang petsa.
                                         </p>
                                     </>
@@ -559,7 +558,7 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
                                             />
                                             <div className="grid gap-4 md:grid-cols-2">
                                                 <label className="block space-y-1.5">
-                                                    <span className="text-sm font-medium text-gray-700">Exam Date *</span>
+                                                    <span className="text-sm font-medium text-gray-600">Exam Date *</span>
                                                     <input
                                                         name="examDate"
                                                         type="date"
@@ -570,7 +569,7 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
                                                     />
                                                 </label>
                                                 <label className="block space-y-1.5">
-                                                    <span className="text-sm font-medium text-gray-700">
+                                                    <span className="text-sm font-medium text-gray-600">
                                                         Physician&apos;s Signature
                                                     </span>
                                                     <input
@@ -585,7 +584,7 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
                                             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                                                 {PHYSICAL_EXAM_ITEMS.map((item) => (
                                                     <label key={item.key} className="block space-y-1">
-                                                        <span className="text-xs font-medium text-gray-600">
+                                                        <span className="text-sm font-medium text-gray-600">
                                                             {item.label}
                                                         </span>
                                                         <input
@@ -613,7 +612,7 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
 
                             <Card title="Part II-B. Laboratory Examination">
                                 {labs.length === 0 ? (
-                                    <p className="text-sm text-gray-500">No laboratory examination recorded yet.</p>
+                                    <p className="text-sm text-gray-600">No laboratory examination recorded yet.</p>
                                 ) : (
                                     <>
                                         {/* MOBILE: card list */}
@@ -625,19 +624,19 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
                                                     </p>
                                                     <dl className="mt-2 space-y-1">
                                                         <div className="text-sm">
-                                                            <dt className="text-xs text-gray-500">Findings / Conclusions</dt>
+                                                            <dt className="text-sm text-gray-600">Findings / Conclusions</dt>
                                                             <dd className="whitespace-pre-wrap break-words text-gray-900">
                                                                 {val(lab.findings)}
                                                             </dd>
                                                         </div>
                                                         <div className="text-sm">
-                                                            <dt className="text-xs text-gray-500">Recommendations</dt>
+                                                            <dt className="text-sm text-gray-600">Recommendations</dt>
                                                             <dd className="whitespace-pre-wrap break-words text-gray-900">
                                                                 {val(lab.recommendations)}
                                                             </dd>
                                                         </div>
                                                         <div className="text-sm">
-                                                            <dt className="text-xs text-gray-500">Physician&apos;s Signature</dt>
+                                                            <dt className="text-sm text-gray-600">Physician&apos;s Signature</dt>
                                                             <dd className="break-words text-gray-900">
                                                                 {val(lab.physician_signature)}
                                                             </dd>
@@ -664,7 +663,7 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
                                         {/* DESKTOP: table */}
                                         <div className="hidden overflow-x-auto md:block">
                                             <table className="w-full text-left text-sm">
-                                                <thead className="bg-[#f6faf8] text-gray-700">
+                                                <thead className="bg-[#f6faf8] text-gray-600">
                                                     <tr>
                                                         <th className="whitespace-nowrap px-3 py-2 font-medium">Date</th>
                                                         <th className="px-3 py-2 font-medium">Findings / Conclusions</th>
@@ -724,7 +723,7 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
                                             />
                                             <div className="grid gap-4 md:grid-cols-2">
                                                 <label className="block space-y-1.5">
-                                                    <span className="text-sm font-medium text-gray-700">Exam Date *</span>
+                                                    <span className="text-sm font-medium text-gray-600">Exam Date *</span>
                                                     <input
                                                         name="examDate"
                                                         type="date"
@@ -735,7 +734,7 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
                                                     />
                                                 </label>
                                                 <label className="block space-y-1.5">
-                                                    <span className="text-sm font-medium text-gray-700">
+                                                    <span className="text-sm font-medium text-gray-600">
                                                         Physician&apos;s Signature
                                                     </span>
                                                     <input
@@ -747,7 +746,7 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
                                                 </label>
                                             </div>
                                             <label className="block space-y-1.5">
-                                                <span className="text-sm font-medium text-gray-700">
+                                                <span className="text-sm font-medium text-gray-600">
                                                     Findings / Conclusions
                                                 </span>
                                                 <textarea
@@ -758,7 +757,7 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
                                                 />
                                             </label>
                                             <label className="block space-y-1.5">
-                                                <span className="text-sm font-medium text-gray-700">Recommendations</span>
+                                                <span className="text-sm font-medium text-gray-600">Recommendations</span>
                                                 <textarea
                                                     name="recommendations"
                                                     rows={3}

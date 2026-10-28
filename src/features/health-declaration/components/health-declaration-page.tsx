@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ClipboardCheck, ClipboardList, Pencil } from "lucide-react";
+import { ClipboardList, Pencil } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { canManageRecords } from "@/lib/permissions";
@@ -65,7 +65,7 @@ function val(value: string | null | undefined) {
 function Row({ label, value }: { label: string; value: string }) {
     return (
         <p className="break-words text-sm">
-            <span className="font-semibold text-gray-700">{label}:</span>{" "}
+            <span className="font-semibold text-gray-600">{label}:</span>{" "}
             <span className="text-gray-900">{value}</span>
         </p>
     );
@@ -74,7 +74,7 @@ function Row({ label, value }: { label: string; value: string }) {
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
     return (
         <div className="min-w-0 rounded-xl border-2 border-[#cfe5d9] bg-white p-5 shadow-md shadow-[#15664f]/10 md:p-6">
-            <h3 className="border-l-4 border-[#15664f] pl-3 text-sm font-bold uppercase tracking-wide text-gray-900">{title}</h3>
+            <h3 className="border-l-4 border-[#15664f] pl-3 text-sm font-semibold uppercase tracking-wide text-gray-900">{title}</h3>
             <div className="mt-3 md:mt-4">{children}</div>
         </div>
     );
@@ -84,14 +84,14 @@ function CheckRow({ checked, label }: { checked: boolean; label: string }) {
     return (
         <p className="flex items-center gap-2">
             <span
-                className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px] font-bold ${checked
+                className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border text-sm font-semibold ${checked
                     ? "border-[#15664f] bg-[#15664f] text-white"
                     : "border-gray-300 bg-white text-transparent"
                     }`}
             >
                 ✓
             </span>
-            <span className="text-gray-700">{label}</span>
+            <span className="text-gray-600">{label}</span>
         </p>
     );
 }
@@ -150,9 +150,8 @@ export default async function HealthDeclarationPage({ searchParams }: Props) {
 
             <div className="no-print flex flex-wrap items-center justify-between gap-4">
                 <div className="flex min-w-0 items-center gap-3">
-                    <ClipboardList className="h-10 w-10 shrink-0 text-[#15664f]" />
                     <div className="min-w-0">
-                        <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">Health Declaration</h1>
+                        <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">Health Declaration</h1>
                         <p className="text-sm text-gray-600">Student information and health status declaration of each student.</p>
                     </div>
                 </div>
@@ -209,7 +208,7 @@ export default async function HealthDeclarationPage({ searchParams }: Props) {
                         <div className="flex flex-col items-center rounded-xl border-2 border-dashed border-[#cfe5d9] bg-white p-8 text-center md:p-16">
                             <ClipboardList className="h-12 w-12 text-[#15664f]/40" />
                             <p className="mt-3 text-base font-semibold text-gray-800">No student selected</p>
-                            <p className="mt-1 text-sm text-gray-500">
+                            <p className="mt-1 text-sm text-gray-600">
                                 Select a student <span className="lg:hidden">from the list above</span>
                                 <span className="hidden lg:inline">on the left</span> to view the declaration.
                             </p>
@@ -218,7 +217,7 @@ export default async function HealthDeclarationPage({ searchParams }: Props) {
 
                     {selected && !form && (
                         <div className="rounded-xl border-2 border-dashed border-[#cfe5d9] bg-white p-6 text-center md:p-12">
-                            <p className="text-sm text-gray-500 md:text-base">No declaration yet for this student.</p>
+                            <p className="text-sm text-gray-600 md:text-base">No declaration yet for this student.</p>
                             {canEdit && (
                                 <Link
                                     href={`${BASE}/edit?student=${encodeURIComponent(selected.student_number)}`}
@@ -238,7 +237,7 @@ export default async function HealthDeclarationPage({ searchParams }: Props) {
                                     Student Information and Health Status Declaration
                                 </h2>
                                 {form.school_year && (
-                                    <p className="mt-1 text-center text-sm font-semibold text-gray-700">
+                                    <p className="mt-1 text-center text-sm font-semibold text-gray-600">
                                         School Year {form.school_year}
                                     </p>
                                 )}
@@ -296,7 +295,7 @@ export default async function HealthDeclarationPage({ searchParams }: Props) {
 
                                 {form.symptom_notes && (
                                     <p className="mt-4 whitespace-pre-wrap break-words text-sm text-gray-900">
-                                        <span className="font-semibold text-gray-700">Notes:</span>{" "}
+                                        <span className="font-semibold text-gray-600">Notes:</span>{" "}
                                         {form.symptom_notes}
                                     </p>
                                 )}
@@ -309,7 +308,7 @@ export default async function HealthDeclarationPage({ searchParams }: Props) {
                                 </div>
 
                                 <p className="mt-4 whitespace-pre-wrap break-words text-sm text-gray-900">
-                                    <span className="font-semibold text-gray-700">Medicines:</span>{" "}
+                                    <span className="font-semibold text-gray-600">Medicines:</span>{" "}
                                     {val(form.medicines)}
                                 </p>
                             </Card>
@@ -320,18 +319,18 @@ export default async function HealthDeclarationPage({ searchParams }: Props) {
                                         <p className="break-words font-semibold text-gray-900 underline">
                                             {val(form.certified_by)}
                                         </p>
-                                        <p className="text-xs text-gray-600">
+                                        <p className="text-sm text-gray-600">
                                             Signature over Printed Name of Parent / Guardian
                                         </p>
                                     </div>
                                     <p>
-                                        <span className="font-semibold text-gray-700">Date:</span>{" "}
+                                        <span className="font-semibold text-gray-600">Date:</span>{" "}
                                         <span className="text-gray-900">{fmt(form.declaration_date)}</span>
                                     </p>
                                 </div>
 
                                 {form.updated_by && (
-                                    <p className="no-print mt-4 text-xs text-gray-500">
+                                    <p className="no-print mt-4 text-sm text-gray-600">
                                         Last updated by {form.updated_by}
                                         {form.updated_at ? ` · ${fmt(form.updated_at)}` : ""}
                                     </p>

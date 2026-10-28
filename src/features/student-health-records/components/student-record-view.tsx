@@ -12,10 +12,9 @@ import {
     Pencil,
     Plus,
     Ruler,
-    Stethoscope,
     Thermometer,
     UserRound,
-    Weight,
+    Weight
 } from "lucide-react";
 import ConfirmButton from "@/components/shared/confirm-button";
 import ConfirmLink from "@/components/shared/confirm-link";
@@ -707,9 +706,8 @@ export default function StudentRecordView({
 
                 {/* Header */}
                 <div className="flex items-center gap-3">
-                    <Stethoscope className="h-10 w-10 shrink-0 text-[#15664f]" />
                     <div className="min-w-0">
-                        <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">Clinic Visit Record</h1>
+                        <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">Clinic Visit Record</h1>
                         <p className="text-sm text-gray-600">Details of this clinic visit.</p>
                     </div>
                 </div>
@@ -828,7 +826,7 @@ export default function StudentRecordView({
             {/* Header */}
             <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
-                    <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">Student Health Record</h1>
+                    <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">Student Health Record</h1>
                     <p className="mt-1 text-sm text-gray-600">View and manage the health records of a student.</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">

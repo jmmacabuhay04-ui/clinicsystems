@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { Clock, History, KeyRound, Monitor, Settings, UserRound } from "lucide-react";
+import { History, Monitor, Settings } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { canManageAccounts } from "@/lib/permissions";
@@ -76,9 +76,8 @@ export default async function SettingsPage() {
         <main className="min-w-0 space-y-6 p-4 pb-8 md:p-8">
             {/* Header */}
             <div className="flex items-center gap-3">
-                <Settings className="h-10 w-10 shrink-0 text-[#15664f]" />
                 <div className="min-w-0">
-                    <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">Settings</h1>
+                    <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">Settings</h1>
                     <p className="text-sm text-gray-600">Manage your profile, password, and login security.</p>
                 </div>
             </div>
@@ -97,9 +96,6 @@ export default async function SettingsPage() {
             {/* Display Name: pangalang lalabas sa dashboard at sidebar */}
             <section className={`${card} min-w-0 p-5 md:p-6`}>
                 <div className="mb-5 flex items-start gap-3">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#eef6f2] text-[#15664f]">
-                        <UserRound className="h-5 w-5" />
-                    </span>
                     <div>
                         <h2 className="text-lg font-semibold text-gray-900">Display Name</h2>
                         <p className="text-sm text-gray-600">Set the name others see instead of your email.</p>
@@ -112,9 +108,6 @@ export default async function SettingsPage() {
                 {/* Change password */}
                 <section className={`${card} min-w-0 p-5 md:p-6`}>
                     <div className="mb-5 flex items-start gap-3">
-                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#eef6f2] text-[#15664f]">
-                            <KeyRound className="h-5 w-5" />
-                        </span>
                         <div>
                             <h2 className="text-lg font-semibold text-gray-900">Change Password</h2>
                             <p className="text-sm text-gray-600">Update the password you use to sign in.</p>
@@ -126,9 +119,6 @@ export default async function SettingsPage() {
                 {/* Session & login */}
                 <section className={`${card} min-w-0 self-start p-5 md:p-6`}>
                     <div className="mb-5 flex items-start gap-3">
-                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#eef6f2] text-[#15664f]">
-                            <Clock className="h-5 w-5" />
-                        </span>
                         <div>
                             <h2 className="text-lg font-semibold text-gray-900">Session &amp; Login</h2>
                             <p className="text-sm text-gray-600">Control auto-logout and two-factor authentication.</p>
@@ -142,9 +132,6 @@ export default async function SettingsPage() {
             <section className={`${card} min-w-0 overflow-hidden`}>
                 <div className="flex flex-wrap items-center justify-between gap-3 p-5 md:px-6">
                     <div className="flex items-start gap-3">
-                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#eef6f2] text-[#15664f]">
-                            <History className="h-5 w-5" />
-                        </span>
                         <div>
                             <h2 className="text-lg font-semibold text-gray-900">Recent Login Activity</h2>
                             <p className="text-sm text-gray-600">

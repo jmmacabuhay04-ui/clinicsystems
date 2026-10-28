@@ -13,9 +13,7 @@ import {
     GraduationCap,
     IdCard,
     KeyRound,
-    LockKeyhole,
     Search,
-    ShieldCheck,
     UserCheck,
     UserRoundSearch,
     X,
@@ -181,9 +179,8 @@ export default async function WalkInResetPage({
         <main className="min-w-0 space-y-6 p-4 pb-8 md:p-8">
             {/* Header */}
             <div className="flex items-center gap-3">
-                <LockKeyhole className="h-10 w-10 shrink-0 text-[#15664f]" />
                 <div className="min-w-0">
-                    <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">Walk-in Password Reset</h1>
+                    <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">Walk-in Password Reset</h1>
                     <p className="text-sm text-gray-600">
                         For people who forgot their password and came to the clinic in person. An ID is required, and
                         every reset is recorded.
@@ -206,9 +203,6 @@ export default async function WalkInResetPage({
                     {/* Search */}
                     <section className={`${card} min-w-0 self-start p-5 md:p-6`}>
                         <div className="mb-5 flex items-start gap-3">
-                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#eef6f2] text-[#15664f]">
-                                <UserRoundSearch className="h-5 w-5" />
-                            </span>
                             <div>
                                 <h2 className="text-lg font-semibold text-gray-900">Find the Account</h2>
                                 <p className="text-sm text-gray-600">Choose the account type, then search by name or ID number.</p>
@@ -323,7 +317,6 @@ export default async function WalkInResetPage({
                     {/* How it works */}
                     <aside className={`${card} min-w-0 self-start p-5 md:p-6`}>
                         <div className="mb-4 flex items-center gap-2">
-                            <ShieldCheck className="h-5 w-5 text-[#15664f]" />
                             <h2 className="text-lg font-semibold text-gray-900">How it works</h2>
                         </div>
                         <ol className="space-y-4">
