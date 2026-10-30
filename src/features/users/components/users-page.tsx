@@ -13,6 +13,7 @@ import FlashMessage from "@/components/shared/flash-message";
 import { canCreateAccounts } from "@/lib/permissions";
 import RoleBadge from "@/components/shared/role-badge";
 import RowActionMenu, { type RowAction } from "@/components/shared/row-action-menu";
+import PasswordInput from "@/components/shared/password-input";
 type Props = {
     searchParams: Promise<{
         reset?: string;
@@ -310,16 +311,18 @@ export default async function UsersPage({ searchParams }: Props) {
                                                             /* RESET STEP 1: bagong password -> OTP sa may-ari */
                                                             <form action={resetUserPassword} className="flex flex-wrap items-center gap-3">
                                                                 <input type="hidden" name="userId" value={u.user_id} />
-                                                                <input
+                                                                {/* May Show password (mata) at Clear (X) */}
+                                                                <PasswordInput
                                                                     name="password"
-                                                                    type="password"
                                                                     placeholder="New password (min. 8 characters)"
                                                                     minLength={8}
                                                                     required
                                                                     autoFocus
                                                                     autoComplete="new-password"
                                                                     suppressHydrationWarning
-                                                                    className={`${smallInput} w-full sm:w-72`}
+                                                                    clearable
+                                                                    wrapperClassName="w-full sm:w-72"
+                                                                    className={`${smallInput} w-full`}
                                                                 />
                                                                 <ConfirmSubmit
                                                                     title="Send OTP to account owner?"
