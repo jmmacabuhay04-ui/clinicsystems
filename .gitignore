@@ -49,3 +49,8 @@ next-env.d.ts
 backup.sql
 bcas-backup.sql
 *.sql.backup
+local-data.sql
+supabase-backup.sql
+local-data.sql
+supabase-backup.sql
+bcas-backup.sql
