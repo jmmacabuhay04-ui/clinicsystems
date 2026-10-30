@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, UserPlus } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { getSession } from "@/lib/auth/session";
 import { canManageRecords } from "@/lib/permissions";
 import StudentForm from "./student-form";
@@ -34,9 +34,8 @@ export default async function NewStudentPage() {
                 Back to students
             </Link>
             <div className="flex items-center gap-3">
-                <UserPlus className="h-10 w-10 shrink-0 text-[#15664f]" />
                 <div className="min-w-0">
-                    <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">Add Student</h1>
+                    <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">Add Student</h1>
                     <p className="text-sm text-gray-600">Register a new student and create their portal login.</p>
                 </div>
             </div>

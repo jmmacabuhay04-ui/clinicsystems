@@ -74,7 +74,7 @@ function StepCard({
     );
 }
 
-const ALLOWED_ROLES = ["nurse", "admin"];
+const ALLOWED_ROLES = ["nurse", "admin", "ittech"];
 
 type Person = {
     id: number;

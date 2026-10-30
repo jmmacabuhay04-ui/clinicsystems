@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { Briefcase, CalendarClock, GraduationCap, Inbox, KeyRound, MessageSquare, ShieldAlert, X } from "lucide-react";
+import { KeyRound, X } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { canManageStudents } from "@/lib/permissions";
@@ -21,7 +21,7 @@ type RequestRow = {
 
 type Props = { searchParams: Promise<{ done?: string; error?: string }> };
 
-const card = "rounded-xl border-2 border-[#cfe5d9] bg-white shadow-md shadow-[#15664f]/10";
+const card = "rounded-2xl border border-[#dcebe3] bg-white shadow-sm shadow-[#15664f]/5";
 
 function fmt(date: Date) {
     return new Date(date).toLocaleString("en-US", {
@@ -42,7 +42,7 @@ const errors: Record<string, string> = {
 export default async function PasswordRequestsPage({ searchParams }: Props) {
     const session = await getSession();
     if (!session) redirect("/login");
-    if (!canManageStudents(session.role)) redirect("/dashboard");
+    if (!canManageStudents(session.role) && session.role !== "ittech") redirect("/dashboard");
 
     const { done, error } = await searchParams;
 
@@ -60,21 +60,19 @@ export default async function PasswordRequestsPage({ searchParams }: Props) {
     `;
 
     const studentCount = requests.filter((r) => r.patient_type === "Student").length;
+    // Pending = pula (kailangang asikasuhin), Students = mint, Employees = dilaw
     const stats = [
-        { label: "Pending Requests", value: requests.length, icon: Inbox, tint: "bg-amber-100 text-amber-700" },
-        { label: "Students", value: studentCount, icon: GraduationCap, tint: "bg-[#eef6f2] text-[#15664f]" },
-        { label: "Employees", value: requests.length - studentCount, icon: Briefcase, tint: "bg-amber-50 text-amber-700" },
+        { label: "Pending Requests", value: requests.length, tone: "border-rose-200 bg-rose-50" },
+        { label: "Students", value: studentCount, tone: "border-[#d3e8dc] bg-[#eaf5ef]" },
+        { label: "Employees", value: requests.length - studentCount, tone: "border-[#f3e4b3] bg-[#fdf7e6]" },
     ];
 
     return (
         <main className="min-w-0 space-y-6 p-4 pb-8 md:p-8">
             {/* Header */}
-            <div className="flex items-center gap-3">
-
-                <div className="min-w-0">
-                    <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">Password Requests</h1>
-                    <p className="text-sm text-gray-600">Students and employees who asked for a new portal password.</p>
-                </div>
+            <div className="min-w-0">
+                <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">Password Requests</h1>
+                <p className="mt-1 text-sm text-gray-600">Students and employees who asked for a new portal password.</p>
             </div>
 
             {done === "1" && (
@@ -89,41 +87,29 @@ export default async function PasswordRequestsPage({ searchParams }: Props) {
             )}
 
             {/* Reminder */}
-            <div className="flex items-start gap-3 rounded-xl border-2 border-amber-200 bg-amber-50 p-4">
-                <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
-                <div className="text-sm">
-                    <p className="font-semibold text-amber-900">Verify identity in person first</p>
-                    <p className="text-amber-800">
-                        Check the person&apos;s school ID before setting a new password, then give the password to them
-                        directly. Never send it through chat or text.
-                    </p>
-                </div>
+            <div className="rounded-2xl border border-amber-200 border-l-4 border-l-amber-400 bg-amber-50 p-4 text-sm">
+                <p className="font-semibold text-amber-900">Verify identity in person first</p>
+                <p className="mt-0.5 text-amber-800">
+                    Check the person&apos;s school ID before setting a new password, then give the password to them
+                    directly. Never send it through chat or text.
+                </p>
             </div>
 
             {/* Stats */}
             <section className="grid gap-4 sm:grid-cols-3">
-                {stats.map((st) => {
-                    const Icon = st.icon;
-                    return (
-                        <div key={st.label} className={`${card} flex items-center gap-4 p-5`}>
-                            <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${st.tint}`}>
-                                <Icon className="h-5 w-5" />
-                            </div>
-                            <div>
-                                <p className="text-sm text-gray-600">{st.label}</p>
-                                <p className="text-2xl font-bold text-gray-900">{st.value}</p>
-                            </div>
-                        </div>
-                    );
-                })}
+                {stats.map((st) => (
+                    <div key={st.label} className={`rounded-2xl border p-5 shadow-sm ${st.tone}`}>
+                        <p className="text-[1.75rem] font-bold leading-tight text-gray-900">{st.value}</p>
+                        <p className="mt-0.5 text-sm font-medium text-gray-600">{st.label}</p>
+                    </div>
+                ))}
             </section>
 
             {/* Requests */}
             {requests.length === 0 ? (
-                <div className="flex flex-col items-center rounded-xl border-2 border-dashed border-[#cfe5d9] bg-white p-10 text-center md:p-16">
-                    <Inbox className="h-12 w-12 text-[#15664f]/30" />
-                    <p className="mt-3 text-base font-semibold text-gray-800">No pending requests</p>
-                    <p className="mt-1 text-sm text-gray-500">
+                <div className="flex flex-col items-center rounded-2xl border-2 border-dashed border-[#cfe5d9] bg-white p-10 text-center md:p-16">
+                    <p className="text-base font-semibold text-gray-800">No pending requests</p>
+                    <p className="mt-1 text-sm text-gray-600">
                         New password requests from the student and employee portals will appear here.
                     </p>
                 </div>
@@ -136,7 +122,7 @@ export default async function PasswordRequestsPage({ searchParams }: Props) {
                             <article key={r.request_id} className={`${card} min-w-0 p-5`}>
                                 <div className="flex items-start gap-3">
                                     <span
-                                        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold ${isStudent ? "bg-[#15664f] text-white" : "bg-amber-300 text-gray-900"
+                                        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${isStudent ? "bg-[#15664f] text-white" : "bg-amber-300 text-gray-900"
                                             }`}
                                     >
                                         {initials}
@@ -147,24 +133,21 @@ export default async function PasswordRequestsPage({ searchParams }: Props) {
                                                 {r.last_name}, {r.first_name}
                                             </p>
                                             <span
-                                                className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${isStudent ? "bg-[#15664f] text-white" : "bg-amber-300 text-gray-900"
+                                                className={`rounded-full px-2.5 py-0.5 text-sm font-semibold ${isStudent ? "bg-[#15664f] text-white" : "bg-amber-300 text-gray-900"
                                                     }`}
                                             >
                                                 {r.patient_type}
                                             </span>
                                         </div>
                                         <p className="text-sm text-gray-600">{r.id_number}</p>
-                                        <p className="mt-1 inline-flex items-center gap-1.5 text-xs text-gray-500">
-                                            <CalendarClock className="h-3.5 w-3.5" />
-                                            Requested {fmt(r.created_at)}
-                                        </p>
+                                        <p className="mt-1 text-sm text-gray-600">Requested {fmt(r.created_at)}</p>
                                     </div>
                                 </div>
 
-                                <div className="mt-4 flex items-start gap-2 rounded-lg bg-[#f6faf8] p-3 text-sm">
-                                    <MessageSquare className="mt-0.5 h-4 w-4 shrink-0 text-[#15664f]" />
-                                    <p className="min-w-0 break-words text-gray-700">
-                                        {r.note || <span className="italic text-gray-400">No reason given.</span>}
+                                <div className="mt-4 rounded-xl bg-[#f6faf8] p-3 text-sm">
+                                    <p className="text-sm font-semibold text-gray-600">Reason</p>
+                                    <p className="mt-0.5 min-w-0 break-words text-gray-600">
+                                        {r.note || <span className="italic text-gray-600">No reason given.</span>}
                                     </p>
                                 </div>
 

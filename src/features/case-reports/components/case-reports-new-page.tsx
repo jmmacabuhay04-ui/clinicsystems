@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { canManageRecords } from "@/lib/permissions";
 import CaseForm, { type PersonOption } from "./case-form";
+import { staffDisplayName } from "@/lib/display-name";
 
 const BASE = "/dashboard/health-case-reports";
 
@@ -13,10 +14,21 @@ export default async function NewCaseReportPage() {
     if (!session) redirect("/login");
     if (!canManageRecords(session.role)) redirect(BASE);
 
-    const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date());
+    const date = new Date();
+    const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(date);
+    // Oras ngayon sa Pilipinas (HH:MM, 24-hour) para sa Report Time
+    const nowTime = new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Asia/Manila",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+    }).format(date);
 
-    const localPart = session.username.split("@")[0];
-    const staffName = localPart.charAt(0).toUpperCase() + localPart.slice(1);
+    // Attending staff = Display Name sa Settings (hal. "Mclife"); kung wala pa, galing sa email
+    const me = await prisma.user
+        .findUnique({ where: { user_id: session.userId }, select: { full_name: true } })
+        .catch(() => null);
+    const staffName = staffDisplayName(me?.full_name, String(session.username ?? ""), String(session.role ?? ""));
 
     // Para sa "Search by name or number" na dropdown.
     const [students, employees] = await Promise.all([
@@ -51,6 +63,7 @@ export default async function NewCaseReportPage() {
 
             <CaseForm
                 today={today}
+                nowTime={nowTime}
                 staffName={staffName}
                 cancelHref={BASE}
                 students={students}

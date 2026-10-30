@@ -47,6 +47,8 @@ export async function createCaseReport(
     const patientNumber = get("patientNumber");
     const complaint = get("complaint");
     const reportDate = get("reportDate");
+    // Oras ng report (HH:MM). Opsyonal.
+    const reportTime = get("reportTime");
     const staffName = get("staffName");
     const status = get("status") || "pending";
     const notes = get("notes");
@@ -58,6 +60,7 @@ export async function createCaseReport(
         return fail(`${label}, complaint, and date are required.`);
     }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(reportDate)) return fail("Enter a valid date.");
+    if (reportTime && !/^([01]\d|2[0-3]):[0-5]\d$/.test(reportTime)) return fail("Enter a valid time.");
     if (!["pending", "referred", "resolved"].includes(status)) return fail("Select a valid status.");
 
     let caseNumber = "";
@@ -90,11 +93,12 @@ export async function createCaseReport(
         // Exactly one of student_id / employee_id is set; the other stays NULL.
         await prisma.$executeRaw`
       INSERT INTO health_case_reports
-        (case_number, student_id, employee_id, complaint, report_date,
+        (case_number, student_id, employee_id, complaint, report_date, report_time,
          staff_name, status, notes, action_taken, recorded_by)
       VALUES
         (${caseNumber}, ${studentId}, ${employeeId}, ${complaint},
-         CAST(${reportDate} AS DATE), ${staffName || null}, ${status},
+         CAST(${reportDate} AS DATE), CAST(NULLIF(${reportTime}, '') AS TIME),
+         ${staffName || null}, ${status},
          ${notes || null}, ${actionTaken || null}, ${session.userId})
     `;
     } catch (err) {
@@ -104,5 +108,12 @@ export async function createCaseReport(
 
     revalidatePath(BASE);
     revalidatePath("/dashboard/illness-alerts");
-    redirect(BASE);
+    revalidatePath("/dashboard");
+    // Pagka-save, diretso sa health record ng pasyente (makikita agad ang bagong case)
+    if (patientType === "employee") {
+        revalidatePath("/dashboard/employee-health-records");
+        redirect(`/dashboard/employee-health-records?employee=${encodeURIComponent(patientNumber)}`);
+    }
+    revalidatePath("/dashboard/student-health-records");
+    redirect(`/dashboard/student-health-records?student=${encodeURIComponent(patientNumber)}`);
 }

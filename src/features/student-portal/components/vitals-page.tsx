@@ -48,9 +48,8 @@ export default async function StudentVitalsPage() {
             <main className="mx-auto max-w-5xl space-y-6 p-4 pb-10 md:p-6">
                 {/* Header */}
                 <div className="flex items-center gap-3">
-                    <HeartPulse className="h-10 w-10 shrink-0 text-[#15664f]" />
                     <div>
-                        <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">Vital Signs</h1>
+                        <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">Vital Signs</h1>
                         <p className="text-sm text-gray-600">Your latest measurements and their history.</p>
                     </div>
                 </div>
@@ -67,7 +66,7 @@ export default async function StudentVitalsPage() {
                                         <Icon className="h-5 w-5" />
                                     </div>
                                     <div className="min-w-0">
-                                        <p className="truncate text-xs text-gray-600 md:text-sm">{c.label}</p>
+                                        <p className="truncate text-sm text-gray-600 md:text-sm">{c.label}</p>
                                         <p className="truncate text-lg font-bold text-gray-900">{c.value}</p>
                                     </div>
                                 </div>
@@ -80,12 +79,9 @@ export default async function StudentVitalsPage() {
                 <section className={`${card} min-w-0 overflow-hidden`}>
                     <div className="flex items-center justify-between gap-3 p-5">
                         <div className="flex items-center gap-3">
-                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#eef6f2] text-[#15664f]">
-                                <Activity className="h-5 w-5" />
-                            </span>
                             <h2 className="text-lg font-semibold text-gray-900">Vital Signs History</h2>
                         </div>
-                        <span className="rounded-full bg-[#eef6f2] px-3 py-1 text-xs font-semibold text-[#15664f]">
+                        <span className="rounded-full bg-[#eef6f2] px-3 py-1 text-sm font-semibold text-[#15664f]">
                             {withVitals.length} record{withVitals.length === 1 ? "" : "s"}
                         </span>
                     </div>
@@ -94,7 +90,7 @@ export default async function StudentVitalsPage() {
                         <div className="flex flex-col items-center border-t border-gray-100 p-10 text-center">
                             <HeartPulse className="h-12 w-12 text-[#15664f]/30" />
                             <p className="mt-3 font-semibold text-gray-800">No vital signs recorded yet</p>
-                            <p className="mt-1 text-sm text-gray-500">They will appear here once taken during a clinic visit.</p>
+                            <p className="mt-1 text-sm text-gray-600">They will appear here once taken during a clinic visit.</p>
                         </div>
                     ) : (
                         <>
@@ -104,15 +100,15 @@ export default async function StudentVitalsPage() {
                                     <li key={v.record_id} className="rounded-lg border border-gray-200 p-3">
                                         <p className="text-sm font-semibold text-gray-900">{formatDate(v.visit_date, "short")}</p>
                                         <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-sm">
-                                            <dt className="text-gray-500">Height</dt>
+                                            <dt className="text-gray-600">Height</dt>
                                             <dd className="text-right text-gray-900">{show(v.height_cm, " cm")}</dd>
-                                            <dt className="text-gray-500">Weight</dt>
+                                            <dt className="text-gray-600">Weight</dt>
                                             <dd className="text-right text-gray-900">{show(v.weight_kg, " kg")}</dd>
-                                            <dt className="text-gray-500">Heart Rate</dt>
+                                            <dt className="text-gray-600">Heart Rate</dt>
                                             <dd className="text-right text-gray-900">{show(v.heart_rate, " bpm")}</dd>
-                                            <dt className="text-gray-500">Blood Pressure</dt>
+                                            <dt className="text-gray-600">Blood Pressure</dt>
                                             <dd className="text-right text-gray-900">{show(v.blood_pressure)}</dd>
-                                            <dt className="text-gray-500">Temperature</dt>
+                                            <dt className="text-gray-600">Temperature</dt>
                                             <dd className="text-right text-gray-900">{show(v.temperature, "°C")}</dd>
                                         </dl>
                                     </li>
@@ -122,7 +118,7 @@ export default async function StudentVitalsPage() {
                             {/* DESKTOP: table */}
                             <div className="hidden border-t border-gray-100 md:block">
                                 <table className="w-full text-left text-sm">
-                                    <thead className="bg-[#f6faf8] text-xs uppercase tracking-wide text-gray-600">
+                                    <thead className="bg-[#f6faf8] text-sm uppercase tracking-wide text-gray-600">
                                         <tr>
                                             <th className="whitespace-nowrap px-4 py-3 font-semibold">Date</th>
                                             <th className="px-4 py-3 font-semibold">Height</th>
@@ -138,11 +134,11 @@ export default async function StudentVitalsPage() {
                                                 <td className="whitespace-nowrap px-4 py-3 font-semibold text-gray-900">
                                                     {formatDate(v.visit_date, "short")}
                                                 </td>
-                                                <td className="px-4 py-3 text-gray-700">{show(v.height_cm, " cm")}</td>
-                                                <td className="px-4 py-3 text-gray-700">{show(v.weight_kg, " kg")}</td>
-                                                <td className="px-4 py-3 text-gray-700">{show(v.heart_rate, " bpm")}</td>
-                                                <td className="px-4 py-3 text-gray-700">{show(v.blood_pressure)}</td>
-                                                <td className="px-4 py-3 text-gray-700">{show(v.temperature, "°C")}</td>
+                                                <td className="px-4 py-3 text-gray-600">{show(v.height_cm, " cm")}</td>
+                                                <td className="px-4 py-3 text-gray-600">{show(v.weight_kg, " kg")}</td>
+                                                <td className="px-4 py-3 text-gray-600">{show(v.heart_rate, " bpm")}</td>
+                                                <td className="px-4 py-3 text-gray-600">{show(v.blood_pressure)}</td>
+                                                <td className="px-4 py-3 text-gray-600">{show(v.temperature, "°C")}</td>
                                             </tr>
                                         ))}
                                     </tbody>

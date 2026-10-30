@@ -15,7 +15,7 @@ import PasswordInput from "@/components/shared/password-input";
 
 // Malambot na mint na input, bilugan
 const inputClass =
-    "h-12 w-full rounded-full border border-transparent bg-[#eef6f2] pl-12 pr-5 text-base text-gray-900 outline-none transition placeholder:text-gray-500! hover:border-[#cfe5d9] focus:border-[#15664f] focus:bg-white focus:ring-4 focus:ring-[#15664f]/10 md:text-sm";
+    "h-12 w-full rounded-full border border-transparent bg-[#eef6f2] pl-12 pr-5 text-base text-gray-900 outline-none transition placeholder:text-gray-600! hover:border-[#cfe5d9] focus:border-[#15664f] focus:bg-white focus:ring-4 focus:ring-[#15664f]/10 md:text-sm";
 
 const iconClass = "pointer-events-none absolute left-5 top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-[#15664f]";
 
@@ -95,7 +95,7 @@ function LoadingScreen() {
                     </span>
                 </div>
 
-                <p className="mt-8 text-lg font-bold tracking-wide text-[#10523f]">
+                <p className="mt-8 text-lg font-semibold tracking-wide text-[#10523f]">
                     Signing you in
                     <span className="ml-0.5 inline-flex gap-0.5">
                         {[0, 1, 2].map((i) => (
@@ -117,7 +117,7 @@ function LoadingScreen() {
                     />
                 </div>
 
-                <p className="mt-8 text-[11px] font-semibold uppercase tracking-[0.25em] text-[#15664f]/60">BCAS School Clinic</p>
+                <p className="mt-8 text-sm font-semibold uppercase tracking-[0.2em] text-gray-600">BCAS School Clinic</p>
             </div>
         </div>
     );
@@ -177,10 +177,10 @@ export default function LoginPage() {
                         />
                     </div>
 
-                    <h2 className="mt-5 text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
-                        <span className="text-[#15664f]">School</span> <span className="text-[#4f9a7c]">Clinic</span>
+                    <h2 className="mt-5 whitespace-nowrap text-[2.6rem] font-bold leading-none tracking-tight text-[#15664f] sm:text-6xl lg:text-[3.9rem] xl:text-7xl">
+                        School Clinic
                     </h2>
-                    <p className="mt-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.2em] text-[#10523f] sm:text-xs">
+                    <p className="mt-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.15em] text-gray-600 sm:text-base">
                         Healthy Minds
                         <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
                         Brighter Futures
@@ -188,7 +188,7 @@ export default function LoginPage() {
 
                     {/* Desktop/tablet lang: mensahe at mga icon */}
                     <span className="mt-6 hidden h-0.5 w-14 rounded-full bg-amber-400 sm:block" />
-                    <p className="mt-6 hidden max-w-xs text-[15px] leading-relaxed text-gray-600 sm:block">
+                    <p className="mt-6 hidden max-w-sm text-base leading-relaxed text-gray-600 sm:block">
                         The BCAS school clinic is here to support your health and well-being.
                     </p>
                     <ul className="mt-8 hidden grid-cols-3 gap-4 sm:grid">
@@ -197,7 +197,7 @@ export default function LoginPage() {
                                 <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[#e2efe8] text-[#15664f] ring-1 ring-[#cfe5d9]">
                                     <Icon className="h-6 w-6" />
                                 </span>
-                                <span className="max-w-[7.5rem] text-xs font-medium leading-snug text-gray-700">{label}</span>
+                                <span className="max-w-[9rem] text-base font-medium leading-snug text-gray-600">{label}</span>
                             </li>
                         ))}
                     </ul>
@@ -210,8 +210,8 @@ export default function LoginPage() {
                     <span aria-hidden className="absolute -right-6 -top-20 h-24 w-24 rounded-full bg-[#15664f]/20" />
 
                     <div className="relative">
-                        <p className="text-xs font-bold uppercase tracking-[0.25em] text-[#15664f]">Welcome back</p>
-                        <h1 className="mt-2 text-4xl font-extrabold tracking-tight text-[#10523f] sm:text-5xl">Log In</h1>
+                        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-gray-600">Welcome back</p>
+                        <h1 className="mt-2 text-4xl font-bold tracking-tight text-[#10523f] sm:text-5xl">Log In</h1>
                         <p className="mt-3 max-w-xs text-sm leading-relaxed text-gray-600">
                             Access your account to continue to the School Clinic System.
                         </p>
@@ -244,7 +244,7 @@ export default function LoginPage() {
 
                             <label
                                 htmlFor="password"
-                                className="relative block [&_button]:right-5 [&_button]:text-gray-500 [&_button:hover]:text-[#15664f]"
+                                className="relative block [&_button]:right-5 [&_button]:text-gray-600 [&_button:hover]:text-[#15664f]"
                             >
                                 <span className="sr-only">Password</span>
                                 <LockKeyhole className={iconClass} />
@@ -259,7 +259,7 @@ export default function LoginPage() {
                             </label>
 
                             <div className="flex justify-end">
-                                <Link href="/forgot-password" className="text-sm font-semibold text-[#15664f] hover:text-[#10523f] hover:underline">
+                                <Link href="/forgot-password" className="text-sm font-semibold text-gray-600 hover:text-[#15664f] hover:underline">
                                     Forgot password?
                                 </Link>
                             </div>
@@ -268,7 +268,7 @@ export default function LoginPage() {
                                 type="submit"
                                 disabled={pending}
                                 suppressHydrationWarning
-                                className="group inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#15664f] px-4 text-[15px] font-semibold text-white shadow-lg shadow-[#15664f]/25 transition hover:bg-[#10523f] active:scale-[0.99] disabled:opacity-60"
+                                className="group inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#15664f] px-4 text-sm font-semibold text-white shadow-lg shadow-[#15664f]/25 transition hover:bg-[#10523f] active:scale-[0.99] disabled:opacity-60"
                             >
                                 {pending ? (
                                     "Logging in..."
@@ -287,15 +287,15 @@ export default function LoginPage() {
                         <div className="flex items-start gap-3 rounded-2xl bg-[#eef6f2] p-4">
                             <ShieldCheck className="mt-0.5 h-6 w-6 shrink-0 fill-[#15664f] text-white" />
                             <div>
-                                <p className="text-sm font-semibold text-[#10523f]">Authorized users only</p>
-                                <p className="mt-0.5 text-xs leading-relaxed text-gray-600">
+                                <p className="text-sm font-semibold text-gray-600">Authorized users only</p>
+                                <p className="mt-0.5 text-sm leading-relaxed text-gray-600">
                                     Students and employees sign in with their ID number. Clinic staff sign in with their email.
                                 </p>
                             </div>
                         </div>
 
                         {/* Copyright sa loob ng form */}
-                        <p className="mt-6 text-center text-[11px] leading-relaxed text-gray-400">
+                        <p className="mt-6 text-center text-sm leading-relaxed text-gray-600">
                             © {year} Batangas College of Arts and Sciences · School Clinic
                         </p>
                     </div>

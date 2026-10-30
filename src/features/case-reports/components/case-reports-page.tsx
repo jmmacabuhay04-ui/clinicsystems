@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { canManageRecords } from "@/lib/permissions";
 import ConfirmLink from "@/components/shared/confirm-link";
+import RowActionMenu, { type RowAction } from "@/components/shared/row-action-menu";
 import AutoSubmitSelect from "@/components/shared/auto-submit-select";
 import AutoSubmitInput from "@/components/shared/auto-submit-input";
 import ListPagination from "@/components/shared/list-pagination";
@@ -55,8 +56,6 @@ const statusStyles: Record<string, { label: string; className: string }> = {
 
 const fieldClass =
     "h-11 w-full rounded-lg border border-gray-300 bg-white text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20";
-const viewBtn =
-    "inline-flex h-8 items-center rounded-md bg-[#15664f] px-4 text-sm font-semibold text-white hover:bg-[#10523f]";
 
 function formatDate(date: Date) {
     // YYYY-MM-DD, gaya ng nasa design
@@ -197,22 +196,36 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
     const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
     if (page > totalPages) redirect(hrefFor(totalPages));
 
-    const actions = (c: CaseRow) =>
-        canEdit ? (
-            <div className="flex items-center gap-2">
-                <ConfirmLink
-                    href={`${BASE}/edit?case=${c.case_id}`}
-                    title="Open case report"
-                    message={`Open case ${c.case_number} (${c.complaint}) of ${fullName(c)}?`}
-                    confirmLabel="Open"
-                    className={viewBtn}
-                >
-                    View
-                </ConfirmLink>
-            </div>
-        ) : (
-            <span className="text-sm text-gray-600">—</span>
-        );
+    // "⋮" menu sa dulo ng row: buksan ang report o ang health record ng pasyente
+    const actions = (c: CaseRow) => {
+        // Kapareho ng ayos sa Dental Records: View muna, tapos Edit
+        const items: RowAction[] = [];
+        if (c.id_number) {
+            const isEmployee = c.patient_type === "employee";
+            items.push({
+                label: "View Health Record",
+                href: isEmployee
+                    ? `/dashboard/employee-health-records?employee=${encodeURIComponent(c.id_number)}`
+                    : `/dashboard/student-health-records?student=${encodeURIComponent(c.id_number)}`,
+                title: "View health record",
+                message: `Open the health record of ${fullName(c)}?`,
+                confirmLabel: "View",
+                icon: "view",
+            });
+        }
+        if (canEdit) {
+            items.push({
+                label: "Edit Report",
+                href: `${BASE}/edit?case=${c.case_id}`,
+                title: "Edit case report",
+                message: `Edit case ${c.case_number} (${c.complaint}) of ${fullName(c)}?`,
+                confirmLabel: "Edit",
+                icon: "edit",
+            });
+        }
+        if (items.length === 0) return <span className="text-sm text-gray-600">—</span>;
+        return <RowActionMenu actions={items} label={`Actions for case ${c.case_number}`} />;
+    };
 
     return (
         <main className="min-w-0 space-y-6 p-4 pb-8 md:p-8">

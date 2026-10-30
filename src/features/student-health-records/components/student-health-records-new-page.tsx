@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { canManageRecords } from "@/lib/permissions";
 import RecordForm, { type PersonOption } from "./record-form";
+import { staffDisplayName } from "@/lib/display-name";
 
 type Props = {
     searchParams: Promise<{ student?: string }>;
@@ -17,10 +18,21 @@ export default async function NewHealthRecordPage({ searchParams }: Props) {
 
     const { student = "" } = await searchParams;
 
-    const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date());
+    const now = new Date();
+    const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(now);
+    // Oras ngayon sa Pilipinas (HH:MM) para kusang may laman ang Visit Time, gaya ng Report Time
+    const nowTime = new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Asia/Manila",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+    }).format(now);
 
-    const localPart = session.username.split("@")[0];
-    const staffName = localPart.charAt(0).toUpperCase() + localPart.slice(1);
+    // Attending staff = Display Name sa Settings (hal. "Mclife"); kung wala pa, galing sa email
+    const me = await prisma.user
+        .findUnique({ where: { user_id: session.userId }, select: { full_name: true } })
+        .catch(() => null);
+    const staffName = staffDisplayName(me?.full_name, String(session.username ?? ""), String(session.role ?? ""));
 
     // Galing sa health record ng estudyante: doon babalik. Kung hindi, sa dashboard.
     const backHref = student
@@ -62,6 +74,7 @@ export default async function NewHealthRecordPage({ searchParams }: Props) {
             <RecordForm
                 studentNumber={student}
                 today={today}
+                nowTime={nowTime}
                 staffName={staffName}
                 cancelHref={backHref}
                 students={students}

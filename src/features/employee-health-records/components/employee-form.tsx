@@ -13,7 +13,7 @@ const inputClass =
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
     return (
         <label className="block space-y-1.5">
-            <span className="text-sm font-medium text-gray-700">{label}</span>
+            <span className="text-sm font-medium text-gray-600">{label}</span>
             {children}
         </label>
     );
@@ -133,6 +133,7 @@ export default function EmployeeForm({
                         name="dateOfBirth"
                         defaultValue={v.dateOfBirth}
                         inputClass={inputClass}
+                        span="md:col-span-2"
                     />
                     <Field label="Gender">
                         <select
@@ -176,7 +177,7 @@ export default function EmployeeForm({
 
             <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                 <h2 className="text-lg font-semibold text-[#15664f]">Employee Portal Login</h2>
-                <p className="mt-1 text-xs text-gray-700">
+                <p className="mt-1 text-sm text-gray-600">
                     {mode === "create"
                         ? "The employee signs in with their employee number and this password."
                         : "Leave blank to keep the current password."}
@@ -210,7 +211,7 @@ export default function EmployeeForm({
 
                 <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4">
                     <p className="text-sm font-semibold text-amber-900">Confirm it&apos;s you</p>
-                    <p className="mt-1 text-xs text-amber-800">
+                    <p className="mt-1 text-sm text-amber-800">
                         Employee passwords are confidential. Enter your own account password to save this
                         {mode === "create" ? " new account." : " password change."}
                     </p>
@@ -233,7 +234,7 @@ export default function EmployeeForm({
             <div className="flex justify-end gap-3">
                 <Link
                     href={cancelHref}
-                    className="inline-flex h-10 items-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    className="inline-flex h-10 items-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-600 hover:bg-gray-50"
                 >
                     Cancel
                 </Link>

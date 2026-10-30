@@ -1,11 +1,11 @@
 import { redirect } from "next/navigation";
-import { Archive, BadgeCheck, IdCard, Mail, Pencil, Phone, Plus, UserMinus, Users } from "lucide-react";
+import { BadgeCheck, IdCard, Mail, Phone, Plus, UserMinus, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { canManageStaff, canViewStaff } from "@/lib/permissions";
-import ConfirmButton from "@/components/shared/confirm-button";
 import { archiveStaff } from "@/features/clinic-staff/actions";
 import ConfirmLink from "@/components/shared/confirm-link";
+import RowActionMenu, { type RowAction } from "@/components/shared/row-action-menu";
 
 type StaffRow = {
     staff_id: number;
@@ -26,11 +26,6 @@ const statusStyles: Record<string, { label: string; className: string }> = {
     inactive: { label: "Inactive", className: "bg-red-100 text-red-700" },
 };
 
-const EDIT_CLASS =
-    "inline-flex h-8 items-center gap-1.5 rounded-md bg-[#15664f] px-3 text-sm font-semibold text-white hover:bg-[#10523f]";
-const ARCHIVE_CLASS =
-    "inline-flex h-8 items-center gap-1.5 rounded-md border border-amber-300 bg-white px-3 text-sm font-semibold text-amber-700 hover:bg-amber-50";
-
 function initialsOf(name: string) {
     const parts = name.trim().split(/\s+/);
     const first = parts[0]?.[0] ?? "";
@@ -38,33 +33,29 @@ function initialsOf(name: string) {
     return `${first}${last}`.toUpperCase() || "?";
 }
 
+// "⋮" menu: Edit Details at Archive (may confirmation ang bawat isa)
 function StaffActions({ s }: { s: StaffRow }) {
-    return (
-        <>
-            <ConfirmLink
-                href={`${BASE}/edit?staff=${s.staff_id}`}
-                title="Edit staff member"
-                message={`Edit the details of ${s.full_name}? Changes will replace the current information.`}
-                confirmLabel="Edit"
-                className={EDIT_CLASS}
-            >
-                <Pencil className="h-3.5 w-3.5" />
-                Edit
-            </ConfirmLink>
-            <form action={archiveStaff}>
-                <input type="hidden" name="staffId" value={s.staff_id} />
-                <ConfirmButton
-                    title="Archive staff record"
-                    confirmLabel="Archive"
-                    message={`Archive ${s.full_name}? The record will move to Archive Records and can be restored anytime.`}
-                    className={ARCHIVE_CLASS}
-                >
-                    <Archive className="h-3.5 w-3.5" />
-                    Archive
-                </ConfirmButton>
-            </form>
-        </>
-    );
+    const actions: RowAction[] = [
+        {
+            label: "Edit Details",
+            href: `${BASE}/edit?staff=${s.staff_id}`,
+            title: "Edit staff member",
+            message: `Edit the details of ${s.full_name}? Changes will replace the current information.`,
+            confirmLabel: "Edit",
+            icon: "edit",
+        },
+        {
+            label: "Archive",
+            href: BASE,
+            title: "Archive staff record",
+            message: `Archive ${s.full_name}? The record will move to Archive Records and can be restored anytime.`,
+            confirmLabel: "Archive",
+            icon: "archive",
+            formAction: archiveStaff,
+            fields: { staffId: String(s.staff_id) },
+        },
+    ];
+    return <RowActionMenu actions={actions} label={`Actions for ${s.full_name}`} />;
 }
 
 export default async function ClinicStaffPage() {
@@ -194,7 +185,7 @@ export default async function ClinicStaffPage() {
                                         </dl>
 
                                         {canEdit && (
-                                            <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-gray-100 pt-3">
+                                            <div className="mt-3 flex justify-end border-t border-gray-100 pt-2">
                                                 <StaffActions s={s} />
                                             </div>
                                         )}
@@ -213,7 +204,7 @@ export default async function ClinicStaffPage() {
                                         <th className="px-4 py-3 font-semibold">Contact</th>
                                         <th className="whitespace-nowrap px-4 py-3 font-semibold">License / PRC No.</th>
                                         <th className="px-4 py-3 font-semibold">Status</th>
-                                        {canEdit && <th className="px-4 py-3 font-semibold">Actions</th>}
+                                        {canEdit && <th className="w-20 px-4 py-3 text-center font-semibold">Actions</th>}
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -241,10 +232,8 @@ export default async function ClinicStaffPage() {
                                                     </span>
                                                 </td>
                                                 {canEdit && (
-                                                    <td className="whitespace-nowrap px-4 py-3">
-                                                        <div className="flex items-center gap-2">
-                                                            <StaffActions s={s} />
-                                                        </div>
+                                                    <td className="px-4 py-3 text-center">
+                                                        <StaffActions s={s} />
                                                     </td>
                                                 )}
                                             </tr>

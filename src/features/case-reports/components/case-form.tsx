@@ -10,7 +10,7 @@ import SuggestInput from "@/components/shared/suggest-input";
 const initialState: CaseState = {};
 
 const inputClass =
-    "h-12 w-full rounded-lg border border-gray-300 bg-white px-4 text-[15px] text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20";
+    "h-12 w-full rounded-lg border border-gray-300 bg-white px-4 text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20";
 const cardClass = "rounded-xl border-2 border-[#cfe5d9] bg-white p-6 shadow-md shadow-[#15664f]/10 md:p-8";
 
 const COMMON_DIAGNOSES = [
@@ -38,9 +38,9 @@ const COMMON_ACTIONS = [
 
 // Kulay ng bawat status kapag napili.
 const STATUSES = [
-    { value: "pending", label: "Pending", checked: "peer-checked:border-yellow-400 peer-checked:bg-yellow-100 peer-checked:text-yellow-800" },
-    { value: "referred", label: "Referred", checked: "peer-checked:border-red-300 peer-checked:bg-red-100 peer-checked:text-red-700" },
-    { value: "resolved", label: "Resolved", checked: "peer-checked:border-green-300 peer-checked:bg-green-100 peer-checked:text-green-700" },
+    { value: "pending", label: "Pending", dot: "bg-yellow-500", checked: "peer-checked:border-yellow-400 peer-checked:bg-yellow-100 peer-checked:text-yellow-800" },
+    { value: "referred", label: "Referred", dot: "bg-red-500", checked: "peer-checked:border-red-300 peer-checked:bg-red-100 peer-checked:text-red-700" },
+    { value: "resolved", label: "Resolved", dot: "bg-green-500", checked: "peer-checked:border-green-300 peer-checked:bg-green-100 peer-checked:text-green-700" },
 ];
 
 // Kulay ng Student / Employee kapag napili.
@@ -52,7 +52,7 @@ const PATIENT_TYPES = [
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
     return (
         <label className="block space-y-1.5">
-            <span className="text-[15px] font-semibold text-gray-800">{label}</span>
+            <span className="text-sm font-semibold text-gray-800">{label}</span>
             {children}
         </label>
     );
@@ -62,13 +62,15 @@ export type PersonOption = { number: string; name: string };
 
 type Props = {
     today: string;
+    /** Oras ngayon (HH:MM) para sa Report Time */
+    nowTime?: string;
     staffName: string;
     cancelHref: string;
     students?: PersonOption[];
     employees?: PersonOption[];
 };
 
-export default function CaseForm({ today, staffName, cancelHref, students = [], employees = [] }: Props) {
+export default function CaseForm({ today, nowTime = "", staffName, cancelHref, students = [], employees = [] }: Props) {
     const [state, formAction, pending] = useActionState(createCaseReport, initialState);
     const v = state.values ?? {};
 
@@ -97,20 +99,20 @@ export default function CaseForm({ today, staffName, cancelHref, students = [], 
                             <UserRound className="h-6 w-6 text-[#15664f]" />
                             <h2 className="text-lg font-semibold text-gray-900">Patient &amp; Case</h2>
                         </div>
-                        <span className="rounded-full bg-[#eef6f2] px-3 py-1 text-xs font-semibold text-[#15664f]">
+                        <span className="rounded-full bg-[#eef6f2] px-3 py-1 text-sm font-semibold text-[#15664f]">
                             New case
                         </span>
                     </div>
 
                     <div className="flex flex-wrap items-center justify-between gap-3">
-                        <span className="text-[15px] font-semibold text-gray-800">Patient Type</span>
+                        <span className="text-sm font-semibold text-gray-800">Patient Type</span>
                         <div className="inline-flex rounded-lg border border-gray-200 bg-white p-1">
                             {PATIENT_TYPES.map((p) => (
                                 <button
                                     key={p.type}
                                     type="button"
                                     onClick={() => setPatientType(p.type)}
-                                    className={`rounded-md px-5 py-2 text-[15px] font-medium transition-colors ${patientType === p.type ? p.active : "text-gray-700 hover:bg-gray-100"
+                                    className={`rounded-md px-5 py-2 text-sm font-medium transition-colors ${patientType === p.type ? p.active : "text-gray-600 hover:bg-gray-100"
                                         }`}
                                 >
                                     {p.label}
@@ -131,6 +133,7 @@ export default function CaseForm({ today, staffName, cancelHref, students = [], 
                         />
                     </Field>
 
+                    {/* Petsa at oras: magkatabi, gaya ng Log Clinic Visit */}
                     <div className="grid gap-5 sm:grid-cols-2">
                         <Field label="Report Date *">
                             <input
@@ -142,17 +145,27 @@ export default function CaseForm({ today, staffName, cancelHref, students = [], 
                                 className={inputClass}
                             />
                         </Field>
-                        <Field label="Attending Staff">
+                        <Field label="Report Time">
                             <input
-                                name="staffName"
-                                defaultValue={v.staffName ?? staffName}
-                                placeholder="e.g. Nurse Reyes"
-                                maxLength={100}
+                                name="reportTime"
+                                type="time"
+                                defaultValue={v.reportTime ?? nowTime}
                                 suppressHydrationWarning
                                 className={inputClass}
                             />
                         </Field>
                     </div>
+
+                    <Field label="Attending Staff">
+                        <input
+                            name="staffName"
+                            defaultValue={v.staffName ?? staffName}
+                            placeholder="e.g. Nurse Reyes"
+                            maxLength={100}
+                            suppressHydrationWarning
+                            className={inputClass}
+                        />
+                    </Field>
 
                     <Field label="Diagnosis / Complaint *">
                         <SuggestInput
@@ -186,7 +199,7 @@ export default function CaseForm({ today, staffName, cancelHref, students = [], 
                     </div>
 
                     <div className="space-y-1.5">
-                        <span className="block text-[15px] font-semibold text-gray-800">Status</span>
+                        <span className="block text-sm font-semibold text-gray-800">Status</span>
                         <div className="grid grid-cols-3 gap-2">
                             {STATUSES.map((s) => (
                                 <label key={s.value} className="cursor-pointer">
@@ -198,8 +211,9 @@ export default function CaseForm({ today, staffName, cancelHref, students = [], 
                                         className="peer sr-only"
                                     />
                                     <span
-                                        className={`flex h-12 items-center justify-center rounded-lg border border-gray-300 bg-white text-[15px] font-semibold text-gray-600 transition-colors hover:bg-gray-50 peer-focus-visible:ring-2 peer-focus-visible:ring-[#15664f]/30 ${s.checked}`}
+                                        className={`flex h-12 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-2 text-sm font-semibold text-gray-600 transition-colors hover:bg-gray-50 peer-focus-visible:ring-2 peer-focus-visible:ring-[#15664f]/30 ${s.checked}`}
                                     >
+                                        <span className={`h-2 w-2 shrink-0 rounded-full ${s.dot}`} />
                                         {s.label}
                                     </span>
                                 </label>
@@ -216,15 +230,15 @@ export default function CaseForm({ today, staffName, cancelHref, students = [], 
                             maxLength={1000}
                             placeholder="Additional details about the case..."
                             suppressHydrationWarning
-                            className="w-full resize-none rounded-lg border border-gray-300 bg-white px-4 py-3 text-[15px] text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20"
+                            className="w-full resize-none rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20"
                         />
-                        <span className="block text-right text-xs text-gray-500">{notesLength}/1000</span>
+                        <span className="block text-right text-sm text-gray-600">{notesLength}/1000</span>
                     </Field>
 
                     <div className="mt-auto flex justify-end gap-3 pt-2">
                         <Link
                             href={cancelHref}
-                            className="inline-flex h-12 items-center gap-2 rounded-lg border border-gray-300 bg-white px-5 text-[15px] font-medium text-gray-700 hover:bg-gray-50"
+                            className="inline-flex h-12 items-center gap-2 rounded-lg border border-gray-300 bg-white px-5 text-sm font-medium text-gray-600 hover:bg-gray-50"
                         >
                             <X className="h-4 w-4" />
                             Cancel
@@ -234,7 +248,7 @@ export default function CaseForm({ today, staffName, cancelHref, students = [], 
                             message="Please make sure the case details are correct before saving."
                             confirmLabel="Save"
                             disabled={pending}
-                            className="inline-flex h-12 items-center gap-2 rounded-lg bg-[#15664f] px-6 text-[15px] font-semibold text-white shadow-sm hover:bg-[#10523f] disabled:opacity-60"
+                            className="inline-flex h-12 items-center gap-2 rounded-lg bg-[#15664f] px-6 text-sm font-semibold text-white shadow-sm hover:bg-[#10523f] disabled:opacity-60"
                         >
                             <Save className="h-4 w-4" />
                             {pending ? "Saving..." : "Save Case Report"}

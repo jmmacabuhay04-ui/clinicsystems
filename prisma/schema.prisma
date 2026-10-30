@@ -102,7 +102,7 @@ model HealthCaseReport {
   created_at  DateTime  @default(now())
   employee_id Int?
   action_taken String? @db.VarChar(255)
-
+  report_time DateTime? @db.Time(6)
   @@index([student_id])
   @@map("health_case_reports")
 }

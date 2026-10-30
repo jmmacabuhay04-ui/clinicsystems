@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { canManageRecords } from "@/lib/permissions";
 import EditCaseForm, { type PersonOption } from "./edit-case-form";
+import { staffDisplayName } from "@/lib/display-name";
 
 const BASE = "/dashboard/health-case-reports";
 
@@ -17,6 +18,7 @@ type Row = {
     first_name: string | null;
     complaint: string;
     report_date: Date;
+    report_time: string | null;
     staff_name: string | null;
     status: string;
     notes: string | null;
@@ -32,6 +34,13 @@ export default async function EditCasePage({ searchParams }: Props) {
     if (!session) redirect("/login");
     if (!canManageRecords(session.role)) redirect(BASE);
 
+    // Attending Staff = ang naka-login na nag-a-update ng report (hal. ang doctor na nagre-review).
+    // Ang dating nakalagay ay ipinapakita bilang "Recorded by".
+    const me = await prisma.user
+        .findUnique({ where: { user_id: session.userId }, select: { full_name: true } })
+        .catch(() => null);
+    const currentStaff = staffDisplayName(me?.full_name, String(session.username ?? ""), String(session.role ?? ""));
+
     const { case: caseParam = "" } = await searchParams;
     const caseId = Number(caseParam);
     if (!caseId) notFound();
@@ -45,7 +54,7 @@ export default async function EditCasePage({ searchParams }: Props) {
                COALESCE(s.student_number, e.employee_number) AS patient_number,
                COALESCE(s.last_name, e.last_name)            AS last_name,
                COALESCE(s.first_name, e.first_name)          AS first_name,
-               c.complaint, c.report_date, c.staff_name, c.status, c.notes, c.action_taken
+               c.complaint, c.report_date, to_char(c.report_time, 'HH24:MI') AS report_time, c.staff_name, c.status, c.notes, c.action_taken
         FROM health_case_reports c
         LEFT JOIN students  s ON s.student_id  = c.student_id
         LEFT JOIN employees e ON e.employee_id = c.employee_id
@@ -110,7 +119,9 @@ export default async function EditCasePage({ searchParams }: Props) {
                 patientNumber={row.patient_number ?? ""}
                 complaint={row.complaint}
                 reportDate={new Date(row.report_date).toISOString().slice(0, 10)}
-                staffName={row.staff_name ?? ""}
+                reportTime={row.report_time ?? ""}
+                staffName={currentStaff}
+                recordedBy={row.staff_name ?? ""}
                 status={row.status}
                 notes={row.notes ?? ""}
                 actionTaken={row.action_taken ?? ""}

@@ -132,6 +132,8 @@ type Props = {
     backHref: string;
     canEdit: boolean;
     canEditEmployee: boolean;
+    /** Admin: pangalan lang ang ipapakita (walang personal na detalye) */
+    hidePersonal?: boolean;
 };
 
 // ------------------------------------------------------------------ small parts
@@ -154,11 +156,14 @@ function TypeBadges({ v }: { v: VisitItem }) {
     );
 }
 
+// Kapareho ng itsura ng DentalStatus (may tuldok sa unahan)
+const STATUS_DOT: Record<string, string> = { pending: "bg-yellow-500", referred: "bg-red-500", resolved: "bg-green-500" };
 function StatusBadge({ status }: { status: string | null }) {
     return (
         <span
-            className={`rounded-full px-2.5 py-0.5 text-sm font-medium capitalize ${STATUS_STYLES[status ?? ""] ?? "bg-gray-100 text-gray-600"}`}
+            className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-sm font-semibold capitalize ${STATUS_STYLES[status ?? ""] ?? "bg-gray-100 text-gray-600"}`}
         >
+            <span className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT[status ?? ""] ?? "bg-gray-400"}`} />
             {status}
         </span>
     );
@@ -308,19 +313,22 @@ function VisitTable({ visits, canEdit }: { visits: VisitItem[]; canEdit: boolean
 function CaseTable({ cases, canEdit, archiveReturnTo }: { cases: CaseRow[]; canEdit: boolean; archiveReturnTo: string }) {
     if (cases.length === 0) return <Empty>No health case reports for this employee.</Empty>;
 
-    // Open case + Archive (pagka-archive, diretso sa Archive Logs tab)
+    // Open case + Archive (pagka-archive, diretso sa Archive Logs tab).
+    // Walang action kapag view-only (hal. admin).
     const actions = (c: CaseRow) => (
         <>
-            <ConfirmLink
-                href={`${CASES}/edit?case=${c.case_id}`}
-                title="Open case report"
-                message={`Open case ${c.case_number} (${c.complaint})? You will be taken to Health Case Reports.`}
-                confirmLabel="Open"
-                className="inline-flex items-center gap-1 font-medium text-[#15664f] hover:underline"
-            >
-                <Pencil className="h-3.5 w-3.5" />
-                Open case
-            </ConfirmLink>
+            {canEdit && (
+                <ConfirmLink
+                    href={`${CASES}/edit?case=${c.case_id}`}
+                    title="Open case report"
+                    message={`Open case ${c.case_number} (${c.complaint})? You will be taken to Health Case Reports.`}
+                    confirmLabel="Open"
+                    className="inline-flex items-center gap-1 font-medium text-[#15664f] hover:underline"
+                >
+                    <Pencil className="h-3.5 w-3.5" />
+                    Open case
+                </ConfirmLink>
+            )}
             {canEdit && (
                 <form action={archiveCase}>
                     <input type="hidden" name="caseId" value={c.case_id} />
@@ -355,9 +363,11 @@ function CaseTable({ cases, canEdit, archiveReturnTo }: { cases: CaseRow[]; canE
                         <p className="mt-0.5 text-sm text-gray-600">
                             {formatDate(c.report_date)} · {c.staff_name || "—"}
                         </p>
-                        <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-gray-100 pt-2 text-sm">
-                            {actions(c)}
-                        </div>
+                        {canEdit && (
+                            <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-gray-100 pt-2 text-sm">
+                                {actions(c)}
+                            </div>
+                        )}
                     </li>
                 ))}
             </ul>
@@ -371,7 +381,7 @@ function CaseTable({ cases, canEdit, archiveReturnTo }: { cases: CaseRow[]; canE
                             <th className="px-4 py-3 font-medium">Complaint</th>
                             <th className="px-4 py-3 font-medium">Status</th>
                             <th className="px-4 py-3 font-medium">Staff</th>
-                            <th className="px-4 py-3 font-medium">Actions</th>
+                            {canEdit && <th className="px-4 py-3 font-medium">Actions</th>}
                         </tr>
                     </thead>
                     <tbody>
@@ -383,9 +393,11 @@ function CaseTable({ cases, canEdit, archiveReturnTo }: { cases: CaseRow[]; canE
                                     <StatusBadge status={c.status} />
                                 </td>
                                 <td className="px-4 py-3 text-gray-900">{c.staff_name || "—"}</td>
-                                <td className="whitespace-nowrap px-4 py-3">
-                                    <div className="flex items-center gap-3">{actions(c)}</div>
-                                </td>
+                                {canEdit && (
+                                    <td className="whitespace-nowrap px-4 py-3">
+                                        <div className="flex items-center gap-3">{actions(c)}</div>
+                                    </td>
+                                )}
                             </tr>
                         ))}
                     </tbody>
@@ -469,9 +481,11 @@ function DentalTable({ rows, patientParam, canEdit }: { rows: DentalRow[]; patie
                         <p className="mt-0.5 text-sm text-gray-600">
                             Tooth: {toothText(d.tooth)} · {d.dentist_name || "—"}
                         </p>
-                        <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-gray-100 pt-2 text-sm">
-                            {actions(d)}
-                        </div>
+                        {canEdit && (
+                            <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-gray-100 pt-2 text-sm">
+                                {actions(d)}
+                            </div>
+                        )}
                     </li>
                 ))}
             </ul>
@@ -486,7 +500,7 @@ function DentalTable({ rows, patientParam, canEdit }: { rows: DentalRow[]; patie
                             <th className="px-4 py-3 font-medium">Tooth</th>
                             <th className="px-4 py-3 font-medium">Dentist</th>
                             <th className="px-4 py-3 font-medium">Status</th>
-                            <th className="px-4 py-3 font-medium">Actions</th>
+                            {canEdit && <th className="px-4 py-3 font-medium">Actions</th>}
                         </tr>
                     </thead>
                     <tbody>
@@ -499,9 +513,11 @@ function DentalTable({ rows, patientParam, canEdit }: { rows: DentalRow[]; patie
                                 <td className="px-4 py-3">
                                     <DentalStatus status={d.status} />
                                 </td>
-                                <td className="whitespace-nowrap px-4 py-3">
-                                    <div className="flex items-center gap-3">{actions(d)}</div>
-                                </td>
+                                {canEdit && (
+                                    <td className="whitespace-nowrap px-4 py-3">
+                                        <div className="flex items-center gap-3">{actions(d)}</div>
+                                    </td>
+                                )}
                             </tr>
                         ))}
                     </tbody>
@@ -511,7 +527,7 @@ function DentalTable({ rows, patientParam, canEdit }: { rows: DentalRow[]; patie
     );
 }
 
-function ArchiveTable({ items }: { items: ArchivedItem[] }) {
+function ArchiveTable({ items, showRestoreLink = true }: { items: ArchivedItem[]; showRestoreLink?: boolean }) {
     if (items.length === 0) return <Empty>No archived records for this employee.</Empty>;
 
     return (
@@ -557,11 +573,13 @@ function ArchiveTable({ items }: { items: ArchivedItem[] }) {
                     </tbody>
                 </table>
             </div>
-            <p className="border-t border-gray-100 px-4 py-3 text-right text-sm">
-                <Link href={ARCHIVE} className="font-medium text-[#15664f] hover:underline">
-                    Go to Archive Records to restore
-                </Link>
-            </p>
+            {showRestoreLink && (
+                <p className="border-t border-gray-100 px-4 py-3 text-right text-sm">
+                    <Link href={ARCHIVE} className="font-medium text-[#15664f] hover:underline">
+                        Go to Archive Records to restore
+                    </Link>
+                </p>
+            )}
         </div>
     );
 }
@@ -576,13 +594,16 @@ export default function EmployeeRecordView({
     archived,
     dental = [],
     canEditDental = false,
-    tab,
+    tab: requestedTab,
     historyOnly,
     recordId = 0,
     backHref,
     canEdit,
     canEditEmployee,
+    hidePersonal = false,
 }: Props) {
+    // Admin: walang Archive Logs tab (kapag binuksan pa rin, Health History ang ipapakita)
+    const tab: RecordTab = hidePersonal && requestedTab === "archive" ? "history" : requestedTab;
     // Clinic visits and case reports shown as one timeline, newest first.
     const visits: VisitItem[] = [
         ...records.map((r) => ({
@@ -641,6 +662,17 @@ export default function EmployeeRecordView({
     );
     // Pinakabagong entry: clinic visit O case report (kung alin ang mas bago)
     const latest = visits[0];
+    // Status ng pinakabagong record. Clinic visit: status ng awtomatikong case report nito
+    // (parehong araw at complaint).
+    const sameDay = (a: Date, b: Date) => new Date(a).toISOString().slice(0, 10) === new Date(b).toISOString().slice(0, 10);
+    const latestStatus =
+        latest?.kind === "visit"
+            ? (cases.find(
+                (c) =>
+                    sameDay(c.report_date, latest.date) &&
+                    c.complaint.trim().toLowerCase() === latest.complaint.trim().toLowerCase(),
+            )?.status ?? null)
+            : (latest?.status ?? null);
     // Temperature ay nasa clinic visit lang
     const latestRecord = latest?.kind === "visit" ? records.find((r) => r.record_id === latest.id) : undefined;
 
@@ -818,7 +850,7 @@ export default function EmployeeRecordView({
         { key: "history", label: "Health History", count: clinicVisits.length },
         { key: "cases", label: "Case Reports", count: cases.length },
         { key: "dental", label: "Dental Records", count: dental.length },
-        { key: "archive", label: "Archive Logs", count: archived.length },
+        ...(hidePersonal ? [] : [{ key: "archive" as const, label: "Archive Logs", count: archived.length }]),
     ];
 
     return (
@@ -860,25 +892,30 @@ export default function EmployeeRecordView({
                     />
                     <div className="min-w-0">
                         <h2 className="break-words text-xl font-semibold text-gray-900 md:text-2xl">{fullName}</h2>
-                        <p className="mt-1 text-sm text-gray-600">
-                            {employee.employee_number}
-                            {level && (
-                                <>
-                                    <span className="mx-2 text-gray-300">|</span>
-                                    {level}
-                                </>
-                            )}
-                        </p>
+                        {!hidePersonal && (
+                            <p className="mt-1 text-sm text-gray-600">
+                                {employee.employee_number}
+                                {level && (
+                                    <>
+                                        <span className="mx-2 text-gray-300">|</span>
+                                        {level}
+                                    </>
+                                )}
+                            </p>
+                        )}
                     </div>
                 </div>
 
-                <dl className="mt-5 grid gap-x-10 border-t border-gray-100 pt-4 md:grid-cols-2">
-                    <InfoRow label="Date of Birth" value={formatDate(employee.date_of_birth, "long")} />
-                    <InfoRow label="Contact Number" value={show(employee.contact_number)} />
-                    <InfoRow label="Gender" value={show(employee.gender)} />
-                    <InfoRow label="Email Address" value={show(employee.email)} />
-                    <InfoRow label="Address" value={show(extras.address)} />
-                </dl>
+                {/* Personal na detalye: hindi makikita ng admin */}
+                {!hidePersonal && (
+                    <dl className="mt-5 grid gap-x-10 border-t border-gray-100 pt-4 md:grid-cols-2">
+                        <InfoRow label="Date of Birth" value={formatDate(employee.date_of_birth, "long")} />
+                        <InfoRow label="Contact Number" value={show(employee.contact_number)} />
+                        <InfoRow label="Gender" value={show(employee.gender)} />
+                        <InfoRow label="Email Address" value={show(employee.email)} />
+                        <InfoRow label="Address" value={show(extras.address)} />
+                    </dl>
+                )}
 
                 {canEditEmployee && (
                     <div className="mt-4 flex justify-end border-t border-gray-100 pt-4">
@@ -954,20 +991,17 @@ export default function EmployeeRecordView({
                             {latest ? (
                                 <dl>
                                     <InfoRow label="Date" value={formatDate(latest.date)} />
-                                    <InfoRow
-                                        label="Type"
-                                        value={
-                                            latest.kind === "visit"
-                                                ? "Clinic Visit"
-                                                : `Case ${latest.caseNumber}${latest.status ? ` (${latest.status.charAt(0).toUpperCase()}${latest.status.slice(1)})` : ""}`
-                                        }
-                                    />
+                                    <InfoRow label="Type" value={latest.kind === "visit" ? "Clinic Visit" : `Case ${latest.caseNumber}`} />
                                     <InfoRow label="Complaint" value={latest.complaint} />
                                     <InfoRow label={latest.kind === "visit" ? "Treatment" : "Notes"} value={show(latest.detail)} />
                                     {latest.kind === "visit" && (
                                         <InfoRow label="Temperature" value={show(latestRecord?.temperature ?? null, "°C")} />
                                     )}
                                     <InfoRow label="Attending Staff" value={show(latest.staff)} />
+                                    <InfoRow
+                                        label="Status"
+                                        value={latestStatus ? <StatusBadge status={latestStatus} /> : "—"}
+                                    />
                                 </dl>
                             ) : (
                                 <p className="py-6 text-center text-sm text-gray-600">No records yet.</p>
@@ -1004,12 +1038,12 @@ export default function EmployeeRecordView({
                         <Card title="Latest Case Report">
                             {cases[0] ? (
                                 <dl>
-                                    <InfoRow label="Case No." value={cases[0].case_number} />
                                     <InfoRow label="Date" value={formatDate(cases[0].report_date)} />
+                                    <InfoRow label="Case No." value={cases[0].case_number} />
                                     <InfoRow label="Complaint" value={cases[0].complaint} />
-                                    <InfoRow label="Status" value={<StatusBadge status={cases[0].status} />} />
                                     <InfoRow label="Notes" value={show(cases[0].notes)} />
                                     <InfoRow label="Attending Staff" value={show(cases[0].staff_name)} />
+                                    <InfoRow label="Status" value={<StatusBadge status={cases[0].status} />} />
                                 </dl>
                             ) : (
                                 <p className="py-6 text-center text-sm text-gray-600">No case reports yet.</p>
@@ -1079,7 +1113,7 @@ export default function EmployeeRecordView({
 
             {tab === "archive" && (
                 <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                    <ArchiveTable items={archived} />
+                    <ArchiveTable items={archived} showRestoreLink={!hidePersonal} />
                 </div>
             )}
         </main>

@@ -2,24 +2,27 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import {
     Activity,
+    AlertTriangle,
+    CheckCircle2,
     BarChart3,
-    Bell,
     CalendarDays,
     Briefcase,
     FileText,
     ClipboardList,
     Heart,
-    PieChart,
-    Search,
     Stethoscope,
-    UserCheck,
     UserPlus,
     Users,
-    Zap,
 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import ConfirmLink from "@/components/shared/confirm-link";
+import RoleBadge from "@/components/shared/role-badge";
+import UserMenu from "@/components/shared/user-menu";
+import NotificationBell from "@/components/shared/notification-bell";
+import StudentSearch from "./student-search";
+import ReasonTabs from "./reason-tabs";
+import AutoSubmitSelect from "@/components/shared/auto-submit-select";
 import { staffDisplayName } from "@/lib/display-name";
 
 type VisitRow = {
@@ -59,15 +62,22 @@ type ActivityRow = {
     event_time: Date;
     /** Oras sa Pilipinas, hal. "4:19 PM" (kinuwenta sa database) */
     event_clock: string | null;
+    /** Complaint / procedure */
+    detail: string | null;
+    /** Nag-asikaso (attending staff / dentist) */
+    staff: string | null;
 };
 
 // Mga dahilan ng pagbisita ngayong linggo (para sa "Visit Reasons" donut)
-type ReasonRow = { label: string; total: bigint };
+type ReasonRow = { label: string; clinic: bigint; dental: bigint; reports: bigint };
+type Reason = { label: string; clinic: number; dental: number; reports: number; value: number };
 
 type ActivityItem = {
     key: string;
     kind: "clinic" | "dental" | "report";
     name: string;
+    detail: string;
+    staff: string;
     date: Date;
     time: Date;
     clock: string;
@@ -154,7 +164,6 @@ function QuickActionsSection({
     return (
         <div className={`min-w-0 rounded-2xl border border-[#dcebe3] bg-white p-4 shadow-sm shadow-[#15664f]/5 md:p-5 ${className ?? ""}`}>
             <h2 className="mb-4 flex items-center gap-2 text-base font-semibold text-gray-900 md:text-lg">
-                <Zap className="h-[18px] w-[18px] text-amber-500" strokeWidth={2} />
                 Quick Actions
             </h2>
             {/* Mga tile na 2 bawat hanay, icon sa itaas at label sa ilalim */}
@@ -267,12 +276,9 @@ function HealthyCard() {
 /* ------------------------------------------------------------------ */
 
 const CLINIC_COLOR = "#15664f";
-const DENTAL_COLOR = "#f59e0b";
-const REPORT_COLOR = "#3b82f6";
+const DENTAL_COLOR = "#f2b705";
+const REPORT_COLOR = "#3fae86";
 
-// Kapal ng linya at laki ng tuldok: pababa ang laki para kita lahat kapag nagpatong
-const LINE_WIDTH = { clinic: 6, dental: 3.5, reports: 1.5 } as const;
-const DOT_SIZE = { clinic: 6.5, dental: 4.5, reports: 2.5 } as const;
 
 function CardShell({
     title,
@@ -280,7 +286,9 @@ function CardShell({
     action,
     children,
     className,
+    id,
 }: {
+    id?: string;
     title: string;
     /** Maliit na label sa kanan ng title (hal. "This Week") */
     badge?: string;
@@ -290,7 +298,7 @@ function CardShell({
     className?: string;
 }) {
     return (
-        <div className={`min-w-0 rounded-2xl border border-[#dcebe3] bg-white p-4 shadow-sm shadow-[#15664f]/5 md:p-5 ${className ?? ""}`}>
+        <div id={id} className={`min-w-0 rounded-2xl border border-[#dcebe3] bg-white p-4 shadow-sm shadow-[#15664f]/5 md:p-5 ${className ?? ""}`}>
             <div className="mb-4 flex items-center justify-between gap-3">
                 <h2 className="min-w-0 truncate text-base font-semibold text-gray-900 md:text-lg">{title}</h2>
                 {badge && (
@@ -305,13 +313,26 @@ function CardShell({
     );
 }
 
-function LegendDot({ color, label }: { color: string; label: string }) {
-    return (
-        <span className="inline-flex items-center gap-1.5 text-sm text-gray-600">
-            <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
-            {label}
-        </span>
-    );
+// Makinis na kurba mula sa mga punto (para hindi matulis ang linya)
+function smoothPath(pts: [number, number][]) {
+    if (pts.length < 2) return pts.length ? `M${pts[0][0]},${pts[0][1]}` : "";
+    let d = `M${pts[0][0]},${pts[0][1]}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+        const p0 = pts[i - 1] ?? pts[i];
+        const p1 = pts[i];
+        const p2 = pts[i + 1];
+        const p3 = pts[i + 2] ?? p2;
+        const t = 0.18;
+        const c1x = p1[0] + (p2[0] - p0[0]) * t;
+        // Hindi lalampas ang kurba sa pagitan ng dalawang punto (para hindi bumaba sa ilalim ng 0)
+        const lo = Math.min(p1[1], p2[1]);
+        const hi = Math.max(p1[1], p2[1]);
+        const c1y = Math.min(hi, Math.max(lo, p1[1] + (p2[1] - p0[1]) * t));
+        const c2x = p2[0] - (p3[0] - p1[0]) * t;
+        const c2y = Math.min(hi, Math.max(lo, p2[1] - (p3[1] - p1[1]) * t));
+        d += ` C${c1x},${c1y} ${c2x},${c2y} ${p2[0]},${p2[1]}`;
+    }
+    return d;
 }
 
 function VisitsOverviewChart({
@@ -319,147 +340,144 @@ function VisitsOverviewChart({
     showClinic,
     showDental,
     showReports,
+    range,
+    reasonRange,
 }: {
     data: WeeklyPoint[];
     showClinic: boolean;
     showDental: boolean;
     showReports: boolean;
+    range: ChartRange;
+    reasonRange: ReasonRange;
 }) {
-    const W = 440;
-    const H = 210;
-    const L = 32;
-    const R = 12;
-    const T = 12;
+    const series = [
+        { key: "clinic" as const, label: "Clinic Visits", color: CLINIC_COLOR, show: showClinic },
+        { key: "dental" as const, label: "Dental Visits", color: DENTAL_COLOR, show: showDental },
+        { key: "reports" as const, label: "Case Reports", color: REPORT_COLOR, show: showReports },
+    ].filter((s) => s.show);
+
+    const W = 520;
+    const H = 240;
+    const L = 34;
+    const R = 16;
+    const T = 14;
     const B = 30;
     const plotW = W - L - R;
     const plotH = H - T - B;
     const baseY = T + plotH;
 
-    const peak = Math.max(
-        0,
-        ...data.flatMap((d) => [showClinic ? d.clinic : 0, showDental ? d.dental : 0, showReports ? d.reports : 0]),
-    );
-    const yMax = Math.max(4, Math.ceil(peak / 4) * 4);
+    // Laging 5 hati ang gilid (hal. 0, 5, 10, 15, 20, 25), may konting espasyo sa itaas
+    const peak = Math.max(0, ...data.flatMap((d) => series.map((s) => d[s.key])));
+    const step = Math.max(1, Math.ceil((peak + 1) / 5));
+    const yMax = step * 5;
+    const ticks = [0, 1, 2, 3, 4, 5].map((i) => i * step);
 
+    const many = data.length > 12; // buwan: maraming araw
     const x = (i: number) => L + (data.length > 1 ? (plotW * i) / (data.length - 1) : plotW / 2);
     const y = (v: number) => T + plotH - (v / yMax) * plotH;
 
-    const ticks = [0, 1, 2, 3, 4].map((t) => (yMax * t) / 4);
-
-    const series: { key: "clinic" | "dental" | "reports"; color: string; show: boolean }[] = [
-        { key: "clinic", color: CLINIC_COLOR, show: showClinic },
-        { key: "dental", color: DENTAL_COLOR, show: showDental },
-        { key: "reports", color: REPORT_COLOR, show: showReports },
-    ];
-
     return (
-        <CardShell title="Clinic Visits Overview" badge="This Week">
-            <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 sm:justify-end">
-                {showClinic && <LegendDot color={CLINIC_COLOR} label="Clinic Visits" />}
-                {showDental && <LegendDot color={DENTAL_COLOR} label="Dental Visits" />}
-                {showReports && <LegendDot color={REPORT_COLOR} label="Case Reports" />}
-            </div>
-
+        <CardShell
+            id="clinic-overview"
+            title="Clinic Visits Overview"
+            className="scroll-mt-6"
+            action={
+                <form method="get" action="/dashboard#clinic-overview" className="shrink-0">
+                    {/* Panatilihin ang napili sa Visit Reasons */}
+                    {reasonRange !== "week" && <input type="hidden" name="range" value={reasonRange} />}
+                    <AutoSubmitSelect
+                        name="chart"
+                        defaultValue={range === "week" ? "" : range}
+                        options={["month"]}
+                        allLabel="This Week"
+                        labels={{ month: "This Month" }}
+                        className={rangeSelectClass}
+                    />
+                </form>
+            }
+        >
             {data.length === 0 ? (
                 <p className="py-10 text-center text-sm text-gray-600">No visit data yet.</p>
             ) : (
                 <>
                     <svg
                         viewBox={`0 0 ${W} ${H}`}
-                        className="mx-auto h-auto max-h-[220px] w-full"
+                        className="mx-auto h-auto max-h-[260px] w-full"
                         role="img"
-                        aria-label="Clinic visits, dental visits, and case reports for this week, Monday to Saturday"
+                        aria-label={`Clinic visits, dental visits, and case reports, ${CHART_LABEL[range].toLowerCase()}`}
                     >
                         <defs>
-                            {/* Malambot na green na kulay sa ilalim ng linya */}
-                            <linearGradient id="clinic-area" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor={CLINIC_COLOR} stopOpacity={0.28} />
-                                <stop offset="100%" stopColor={CLINIC_COLOR} stopOpacity={0.02} />
+                            <linearGradient id="overview-area" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor={series[0]?.color ?? CLINIC_COLOR} stopOpacity={0.32} />
+                                <stop offset="100%" stopColor={series[0]?.color ?? CLINIC_COLOR} stopOpacity={0.02} />
                             </linearGradient>
                         </defs>
+
                         {/* grid + y labels */}
                         {ticks.map((t) => (
                             <g key={t}>
-                                <line x1={L} x2={W - R} y1={y(t)} y2={y(t)} stroke="#eef2f0" strokeWidth={1} />
-                                <text x={L - 6} y={y(t) + 4} textAnchor="end" fontSize={12} fill="#6b7280">
+                                <line x1={L} x2={W - R} y1={y(t)} y2={y(t)} stroke="#edf1ef" strokeWidth={1} />
+                                <text x={L - 8} y={y(t) + 4} textAnchor="end" fontSize={12} fill="#6b7280">
                                     {t}
                                 </text>
                             </g>
                         ))}
 
-                        {/* area + line + dots.
-                            Kapag pareho ang bilang, nagpapatong ang mga linya. Kaya magkakaiba ang kapal:
-                            pinakamakapal sa ilalim ang Clinic, gitna ang Dental, pinakamanipis sa ibabaw ang
-                            Case Reports — kita pa rin ang lahat ng kulay na parang guhit-guhit. */}
-                        {series
-                            .filter((s) => s.show)
-                            .map((s) => {
-                                const pts = data.map((d, i) => `${x(i)},${y(d[s.key])}`).join(" ");
-                                const area = `${x(0)},${baseY} ${pts} ${x(data.length - 1)},${baseY}`;
-                                return (
-                                    <g key={s.key}>
-                                        <polygon
-                                            points={area}
-                                            fill={s.key === "clinic" ? "url(#clinic-area)" : s.color}
-                                            opacity={s.key === "clinic" ? 1 : 0.08}
-                                        />
-                                        <polyline
-                                            points={pts}
-                                            fill="none"
-                                            stroke={s.color}
-                                            strokeWidth={LINE_WIDTH[s.key]}
-                                            strokeLinejoin="round"
-                                            strokeLinecap="round"
-                                        />
-                                        {data.map((d, i) => (
-                                            <circle
-                                                key={i}
-                                                cx={x(i)}
-                                                cy={y(d[s.key])}
-                                                r={DOT_SIZE[s.key]}
-                                                fill={s.color}
-                                                stroke="#fff"
-                                                strokeWidth={1}
-                                            >
-                                                <title>{`${d.label}: ${d[s.key]}`}</title>
-                                            </circle>
-                                        ))}
-                                    </g>
-                                );
-                            })}
+                        {/* Malambot na kulay sa ilalim ng unang linya */}
+                        {series[0] && (
+                            <path
+                                d={`${smoothPath(data.map((d, i) => [x(i), y(d[series[0].key])]))} L${x(data.length - 1)},${baseY} L${x(0)},${baseY} Z`}
+                                fill="url(#overview-area)"
+                            />
+                        )}
 
-                        {/* x labels */}
-                        {data.map((d, i) => (
-                            <text key={i} x={x(i)} y={H - 8} textAnchor="middle" fontSize={12} fill="#6b7280">
-                                {d.label}
-                            </text>
-                        ))}
+                        {/* mga linya + tuldok */}
+                        {/* Iginuguhit na huli ang pangunahing linya para nasa ibabaw ito */}
+                        {[...series].reverse().map((s) => {
+                            const si = s.key === series[0]?.key ? 0 : 1;
+                            return (
+                                <g key={s.key}>
+                                    <path
+                                        d={smoothPath(data.map((d, i) => [x(i), y(d[s.key])]))}
+                                        fill="none"
+                                        stroke={s.color}
+                                        strokeWidth={si === 0 ? 3 : 2.25}
+                                        strokeLinecap="round"
+                                    />
+                                    {data.map((d, i) => (
+                                        <circle
+                                            key={i}
+                                            cx={x(i)}
+                                            cy={y(d[s.key])}
+                                            r={many ? 2.5 : si === 0 ? 5 : 4}
+                                            fill={s.color}
+                                            stroke="#fff"
+                                            strokeWidth={1.5}
+                                        >
+                                            <title>{`${d.label} · ${s.label}: ${d[s.key]}`}</title>
+                                        </circle>
+                                    ))}
+                                </g>
+                            );
+                        })}
+
+                        {/* x labels (buong petsa, hal. "Oct 27"); buwan = 1, 5, 10, ... lang */}
+                        {data.map((d, i) =>
+                            many && i !== 0 && (i + 1) % 5 !== 0 ? null : (
+                                <text key={i} x={x(i)} y={H - 8} textAnchor="middle" fontSize={12} fill="#6b7280">
+                                    {d.label}
+                                </text>
+                            ),
+                        )}
                     </svg>
 
-                    {/* MOBILE: walang hover/tooltip sa touch, kaya ipakita ang bilang kada araw */}
-                    <div
-                        className="mt-2 grid gap-1 text-center sm:hidden"
-                        style={{ gridTemplateColumns: `repeat(${data.length}, minmax(0, 1fr))` }}
-                    >
-                        {data.map((d) => (
-                            <div key={d.label} className="rounded-md bg-[#f6faf8] px-1 py-1">
-                                <p className="text-sm text-gray-600">{d.label}</p>
-                                {showClinic && (
-                                    <p className="text-sm font-semibold" style={{ color: CLINIC_COLOR }}>
-                                        {d.clinic}
-                                    </p>
-                                )}
-                                {showDental && (
-                                    <p className="text-sm font-semibold" style={{ color: DENTAL_COLOR }}>
-                                        {d.dental}
-                                    </p>
-                                )}
-                                {showReports && (
-                                    <p className="text-sm font-semibold" style={{ color: REPORT_COLOR }}>
-                                        {d.reports}
-                                    </p>
-                                )}
-                            </div>
+                    {/* Legend sa ibaba */}
+                    <div className="mt-3 flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-sm text-gray-600">
+                        {series.map((s) => (
+                            <span key={s.key} className="inline-flex items-center gap-2">
+                                <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color }} />
+                                {s.label}
+                            </span>
                         ))}
                     </div>
                 </>
@@ -468,83 +486,98 @@ function VisitsOverviewChart({
     );
 }
 
-// Kulay ng bawat dahilan sa donut (green at dilaw, kapareho ng dashboard)
-const REASON_COLORS = ["#15664f", "#3f9a76", "#8fcaa9", "#f2c94c", "#d7e9df"];
+// Saklaw ng "Visit Reasons": ngayong linggo (default), ngayong buwan, o ngayong taon
+type ReasonRange = "week" | "month" | "year";
+const RANGE_LABEL: Record<ReasonRange, string> = { week: "This Week", month: "This Month", year: "This Year" };
 
-function VisitReasons({ reasons, unit }: { reasons: { label: string; value: number }[]; unit: string }) {
-    // Top 4 + "Others"
-    const top = reasons.slice(0, 4);
-    const othersValue = reasons.slice(4).reduce((sum, r) => sum + r.value, 0);
-    const segments = [
-        ...top.map((r, i) => ({ ...r, color: REASON_COLORS[i] })),
-        ...(othersValue > 0 ? [{ label: "Others", value: othersValue, color: REASON_COLORS[4] }] : []),
+function parseRange(v: string | undefined): ReasonRange {
+    return v === "month" ? v : "week";
+}
+
+// Saklaw ng "Clinic Overview" chart: araw-araw (linggo/buwan) o buwan-buwan (taon)
+type ChartRange = "week" | "month" | "year";
+const CHART_LABEL: Record<ChartRange, string> = { week: "This Week", month: "This Month", year: "This Year" };
+
+function parseChartRange(v: string | undefined): ChartRange {
+    return v === "month" ? v : "week";
+}
+
+// Simula, dulo at hakbang ng bawat punto sa chart
+function chartBuckets(range: ChartRange, today: string): { from: string; to: string; step: string } {
+    const [y] = today.split("-").map(Number);
+    if (range === "year") return { from: `${y}-01-01`, to: `${y}-12-01`, step: "1 month" };
+    const [from, to] = rangeDates(range, today);
+    return { from, to, step: "1 day" };
+}
+
+// [from, to] na petsa (YYYY-MM-DD, oras sa Manila)
+function rangeDates(range: ReasonRange, today: string): [string, string] {
+    const [y, m, d] = today.split("-").map(Number);
+    if (range === "year") return [`${y}-01-01`, `${y}-12-31`];
+    const fmt = (dt: Date) => dt.toISOString().slice(0, 10);
+    if (range === "month") {
+        return [fmt(new Date(Date.UTC(y, m - 1, 1))), fmt(new Date(Date.UTC(y, m, 0)))];
+    }
+    // Lunes hanggang Sabado ng linggong ito
+    const base = new Date(Date.UTC(y, m - 1, d));
+    const monday = new Date(base);
+    monday.setUTCDate(base.getUTCDate() - ((base.getUTCDay() + 6) % 7));
+    const saturday = new Date(monday);
+    saturday.setUTCDate(monday.getUTCDate() + 5);
+    return [fmt(monday), fmt(saturday)];
+}
+
+const rangeSelectClass =
+    "h-8 cursor-pointer rounded-lg border border-[#dcebe3] bg-[#f6faf8] px-2 text-sm font-medium text-gray-600 outline-none hover:bg-[#eef6f2] focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20";
+
+function VisitReasons({
+    reasons,
+    range,
+    chartRange,
+    showClinic,
+    showDental,
+    showReports,
+}: {
+    reasons: Reason[];
+    range: ReasonRange;
+    chartRange: ChartRange;
+    showClinic: boolean;
+    showDental: boolean;
+    showReports: boolean;
+}) {
+    const kinds = [
+        ...(showClinic ? (["clinic"] as const) : []),
+        ...(showDental ? (["dental"] as const) : []),
+        ...(showReports ? (["reports"] as const) : []),
     ];
-    const total = segments.reduce((sum, s) => sum + s.value, 0);
-    const R = 42;
-    const C = 2 * Math.PI * R;
-
-    let offset = 0;
-    const arcs = segments.map((s) => {
-        const len = total ? (s.value / total) * C : 0;
-        const arc = { ...s, len, offset };
-        offset += len;
-        return arc;
-    });
 
     return (
-        <CardShell title="Visit Reasons" badge="This Week">
-            {total === 0 ? (
-                <div className="flex flex-col items-center py-10 text-center">
-                    <PieChart className="h-10 w-10 text-[#15664f]/30" />
-                    <p className="mt-2 text-sm text-gray-600">No visits this week yet.</p>
-                </div>
-            ) : (
-                <div className="flex flex-col items-center gap-5 sm:flex-row lg:flex-col 2xl:flex-row">
-                    <div className="relative h-36 w-36 shrink-0 select-none">
-                        <svg viewBox="0 0 120 120" className="h-full w-full" role="img" aria-label="Visit reasons this week">
-                            <circle cx={60} cy={60} r={R} fill="none" stroke="#f1f5f3" strokeWidth={18} />
-                            <g transform="rotate(-90 60 60)">
-                                {arcs.map((a) => (
-                                    <circle
-                                        key={a.label}
-                                        cx={60}
-                                        cy={60}
-                                        r={R}
-                                        fill="none"
-                                        stroke={a.color}
-                                        strokeWidth={18}
-                                        strokeDasharray={`${a.len} ${C - a.len}`}
-                                        strokeDashoffset={-a.offset}
-                                    >
-                                        <title>{`${a.label}: ${a.value}`}</title>
-                                    </circle>
-                                ))}
-                            </g>
-                        </svg>
-                        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                            <span className="text-sm text-gray-600">Total</span>
-                            <span className="text-2xl font-bold leading-tight text-[#15664f]">{total.toLocaleString("en-US")}</span>
-                            <span className="text-sm text-gray-600">{unit}</span>
-                        </div>
-                    </div>
-
-                    <ul className="w-full min-w-0 space-y-2.5 text-sm">
-                        {segments.map((s) => (
-                            <li key={s.label} className="flex items-center justify-between gap-3">
-                                <span className="flex min-w-0 items-center gap-2 text-gray-600">
-                                    <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
-                                    <span className="truncate capitalize" title={s.label}>
-                                        {s.label}
-                                    </span>
-                                </span>
-                                <span className="shrink-0 font-semibold text-gray-900">
-                                    {Math.round((s.value / total) * 100)}%
-                                </span>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-            )}
+        <CardShell
+            id="visit-reasons"
+            title="Visit Reasons"
+            className="scroll-mt-6"
+            action={
+                // Pagpili ng saklaw: kusang nagre-reload ang dashboard pagkapili
+                <form method="get" action="/dashboard#visit-reasons" className="shrink-0">
+                    {/* Panatilihin ang napili sa Clinic Overview */}
+                    {chartRange !== "week" && <input type="hidden" name="chart" value={chartRange} />}
+                    <AutoSubmitSelect
+                        name="range"
+                        defaultValue={range === "week" ? "" : range}
+                        options={["month"]}
+                        allLabel="This Week"
+                        labels={{ month: "This Month" }}
+                        className={rangeSelectClass}
+                    />
+                </form>
+            }
+        >
+            {/* Tabs: All | Clinic | Dental | Case Reports */}
+            <ReasonTabs
+                reasons={reasons.map(({ label, clinic, dental, reports }) => ({ label, clinic, dental, reports }))}
+                kinds={[...kinds]}
+                emptyText={`No visits ${RANGE_LABEL[range].toLowerCase()} yet.`}
+            />
         </CardShell>
     );
 }
@@ -622,8 +655,8 @@ function RecentActivity({
                                 <tr>
                                     <th className="whitespace-nowrap px-2 py-2.5 font-semibold">Time</th>
                                     <th className="px-2 py-2.5 font-semibold">Activity</th>
-                                    <th className="px-2 py-2.5 font-semibold">Patient</th>
-                                    <th className="whitespace-nowrap px-2 py-2.5 font-semibold">Date</th>
+                                    <th className="px-2 py-2.5 font-semibold">Details</th>
+                                    <th className="px-2 py-2.5 font-semibold">Staff</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -632,7 +665,12 @@ function RecentActivity({
                                     const Icon = m.icon;
                                     return (
                                         <tr key={item.key} className="border-b border-gray-50 last:border-0 hover:bg-[#f6faf8]">
-                                            <td className="whitespace-nowrap px-2 py-3 text-gray-600">{item.clock || "—"}</td>
+                                            <td className="whitespace-nowrap px-2 py-3 text-gray-600">
+                                                {item.clock || "—"}
+                                                {relativeDay(item.date, today) !== "Today" && (
+                                                    <span className="block text-gray-500">{relativeDay(item.date, today)}</span>
+                                                )}
+                                            </td>
                                             <td className="px-2 py-3">
                                                 <span className="flex items-center gap-2 text-gray-900">
                                                     <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${m.tile}`}>
@@ -641,8 +679,11 @@ function RecentActivity({
                                                     {m.label}
                                                 </span>
                                             </td>
-                                            <td className="px-2 py-3 text-gray-600">{item.name}</td>
-                                            <td className="whitespace-nowrap px-2 py-3 text-gray-600">{relativeDay(item.date, today)}</td>
+                                            <td className="px-2 py-3 text-gray-600">
+                                                <span className="text-gray-900">{item.name}</span>
+                                                {item.detail && <span className="capitalize"> – {item.detail}</span>}
+                                            </td>
+                                            <td className="px-2 py-3 text-gray-600">{item.staff || "—"}</td>
                                         </tr>
                                     );
                                 })}
@@ -655,8 +696,16 @@ function RecentActivity({
     );
 }
 
-async function loadDashboard(isDentist: boolean, isDoctor: boolean, showEmployees: boolean) {
+async function loadDashboard(
+    isDentist: boolean,
+    isDoctor: boolean,
+    showEmployees: boolean,
+    range: ReasonRange = "week",
+    chartRange: ChartRange = "week",
+) {
     const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date());
+    const [reasonFrom, reasonTo] = rangeDates(range, today);
+    const chart = chartBuckets(chartRange, today);
 
     try {
         // Hinati sa dalawang batch para hindi sabay-sabay ang 13 queries
@@ -765,30 +814,31 @@ async function loadDashboard(isDentist: boolean, isDoctor: boolean, showEmployee
             activityReports,
             reasonRows,
         ]: [WeeklyRow[], ActivityRow[], ActivityRow[], ActivityRow[], ActivityRow[], ReasonRow[]] = await Promise.all([
-            // ---- visits per day for this week (Mon -> Sat) ----
+            // ---- Clinic Overview: bilang kada araw (linggo/buwan) o kada buwan (taon) ----
             prisma.$queryRaw<WeeklyRow[]>`
-          SELECT (CAST(date_trunc('week', CAST(${today} AS DATE)) AS DATE) + n) AS day,
+          WITH b AS (
+            SELECT CAST(gs AS DATE) AS s,
+                   CAST(gs + CAST(${chart.step} AS INTERVAL) - INTERVAL '1 day' AS DATE) AS e
+            FROM generate_series(CAST(${chart.from} AS TIMESTAMP), CAST(${chart.to} AS TIMESTAMP), CAST(${chart.step} AS INTERVAL)) AS gs
+          )
+          SELECT b.s AS day,
                  CAST(
                    (SELECT COUNT(*) FROM health_records
-                     WHERE archived_at IS NULL
-                       AND CAST(visit_date AS DATE) = (CAST(date_trunc('week', CAST(${today} AS DATE)) AS DATE) + n))
+                     WHERE archived_at IS NULL AND CAST(visit_date AS DATE) BETWEEN b.s AND b.e)
                    +
                    (SELECT COUNT(*) FROM employee_health_records
-                     WHERE archived_at IS NULL
-                       AND CAST(visit_date AS DATE) = (CAST(date_trunc('week', CAST(${today} AS DATE)) AS DATE) + n))
+                     WHERE archived_at IS NULL AND CAST(visit_date AS DATE) BETWEEN b.s AND b.e)
                  AS BIGINT) AS clinic,
                  CAST(
                    (SELECT COUNT(*) FROM dental_records
-                     WHERE archived_at IS NULL
-                       AND CAST(visit_date AS DATE) = (CAST(date_trunc('week', CAST(${today} AS DATE)) AS DATE) + n))
+                     WHERE archived_at IS NULL AND CAST(visit_date AS DATE) BETWEEN b.s AND b.e)
                  AS BIGINT) AS dental,
                  CAST(
                    (SELECT COUNT(*) FROM health_case_reports
-                     WHERE archived_at IS NULL
-                       AND CAST(report_date AS DATE) = (CAST(date_trunc('week', CAST(${today} AS DATE)) AS DATE) + n))
+                     WHERE archived_at IS NULL AND CAST(report_date AS DATE) BETWEEN b.s AND b.e)
                  AS BIGINT) AS reports
-          FROM generate_series(0, 5) AS n
-          ORDER BY day ASC
+          FROM b
+          ORDER BY b.s ASC
         `,
             // ---- recent activity feed (role-aware, newest first) ----
             isDentist
@@ -798,7 +848,8 @@ async function loadDashboard(isDentist: boolean, isDoctor: boolean, showEmployee
                  CAST(r.visit_date AS DATE) AS event_date,
                  r.created_at AS event_time,
                  to_char((r.created_at AT TIME ZONE current_setting('TimeZone')) AT TIME ZONE 'Asia/Manila',
-                         'FMHH12:MI AM') AS event_clock
+                         'FMHH12:MI AM') AS event_clock,
+                 r.complaint AS detail, r.attending_staff AS staff
           FROM health_records r
           JOIN students s ON s.student_id = r.student_id
           WHERE r.archived_at IS NULL
@@ -812,7 +863,8 @@ async function loadDashboard(isDentist: boolean, isDoctor: boolean, showEmployee
                  CAST(r.visit_date AS DATE) AS event_date,
                  r.created_at AS event_time,
                  to_char((r.created_at AT TIME ZONE current_setting('TimeZone')) AT TIME ZONE 'Asia/Manila',
-                         'FMHH12:MI AM') AS event_clock
+                         'FMHH12:MI AM') AS event_clock,
+                 r.complaint AS detail, r.attending_staff AS staff
           FROM employee_health_records r
           JOIN employees e ON e.employee_id = r.employee_id
           WHERE r.archived_at IS NULL
@@ -826,7 +878,8 @@ async function loadDashboard(isDentist: boolean, isDoctor: boolean, showEmployee
                  CAST(d.visit_date AS DATE) AS event_date,
                  d.created_at AS event_time,
                  to_char((d.created_at AT TIME ZONE current_setting('TimeZone')) AT TIME ZONE 'Asia/Manila',
-                         'FMHH12:MI AM') AS event_clock
+                         'FMHH12:MI AM') AS event_clock,
+                 d.procedure_name AS detail, d.dentist_name AS staff
           FROM dental_records d
           LEFT JOIN students s  ON s.student_id  = d.student_id
           LEFT JOIN employees e ON e.employee_id = d.employee_id
@@ -841,7 +894,8 @@ async function loadDashboard(isDentist: boolean, isDoctor: boolean, showEmployee
                  CAST(h.report_date AS DATE) AS event_date,
                  h.created_at AS event_time,
                  to_char((h.created_at AT TIME ZONE current_setting('TimeZone')) AT TIME ZONE 'Asia/Manila',
-                         'FMHH12:MI AM') AS event_clock
+                         'FMHH12:MI AM') AS event_clock,
+                 h.complaint AS detail, h.staff_name AS staff
           FROM health_case_reports h
           LEFT JOIN students s  ON s.student_id  = h.student_id
           LEFT JOIN employees e ON e.employee_id = h.employee_id
@@ -849,35 +903,41 @@ async function loadDashboard(isDentist: boolean, isDoctor: boolean, showEmployee
           ORDER BY h.created_at DESC
           LIMIT 5
         `,
-            // ---- Visit Reasons ngayong linggo (Mon -> Sat) ----
-            // Dentist: mga procedure sa dental visits. Iba pa: mga complaint sa clinic visits.
-            isDentist
-                ? prisma.$queryRaw<ReasonRow[]>`
-          SELECT MIN(TRIM(procedure_name)) AS label, COUNT(*) AS total
-          FROM dental_records
-          WHERE archived_at IS NULL AND TRIM(procedure_name) <> ''
-            AND CAST(visit_date AS DATE) BETWEEN CAST(date_trunc('week', CAST(${today} AS DATE)) AS DATE)
-                                             AND CAST(date_trunc('week', CAST(${today} AS DATE)) AS DATE) + 5
-          GROUP BY LOWER(TRIM(procedure_name))
-          ORDER BY total DESC, label ASC
-        `
-                : prisma.$queryRaw<ReasonRow[]>`
-          SELECT MIN(TRIM(v.complaint)) AS label, COUNT(*) AS total
+            // ---- Visit Reasons (This Week = Mon -> Sat o This Month) ----
+            // Kapareho ng Clinic Overview: clinic visits + dental visits + case reports,
+            // pero naka-grupo ayon sa dahilan (complaint / dental procedure).
+            // Doctor: walang dental. Dentist: dental lang.
+            prisma.$queryRaw<ReasonRow[]>`
+          SELECT MIN(TRIM(u.reason)) AS label,
+                 CAST(COUNT(*) FILTER (WHERE u.src = 'clinic') AS BIGINT) AS clinic,
+                 CAST(COUNT(*) FILTER (WHERE u.src = 'dental') AS BIGINT) AS dental,
+                 CAST(COUNT(*) FILTER (WHERE u.src = 'reports') AS BIGINT) AS reports
           FROM (
-            SELECT complaint, visit_date FROM health_records WHERE archived_at IS NULL
+            SELECT 'clinic' AS src, complaint AS reason, visit_date AS day
+            FROM health_records WHERE archived_at IS NULL AND ${!isDentist}
             UNION ALL
-            SELECT complaint, visit_date FROM employee_health_records WHERE archived_at IS NULL
-          ) v
-          WHERE TRIM(v.complaint) <> ''
-            AND CAST(v.visit_date AS DATE) BETWEEN CAST(date_trunc('week', CAST(${today} AS DATE)) AS DATE)
-                                               AND CAST(date_trunc('week', CAST(${today} AS DATE)) AS DATE) + 5
-          GROUP BY LOWER(TRIM(v.complaint))
-          ORDER BY total DESC, label ASC
+            SELECT 'clinic', complaint, visit_date
+            FROM employee_health_records WHERE archived_at IS NULL AND ${!isDentist}
+            UNION ALL
+            SELECT 'dental', procedure_name, visit_date
+            FROM dental_records WHERE archived_at IS NULL AND ${!isDoctor}
+            UNION ALL
+            SELECT 'reports', complaint, report_date
+            FROM health_case_reports WHERE archived_at IS NULL AND ${!isDentist}
+          ) u
+          WHERE TRIM(COALESCE(u.reason, '')) <> ''
+            AND CAST(u.day AS DATE) BETWEEN CAST(${reasonFrom} AS DATE) AND CAST(${reasonTo} AS DATE)
+          GROUP BY LOWER(TRIM(u.reason))
+          ORDER BY COUNT(*) DESC, label ASC
         `,
         ]);
 
         const weeklyPoints: WeeklyPoint[] = weekly.map((w) => ({
-            label: new Date(w.day).toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" }),
+            // Buong petsa: Oct 26, Oct 27, ...
+            label: new Date(w.day).toLocaleDateString(
+                "en-US",
+                chartRange === "year" ? { month: "short", timeZone: "UTC" } : { month: "short", day: "numeric", timeZone: "UTC" },
+            ),
             clinic: Number(w.clinic),
             dental: Number(w.dental),
             reports: Number(w.reports),
@@ -897,6 +957,8 @@ async function loadDashboard(isDentist: boolean, isDoctor: boolean, showEmployee
                 date: r.event_date,
                 time: r.event_time,
                 clock: r.event_clock ?? "",
+                detail: r.detail?.trim() ?? "",
+                staff: r.staff?.trim() ?? "",
             }));
 
         const clinicItems = [
@@ -921,8 +983,34 @@ async function loadDashboard(isDentist: boolean, isDoctor: boolean, showEmployee
             .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
             .slice(0, 5);
 
+        // Dental na kailangang balikan (para sa bell)
+        const dentalFollow = await prisma.$queryRaw<CountRow[]>`
+          SELECT COUNT(*) AS total FROM dental_records
+          WHERE archived_at IS NULL AND status = 'follow-up'
+        `;
+
+        // Dagdag na card: case reports at referral slips ngayong araw, at mga naka-archive
+        const [casesToday, slipsToday, archived] = await Promise.all([
+            prisma.$queryRaw<CountRow[]>`
+          SELECT COUNT(*) AS total FROM health_case_reports
+          WHERE archived_at IS NULL AND CAST(report_date AS DATE) = CAST(${today} AS DATE)
+        `,
+            prisma.$queryRaw<CountRow[]>`
+          SELECT COUNT(*) AS total FROM referral_slips
+          WHERE archived_at IS NULL AND CAST(slip_date AS DATE) = CAST(${today} AS DATE)
+        `,
+            prisma.$queryRaw<CountRow[]>`
+          SELECT (SELECT COUNT(*) FROM students WHERE archived_at IS NOT NULL)
+               + (SELECT COUNT(*) FROM employees WHERE archived_at IS NOT NULL) AS total
+        `,
+        ]);
+
         return {
             today,
+            dentalFollowUps: Number(dentalFollow[0]?.total ?? 0),
+            casesToday: Number(casesToday[0]?.total ?? 0),
+            slipsToday: Number(slipsToday[0]?.total ?? 0),
+            archivedPeople: Number(archived[0]?.total ?? 0),
             totalStudents: Number(students[0]?.total ?? 0),
             totalEmployees: Number(employees[0]?.total ?? 0),
             visitsToday: Number(visitsToday[0]?.total ?? 0),
@@ -933,12 +1021,21 @@ async function loadDashboard(isDentist: boolean, isDoctor: boolean, showEmployee
             recentDental,
             weeklyPoints,
             activity,
-            reasons: reasonRows.map((r) => ({ label: r.label, value: Number(r.total) })),
+            reasons: reasonRows.map((r): Reason => {
+                const clinic = Number(r.clinic);
+                const dental = Number(r.dental);
+                const reports = Number(r.reports);
+                return { label: r.label, clinic, dental, reports, value: clinic + dental + reports };
+            }),
         };
     } catch (err) {
         console.error("Dashboard error:", err);
         return {
             today,
+            dentalFollowUps: 0,
+            casesToday: 0,
+            slipsToday: 0,
+            archivedPeople: 0,
             totalStudents: 0,
             totalEmployees: 0,
             visitsToday: 0,
@@ -949,12 +1046,19 @@ async function loadDashboard(isDentist: boolean, isDoctor: boolean, showEmployee
             recentDental: [] as DentalRow[],
             weeklyPoints: [] as WeeklyPoint[],
             activity: [] as ActivityItem[],
-            reasons: [] as { label: string; value: number }[],
+            reasons: [] as Reason[],
         };
     }
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ range?: string; chart?: string }>;
+}) {
+    const { range: rangeParam, chart: chartParam } = await searchParams;
+    const reasonRange = parseRange(rangeParam);
+    const chartRange = parseChartRange(chartParam);
     const session = await getSession();
     if (!session) redirect("/login");
 
@@ -1010,19 +1114,48 @@ export default async function DashboardPage() {
     const isItTech = role === "ittech";
 
     // Pagbati sa itaas: pangalan at petsa (makikita ng lahat ng role)
+    // Pagbati sa itaas: pangalan at petsa (makikita ng lahat ng role)
     const banner = (
-        <section className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex min-w-0 items-center gap-3">
+        <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#15664f] via-[#1b7a5e] to-[#2f8f6f] px-5 py-6 text-white shadow-lg shadow-[#15664f]/20 sm:px-8 sm:py-7">
+            {/* Mga dekorasyon sa likod */}
+            <div aria-hidden className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-white/10" />
+            <div aria-hidden className="pointer-events-none absolute -bottom-24 right-32 h-48 w-48 rounded-full bg-amber-300/15 blur-2xl" />
+            <div aria-hidden className="pointer-events-none absolute -left-10 -bottom-16 h-40 w-40 rounded-full bg-white/5" />
+            <svg
+                aria-hidden
+                viewBox="0 0 600 80"
+                preserveAspectRatio="none"
+                className="pointer-events-none absolute inset-x-0 bottom-3 h-14 w-full text-white/15"
+            >
+                <polyline
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    points="0,50 150,50 175,50 190,20 205,70 220,10 235,60 250,50 400,50 420,50 432,32 444,62 456,50 600,50"
+                />
+            </svg>
+
+            <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
-                    <h1 className="break-words text-2xl font-bold text-[#10523f] md:text-[1.75rem]">{greetingText}</h1>
-                    <p className="mt-0.5 text-sm text-gray-600">Here&apos;s an overview of your school clinic today.</p>
+                    {/* Kulay ng role, kapareho ng nasa Manage Accounts */}
+                    {role && (
+                        <div className="mb-2">
+                            <RoleBadge role={role} withDot />
+                        </div>
+                    )}
+                    <h1 className="break-words text-2xl font-bold text-white md:text-3xl">{greetingText}</h1>
+                    <p className="mt-1 text-sm text-white/85">Here&apos;s an overview of your school clinic today.</p>
                 </div>
-            </div>
-            <div className="flex w-fit shrink-0 items-center gap-2.5 rounded-xl border border-[#dcebe3] bg-white px-3.5 py-2 shadow-sm shadow-[#15664f]/5">
-                <CalendarDays className="h-5 w-5 text-[#15664f]" strokeWidth={1.8} />
-                <div className="leading-tight">
-                    <p className="text-sm font-semibold text-gray-900">{dateToday}</p>
-                    <p className="text-sm text-gray-600">{weekdayToday}</p>
+                <div className="flex w-fit shrink-0 items-center gap-3 rounded-xl bg-white/15 px-4 py-2.5 ring-1 ring-white/25 backdrop-blur-sm">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-[#15664f]">
+                        <CalendarDays className="h-5 w-5" strokeWidth={1.8} />
+                    </div>
+                    <div className="leading-tight">
+                        <p className="text-sm font-semibold text-white">{dateToday}</p>
+                        <p className="text-sm text-white/80">{weekdayToday}</p>
+                    </div>
                 </div>
             </div>
         </section>
@@ -1033,29 +1166,82 @@ export default async function DashboardPage() {
         return <main className="min-w-0 space-y-6 p-4 pb-8 md:p-8">{banner}</main>;
     }
 
-    const data = await loadDashboard(isDentist, isDoctor, showEmployees);
+    const data = await loadDashboard(isDentist, isDoctor, showEmployees, reasonRange, chartRange);
 
+    // Mga card sa itaas. "hint" = maliit na paliwanag sa ibaba.
+    // "alert" = may babala kapag may laman (hal. Pending: Needs attention).
     const stats: {
         label: string;
         value: number;
         icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
-        hint: string;
         tone: "green" | "amber";
+        /** Maliit na paliwanag sa ilalim ng numero */
+        hint?: string;
+        alert?: boolean;
     }[] = [
-            { label: "Total Students", value: data.totalStudents, icon: Users, hint: "Active students", tone: "green" },
+            {
+                label: "Total Students",
+                value: data.totalStudents,
+                icon: Users,
+                tone: "green",
+                hint: "Active students",
+            },
             ...(showEmployees
-                ? [{ label: "Total Employees", value: data.totalEmployees, icon: Briefcase, hint: "Registered staff", tone: "amber" as const }]
+                ? [
+                    {
+                        label: "Total Employees",
+                        value: data.totalEmployees,
+                        icon: Briefcase,
+                        tone: "amber" as const,
+                        hint: "Registered staff",
+                    },
+                ]
                 : []),
             ...(isDentist
                 ? []
-                : [{ label: "Clinic Visits Today", value: data.visitsToday, icon: Activity, hint: "Recorded today", tone: "green" as const }]),
+                : [
+                    {
+                        label: "Clinic Visits Today",
+                        value: data.visitsToday,
+                        icon: Stethoscope,
+                        tone: "amber" as const,
+                        hint: "Recorded today",
+                    },
+                ]),
             ...(isDoctor
                 ? []
-                : [{ label: "Dental Visits Today", value: data.dentalToday, icon: ToothIcon, hint: "Recorded today", tone: "amber" as const }]),
+                : [
+                    {
+                        label: "Dental Visits Today",
+                        value: data.dentalToday,
+                        icon: ToothIcon,
+                        tone: "green" as const,
+                        hint: "Recorded today",
+                    },
+                ]),
             ...(isDentist
                 ? []
-                : [{ label: "Pending Reports", value: data.pendingReports, icon: FileText, hint: "Awaiting review", tone: "green" as const }]),
-            { label: "Visitors Today", value: data.visitorsToday, icon: UserCheck, hint: "Logged today", tone: "amber" },
+                : [
+                    {
+                        label: "Case Reports",
+                        value: data.casesToday,
+                        icon: ClipboardList,
+                        tone: "green" as const,
+                        hint: "Reported today",
+                    },
+                ]),
+            // Pending: Doctor = case reports | Dentist = dental follow-ups | Nurse/Admin = pareho
+            {
+                label: isDoctor ? "Pending Reports" : isDentist ? "Pending Follow-ups" : "Pending",
+                value: isDoctor
+                    ? data.pendingReports
+                    : isDentist
+                        ? data.dentalFollowUps
+                        : data.pendingReports + data.dentalFollowUps,
+                icon: FileText,
+                tone: "amber",
+                alert: true,
+            },
         ];
 
 
@@ -1063,24 +1249,31 @@ export default async function DashboardPage() {
     const TILE_ICON = "bg-white text-[#15664f] shadow-sm ring-1 ring-[#dcebe3] group-hover:bg-[#15664f] group-hover:text-white group-hover:ring-[#15664f]";
 
     // NOTE: adjust the href values below to match your actual routes.
+    // Add Student / Add Employee: nurse lang (wala sa doctor at dentist)
+    const canAddPeople = role === "nurse";
     const quickActions: QuickAction[] = [
-        {
-            label: "Add Student",
-            description: "Register a new student",
-            href: "/dashboard/students/new",
-            icon: UserPlus,
-            cardClass: "border-gray-100 bg-white hover:border-[#15664f]/30 hover:bg-[#eef6f2] hover:shadow-md hover:shadow-[#15664f]/10",
-            iconClass: TILE_ICON,
-        },
-        ...(showEmployees
+        ...(canAddPeople
+            ? [
+                {
+                    label: "Add Student",
+                    description: "Register a new student",
+                    href: "/dashboard/students/new",
+                    icon: UserPlus,
+                    cardClass:
+                        "border-gray-100 bg-white hover:border-[#15664f]/30 hover:bg-[#eef6f2] hover:shadow-md hover:shadow-[#15664f]/10",
+                    iconClass: TILE_ICON,
+                },
+            ]
+            : []),
+        ...(canAddPeople && showEmployees
             ? [
                 {
                     label: "Add Employee",
                     description: "Register a new employee",
-                    // TODO: i-check kung tama ang route na ito
                     href: "/dashboard/employees/new",
                     icon: Briefcase,
-                    cardClass: "border-gray-100 bg-white hover:border-[#15664f]/30 hover:bg-[#eef6f2] hover:shadow-md hover:shadow-[#15664f]/10",
+                    cardClass:
+                        "border-gray-100 bg-white hover:border-[#15664f]/30 hover:bg-[#eef6f2] hover:shadow-md hover:shadow-[#15664f]/10",
                     iconClass: TILE_ICON,
                 },
             ]
@@ -1120,14 +1313,41 @@ export default async function DashboardPage() {
                     iconClass: TILE_ICON,
                 },
             ]),
-        {
-            label: "View Reports",
-            description: "Generate and view reports",
-            href: "/dashboard/illness-alerts",
-            icon: BarChart3,
-            cardClass: "border-gray-100 bg-white hover:border-[#15664f]/30 hover:bg-[#eef6f2] hover:shadow-md hover:shadow-[#15664f]/10",
-            iconClass: TILE_ICON,
-        },
+        // Dentist: dental lang
+        ...(isDentist
+            ? [
+                {
+                    label: "Add Dental",
+                    description: "Record a new dental visit",
+                    href: "/dashboard/dental-records/new",
+                    icon: ToothIcon,
+                    cardClass:
+                        "border-gray-100 bg-white hover:border-[#15664f]/30 hover:bg-[#eef6f2] hover:shadow-md hover:shadow-[#15664f]/10",
+                    iconClass: TILE_ICON,
+                },
+                {
+                    // Dentist: listahan ng mga dental visit (hindi maa-access ng dentist ang Illness Alerts)
+                    label: "View Reports",
+                    description: "View dental visit reports",
+                    href: "/dashboard/dental-visits",
+                    icon: BarChart3,
+                    cardClass:
+                        "border-gray-100 bg-white hover:border-[#15664f]/30 hover:bg-[#eef6f2] hover:shadow-md hover:shadow-[#15664f]/10",
+                    iconClass: TILE_ICON,
+                },
+            ]
+            : [
+                // Illness Alerts: hindi para sa dentist
+                {
+                    label: "View Reports",
+                    description: "Generate and view reports",
+                    href: "/dashboard/illness-alerts",
+                    icon: BarChart3,
+                    cardClass:
+                        "border-gray-100 bg-white hover:border-[#15664f]/30 hover:bg-[#eef6f2] hover:shadow-md hover:shadow-[#15664f]/10",
+                    iconClass: TILE_ICON,
+                },
+            ]),
     ];
 
     // Mga pumunta ngayong araw (clinic + dental), para sa "Today's Visits" sa kanan
@@ -1171,57 +1391,58 @@ export default async function DashboardPage() {
             })),
     ].slice(0, 6);
 
-    // Search sa itaas: dentist -> dental records, iba -> student health records
-    const searchAction = isDentist ? "/dashboard/dental-records" : "/dashboard/student-health-records";
+    // Search sa itaas (student at employee): dentist -> dental records, iba -> health record
+    const studentHrefBase = isDentist ? "/dashboard/dental-records?student=" : "/dashboard/student-health-records?student=";
+    const employeeHrefBase = isDentist ? "/dashboard/dental-records?employee=" : "/dashboard/employee-health-records?employee=";
     const initials = (baseName || "U").charAt(0).toUpperCase();
 
     // Top bar (desktop/tablet): search, notification bell (pending reports) at user
     const topBar = (
-        <header className="hidden items-center gap-3 md:flex">
-            <form method="get" action={searchAction} className="relative min-w-0 flex-1">
-                <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-600" />
-                <input
-                    name="q"
-                    type="search"
-                    autoComplete="off"
-                    placeholder={isDentist ? "Search dental records..." : "Search students or records..."}
-                    suppressHydrationWarning
-                    className="h-11 w-full max-w-xl rounded-full border border-[#dcebe3] bg-white pl-11 pr-4 text-sm text-gray-900 shadow-sm shadow-[#15664f]/5 outline-none transition focus:border-[#15664f] focus:ring-4 focus:ring-[#15664f]/10"
+        // Phone: search + bell + larawan lang (walang pangalan) para kasya
+        <header className="flex items-center gap-2 md:gap-3">
+            {/* Student at employee: kusang lumalabas ang resulta habang nagta-type; Enter = buksan */}
+            <div className="min-w-0 flex-1">
+                <StudentSearch
+                    studentHref={studentHrefBase}
+                    employeeHref={employeeHrefBase}
+                    archiveHref={role === "admin" || role === "nurse" ? "/dashboard/archive-records" : null}
                 />
-            </form>
+            </div>
 
-            {!isDentist && (
-                <Link
-                    href="/dashboard/health-case-reports?status=pending"
-                    title={`${data.pendingReports} pending case report${data.pendingReports === 1 ? "" : "s"}`}
-                    className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#dcebe3] bg-white text-[#15664f] shadow-sm shadow-[#15664f]/5 hover:bg-[#eef6f2]"
-                >
-                    <Bell className="h-5 w-5" strokeWidth={1.8} />
-                    {data.pendingReports > 0 && (
-                        <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-400 px-1 text-sm font-semibold leading-none text-[#10523f] ring-2 ring-[#e7f3e2]">
-                            {data.pendingReports > 99 ? "99+" : data.pendingReports}
-                        </span>
-                    )}
-                </Link>
+            {/* Bell (walang bell ang admin):
+                - Doctor: pending case reports
+                - Nurse: pending case reports + dental follow-ups
+                - Dentist: dental follow-ups */}
+            {role !== "admin" && (
+                <NotificationBell
+                    items={[
+                        ...(!isDentist
+                            ? [
+                                {
+                                    label: "Pending Case Reports",
+                                    hint: "Awaiting review",
+                                    count: data.pendingReports,
+                                    href: "/dashboard/health-case-reports?status=pending",
+                                    tone: "green" as const,
+                                },
+                            ]
+                            : []),
+                        ...(isDentist || role === "nurse"
+                            ? [
+                                {
+                                    label: "Dental Follow-ups",
+                                    hint: "Patients to see again",
+                                    count: data.dentalFollowUps,
+                                    href: "/dashboard/dental-records?status=Follow-up",
+                                    tone: "amber" as const,
+                                },
+                            ]
+                            : []),
+                    ]}
+                />
             )}
 
-            <Link
-                href="/dashboard/settings"
-                className="flex shrink-0 items-center gap-2.5 rounded-full border border-[#dcebe3] bg-white py-1 pl-1 pr-4 shadow-sm shadow-[#15664f]/5 hover:bg-[#eef6f2]"
-            >
-                {me?.avatar ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={me.avatar} alt="" className="h-9 w-9 rounded-full object-cover" />
-                ) : (
-                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#15664f] text-sm font-semibold text-white">
-                        {initials}
-                    </span>
-                )}
-                <span className="leading-tight">
-                    <span className="block text-sm font-semibold text-gray-900">{displayName}</span>
-                    <span className="block text-sm text-gray-600">{roleName}</span>
-                </span>
-            </Link>
+            <UserMenu displayName={displayName} roleName={roleName} avatar={me?.avatar} initials={initials} />
         </header>
     );
 
@@ -1234,29 +1455,49 @@ export default async function DashboardPage() {
                 <div className="min-w-0 space-y-5">
                     {banner}
 
-                    {/* Stat cards (siksik): icon sa kaliwa, bilang at label sa kanan */}
-                    <section className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+                    {/* Stat cards: icon sa itaas, label, malaking bilang, at paghahambing sa ibaba */}
+                    {/* Malaking screen: lahat ng card sa iisang hanay */}
+                    <section
+                        className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 xl:grid-cols-[repeat(var(--cards),minmax(0,1fr))]"
+                        style={{ "--cards": stats.length } as React.CSSProperties}
+                    >
                         {stats.map((stat) => {
                             const Icon = stat.icon;
                             const amber = stat.tone === "amber";
+                            let footer: React.ReactNode = null;
+                            if (stat.alert) {
+                                footer =
+                                    stat.value > 0 ? (
+                                        <span className="inline-flex items-center gap-1 font-medium text-red-600">
+                                            <AlertTriangle className="h-5 w-5" />
+                                            Needs attention
+                                        </span>
+                                    ) : (
+                                        <span className="inline-flex items-center gap-1 font-medium text-[#15664f]">
+                                            <CheckCircle2 className="h-5 w-5" />
+                                            All clear
+                                        </span>
+                                    );
+                            } else if (stat.hint) {
+                                footer = <span className="text-gray-600">{stat.hint}</span>;
+                            }
                             return (
                                 <div
                                     key={stat.label}
-                                    title={stat.hint}
-                                    className={`flex min-w-0 items-center gap-4 rounded-2xl border p-4 shadow-sm sm:p-5 ${amber ? "border-[#f3e4b3] bg-[#fdf7e6]" : "border-[#d3e8dc] bg-[#eaf5ef]"
+                                    className={`flex min-w-0 flex-col rounded-2xl border p-4 shadow-sm md:p-5 ${amber ? "border-[#f3e4b3] bg-[#fdf7e6]" : "border-[#d3e8dc] bg-[#eaf5ef]"
                                         }`}
                                 >
                                     <span
-                                        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full sm:h-14 sm:w-14 ${amber ? "bg-amber-300/70 text-[#7a5a00]" : "bg-[#15664f]/15 text-[#15664f]"
+                                        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${amber ? "bg-amber-300/80 text-[#7a5a00]" : "bg-[#15664f]/15 text-[#15664f]"
                                             }`}
                                     >
-                                        <Icon className="h-6 w-6" strokeWidth={1.8} />
+                                        <Icon className="h-6 w-6" strokeWidth={1.9} />
                                     </span>
-                                    <div className="min-w-0">
-                                        <p className="text-[1.75rem] font-bold leading-tight text-gray-900 sm:text-[2rem]">{stat.value.toLocaleString("en-US")}</p>
-                                        <p className="break-words text-sm font-medium text-gray-600">{stat.label}</p>
-                                        <p className="hidden text-sm text-gray-600 sm:block">{stat.hint}</p>
-                                    </div>
+                                    <p className="mt-3 truncate text-base font-semibold text-gray-900">{stat.label}</p>
+                                    <p className="text-[2.25rem] font-bold leading-tight text-[#10523f]">
+                                        {stat.value.toLocaleString("en-US")}
+                                    </p>
+                                    <div className="mt-1 text-base">{footer}</div>
                                 </div>
                             );
                         })}
@@ -1269,8 +1510,17 @@ export default async function DashboardPage() {
                             showClinic={!isDentist}
                             showDental={!isDoctor}
                             showReports={!isDentist}
+                            range={chartRange}
+                            reasonRange={reasonRange}
                         />
-                        <VisitReasons reasons={data.reasons} unit={isDentist ? "Dental Visits" : "Visits"} />
+                        <VisitReasons
+                            reasons={data.reasons}
+                            range={reasonRange}
+                            chartRange={chartRange}
+                            showClinic={!isDentist}
+                            showDental={!isDoctor}
+                            showReports={!isDentist}
+                        />
                     </section>
 
                     {/* Recent Activities: sa ilalim ng Visits Overview at Visit Reasons */}
@@ -1278,14 +1528,14 @@ export default async function DashboardPage() {
                         items={data.activity}
                         today={data.today}
                         viewAllHref={isDentist ? "/dashboard/dental-visits" : "/dashboard/clinic-visits"}
-                        compact
                     />
 
                 </div>
 
                 {/* KANAN */}
                 <aside className="grid min-w-0 content-start gap-5 md:grid-cols-2 xl:grid-cols-1">
-                    <QuickActionsSection actions={quickActions} />
+                    {/* Walang Quick Actions ang admin (view-only) */}
+                    {role !== "admin" && quickActions.length > 0 && <QuickActionsSection actions={quickActions} />}
                     <TodayList items={todayItems} viewAllHref={isDentist ? "/dashboard/dental-visits" : "/dashboard/clinic-visits"} />
                     <HealthyCard />
                 </aside>

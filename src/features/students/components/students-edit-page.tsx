@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, UserPen } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { getActiveStudent } from "../service";
 import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
@@ -58,9 +58,8 @@ export default async function EditStudentPage({ searchParams }: Props) {
 
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                    <UserPen className="h-10 w-10 shrink-0 text-[#15664f]" />
                     <div className="min-w-0">
-                        <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">Edit Student</h1>
+                        <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">Edit Student</h1>
                         <p className="text-sm text-gray-600">Update the student&apos;s details and portal login.</p>
                     </div>
                 </div>
@@ -70,7 +69,7 @@ export default async function EditStudentPage({ searchParams }: Props) {
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={avatar} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover ring-2 ring-[#15664f]/30" />
                     ) : (
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#15664f] text-xs font-bold text-white">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#15664f] text-sm font-semibold text-white">
                             {`${row.first_name[0] ?? ""}${row.last_name[0] ?? ""}`.toUpperCase()}
                         </span>
                     )}
@@ -78,7 +77,7 @@ export default async function EditStudentPage({ searchParams }: Props) {
                         <p className="truncate text-sm font-semibold text-gray-900">
                             {row.last_name}, {row.first_name}
                         </p>
-                        <p className="text-xs text-gray-500">{row.student_number}</p>
+                        <p className="text-sm text-gray-600">{row.student_number}</p>
                     </div>
                 </div>
             </div>

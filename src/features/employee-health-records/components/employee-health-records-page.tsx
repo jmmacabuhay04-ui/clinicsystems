@@ -210,6 +210,7 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
                 backHref={historyOnly ? "/dashboard" : listHref(page)}
                 canEdit={canEditRecords}
                 canEditEmployee={canEditEmployees}
+                hidePersonal={session.role === "admin"}
             />
         );
     }

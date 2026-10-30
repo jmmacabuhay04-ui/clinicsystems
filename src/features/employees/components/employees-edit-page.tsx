@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, UserPen } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { canManageStudents } from "@/lib/permissions";
@@ -74,9 +74,8 @@ export default async function EditEmployeePage({ searchParams }: Props) {
 
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                    <UserPen className="h-10 w-10 shrink-0 text-[#15664f]" />
                     <div className="min-w-0">
-                        <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">Edit Employee</h1>
+                        <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">Edit Employee</h1>
                         <p className="text-sm text-gray-600">Update the employee&apos;s details and portal login.</p>
                     </div>
                 </div>
@@ -86,13 +85,13 @@ export default async function EditEmployeePage({ searchParams }: Props) {
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={e.avatar} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover ring-2 ring-amber-300" />
                     ) : (
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-300 text-xs font-bold text-gray-900">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-300 text-sm font-semibold text-gray-900">
                             {`${e.first_name[0] ?? ""}${e.last_name[0] ?? ""}`.toUpperCase()}
                         </span>
                     )}
                     <div className="min-w-0 leading-tight">
                         <p className="truncate text-sm font-semibold text-gray-900">{fullName}</p>
-                        <p className="text-xs text-gray-500">{e.employee_number}</p>
+                        <p className="text-sm text-gray-600">{e.employee_number}</p>
                     </div>
                 </div>
             </div>

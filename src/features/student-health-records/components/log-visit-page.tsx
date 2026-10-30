@@ -4,11 +4,12 @@
 // Magkaiba ang URL para tama ang naka-highlight sa sidebar.
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, Stethoscope } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { canManageRecords } from "@/lib/permissions";
 import RecordForm, { type PersonOption, type PersonType } from "./record-form";
+import { staffDisplayName } from "@/lib/display-name";
 
 const BASES: Record<PersonType, string> = {
     student: "/dashboard/student-health-records",
@@ -37,10 +38,15 @@ export default async function LogVisitPage({ type, person }: Props) {
         hour12: false,
     }).format(now);
 
-    const localPart = session.username.split("@")[0];
-    const staffName = localPart.charAt(0).toUpperCase() + localPart.slice(1);
+    // Attending staff = Display Name sa Settings (hal. "Mclife"); kung wala pa, galing sa email
+    const me = await prisma.user
+        .findUnique({ where: { user_id: session.userId }, select: { full_name: true } })
+        .catch(() => null);
+    const staffName = staffDisplayName(me?.full_name, String(session.username ?? ""), String(session.role ?? ""));
 
-    const backHref = person ? `${base}?${type}=${encodeURIComponent(person)}` : base;
+    // Galing sa health record ng isang tao: babalik doon. Kung hindi: babalik sa Dashboard.
+    const backHref = person ? `${base}?${type}=${encodeURIComponent(person)}` : "/dashboard";
+    const backLabel = person ? "Back to Health Record" : "Back to Dashboard";
 
     // Para sa "Search by name or number" na dropdown.
     const [students, employees] = await Promise.all([
@@ -63,13 +69,12 @@ export default async function LogVisitPage({ type, person }: Props) {
                 className="inline-flex items-center gap-1 text-sm font-medium text-[#15664f] hover:underline"
             >
                 <ArrowLeft className="h-4 w-4" />
-                Back
+                {backLabel}
             </Link>
 
             <div className="flex items-center gap-3">
-                <Stethoscope className="h-10 w-10 shrink-0 text-[#15664f]" />
                 <div className="min-w-0">
-                    <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">Log Clinic Visit</h1>
+                    <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">Log Clinic Visit</h1>
                     <p className="text-sm text-gray-600">Record a new clinic visit for a student or employee.</p>
                 </div>
             </div>

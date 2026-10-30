@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
-import { HeartPulse, Save, X } from "lucide-react";
+import { useActionState, useEffect, useRef, useState } from "react";
+import { HeartPulse, Save, UserRound, X } from "lucide-react";
 import { addHealthRecord, type RecordState } from "@/features/student-health-records/new-actions";
 import { createEmployeeRecord } from "@/features/employee-health-records/record-actions";
 import SuggestInput from "@/components/shared/suggest-input";
@@ -10,9 +10,10 @@ import ConfirmSubmit from "@/components/shared/confirm-submit";
 
 const initialState: RecordState = {};
 
+// Kapareho ng New Case Report form
 const inputClass =
-    "h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20";
-const cardClass = "rounded-xl border-2 border-[#cfe5d9] bg-white p-5 shadow-md shadow-[#15664f]/10 md:p-6";
+    "h-12 w-full rounded-lg border border-gray-300 bg-white px-4 text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20";
+const cardClass = "rounded-xl border-2 border-[#cfe5d9] bg-white p-6 shadow-md shadow-[#15664f]/10 md:p-8";
 
 // Mga karaniwang dahilan at aksyon. Puwede pa ring mag-type ng iba.
 const COMMON_REASONS = [
@@ -36,6 +37,13 @@ const COMMON_ACTIONS = [
     "Advised to see a doctor",
 ];
 
+// Status ng case report na kusang nagagawa sa bawat clinic visit
+const STATUSES = [
+    { value: "pending", label: "Pending", dot: "bg-yellow-500", checked: "peer-checked:border-yellow-400 peer-checked:bg-yellow-100 peer-checked:text-yellow-800" },
+    { value: "referred", label: "Referred", dot: "bg-red-500", checked: "peer-checked:border-red-300 peer-checked:bg-red-100 peer-checked:text-red-700" },
+    { value: "resolved", label: "Resolved", dot: "bg-green-500", checked: "peer-checked:border-green-300 peer-checked:bg-green-100 peer-checked:text-green-700" },
+];
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
     return (
         <label className="block space-y-1.5">
@@ -48,9 +56,10 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 export type PersonType = "student" | "employee";
 
 // Bawat uri ay may sariling page, para tama ang naka-highlight sa sidebar.
+// Kulay kapag napili: Student = green, Employee = dilaw (kapareho ng case report)
 const PATIENT_TYPES = [
-    { type: "student", href: "/dashboard/student-health-records/new", active: "bg-[#15664f] text-white" },
-    { type: "employee", href: "/dashboard/employee-health-records/new", active: "bg-amber-300 text-gray-900" },
+    { type: "student", label: "Student", href: "/dashboard/student-health-records/new", active: "bg-[#15664f] text-white" },
+    { type: "employee", label: "Employee", href: "/dashboard/employee-health-records/new", active: "bg-amber-300 text-gray-900" },
 ] as const;
 
 export type PersonOption = { number: string; name: string };
@@ -97,6 +106,20 @@ export default function RecordForm({
     const people = isStudent ? students : employees;
     const [notesLength, setNotesLength] = useState((v.notes ?? "").length);
 
+    // Kapag walang oras na naipasa ang page, kunin ang kasalukuyang oras (Manila) dito mismo,
+    // para laging may laman ang Visit Time gaya ng Report Time sa case report.
+    const timeRef = useRef<HTMLInputElement>(null);
+    useEffect(() => {
+        const el = timeRef.current;
+        if (!el || el.value) return;
+        el.value = new Intl.DateTimeFormat("en-GB", {
+            timeZone: "Asia/Manila",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+        }).format(new Date());
+    }, []);
+
     return (
         <form action={formAction} className="space-y-5">
             {state.error && (
@@ -105,20 +128,30 @@ export default function RecordForm({
 
             <div className="grid gap-5 lg:grid-cols-[1.35fr_1fr]">
                 {/* LEFT: patient + visit */}
-                <section className={`${cardClass} space-y-5`}>
+                <section className={`${cardClass} space-y-6`}>
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                            <UserRound className="h-6 w-6 text-[#15664f]" />
+                            <h2 className="text-lg font-semibold text-gray-900">Patient &amp; Visit</h2>
+                        </div>
+                        <span className="rounded-full bg-[#eef6f2] px-3 py-1 text-sm font-semibold text-[#15664f]">
+                            New visit
+                        </span>
+                    </div>
+
                     <div className="flex flex-wrap items-center justify-between gap-3">
                         <span className="text-sm font-semibold text-gray-800">Patient Type</span>
                         <div className="inline-flex rounded-lg border border-gray-200 bg-white p-1">
-                            {PATIENT_TYPES.map(({ type: t, href, active }) => (
+                            {PATIENT_TYPES.map((p) => (
                                 <Link
-                                    key={t}
-                                    href={href}
+                                    key={p.type}
+                                    href={p.href}
                                     replace
-                                    aria-current={personType === t ? "page" : undefined}
-                                    className={`rounded-md px-4 py-1.5 text-sm font-medium capitalize transition-colors ${personType === t ? active : "text-gray-700 hover:bg-gray-100"
+                                    aria-current={personType === p.type ? "page" : undefined}
+                                    className={`rounded-md px-5 py-2 text-sm font-medium transition-colors ${personType === p.type ? p.active : "text-gray-600 hover:bg-gray-100"
                                         }`}
                                 >
-                                    {t}
+                                    {p.label}
                                 </Link>
                             ))}
                         </div>
@@ -136,7 +169,7 @@ export default function RecordForm({
                         />
                     </Field>
 
-                    <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="grid gap-5 sm:grid-cols-2">
                         <Field label="Visit Date *">
                             <input
                                 name="visitDate"
@@ -149,6 +182,7 @@ export default function RecordForm({
                         </Field>
                         <Field label="Visit Time">
                             <input
+                                ref={timeRef}
                                 name="visitTime"
                                 type="time"
                                 defaultValue={v.visitTime ?? nowTime}
@@ -181,30 +215,27 @@ export default function RecordForm({
                         />
                     </Field>
 
-                    <Field label="Symptoms / Notes">
-                        <textarea
-                            name="notes"
-                            defaultValue={v.notes ?? ""}
-                            onChange={(e) => setNotesLength(e.target.value.length)}
-                            placeholder="e.g. Patient has mild fever (38°C) and sore throat."
-                            maxLength={500}
-                            rows={4}
-                            suppressHydrationWarning
-                            className="w-full resize-none rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20"
+                    <Field label="Action Taken">
+                        <SuggestInput
+                            name="actionTaken"
+                            defaultValue={v.actionTaken ?? ""}
+                            suggestions={COMMON_ACTIONS.map((a) => ({ value: a }))}
+                            placeholder="Select or type the action taken..."
+                            maxLength={255}
+                            className={inputClass}
                         />
-                        <span className="block text-right text-xs text-gray-500">{notesLength}/500</span>
                     </Field>
                 </section>
 
-                {/* RIGHT: vital signs + action */}
-                <section className={`${cardClass} flex flex-col gap-5`}>
+                {/* RIGHT: vital signs + status + notes + buttons */}
+                <section className={`${cardClass} flex flex-col gap-6`}>
                     <div className="flex items-center gap-2">
-                        <HeartPulse className="h-5 w-5 text-[#15664f]" />
-                        <h2 className="text-base font-semibold text-gray-900">Vital Signs</h2>
-                        <span className="text-xs text-gray-500">(optional)</span>
+                        <HeartPulse className="h-6 w-6 text-[#15664f]" />
+                        <h2 className="text-lg font-semibold text-gray-900">Vital Signs</h2>
+                        <span className="text-sm text-gray-600">(optional)</span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-4 xl:grid-cols-3">
                         <Field label="Temperature (°C)">
                             <input name="temperature" type="number" step="0.1" defaultValue={v.temperature ?? ""} placeholder="36.5" suppressHydrationWarning className={inputClass} />
                         </Field>
@@ -240,31 +271,59 @@ export default function RecordForm({
                         </Field>
                     </div>
 
-                    <Field label="Action Taken">
-                        <SuggestInput
-                            name="actionTaken"
-                            defaultValue={v.actionTaken ?? ""}
-                            suggestions={COMMON_ACTIONS.map((a) => ({ value: a }))}
-                            placeholder="Select or type the action taken..."
-                            maxLength={255}
-                            className={inputClass}
+                    {/* Status ng awtomatikong Health Case Report ng visit na ito */}
+                    <div className="space-y-1.5">
+                        <span className="block text-sm font-semibold text-gray-800">Status</span>
+                        <div className="grid grid-cols-3 gap-2">
+                            {STATUSES.map((s) => (
+                                <label key={s.value} className="cursor-pointer">
+                                    <input
+                                        type="radio"
+                                        name="status"
+                                        value={s.value}
+                                        defaultChecked={(v.status ?? "pending") === s.value}
+                                        className="peer sr-only"
+                                    />
+                                    <span
+                                        className={`flex h-12 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-2 text-sm font-semibold text-gray-600 transition-colors hover:bg-gray-50 peer-focus-visible:ring-2 peer-focus-visible:ring-[#15664f]/30 ${s.checked}`}
+                                    >
+                                        <span className={`h-2 w-2 shrink-0 rounded-full ${s.dot}`} />
+                                        {s.label}
+                                    </span>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+
+                    <Field label="Symptoms / Notes">
+                        <textarea
+                            name="notes"
+                            defaultValue={v.notes ?? ""}
+                            onChange={(e) => setNotesLength(e.target.value.length)}
+                            placeholder="e.g. Patient has mild fever (38°C) and sore throat."
+                            maxLength={500}
+                            rows={4}
+                            suppressHydrationWarning
+                            className="w-full resize-none rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20"
                         />
+                        <span className="block text-right text-sm text-gray-600">{notesLength}/500</span>
                     </Field>
 
+                    {/* Mga button sa loob ng card, sa ibaba (kapareho ng case report) */}
                     <div className="mt-auto flex justify-end gap-3 pt-2">
                         <Link
                             href={cancelHref}
-                            className="inline-flex h-11 items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                            className="inline-flex h-12 items-center gap-2 rounded-lg border border-gray-300 bg-white px-5 text-sm font-medium text-gray-600 hover:bg-gray-50"
                         >
                             <X className="h-4 w-4" />
                             Cancel
                         </Link>
                         <ConfirmSubmit
                             title="Save this clinic visit?"
-                            message={`Please make sure the ${isStudent ? "student" : "employee"}, reason for visit, and vital signs are correct. A pending Health Case Report will also be created for this visit.`}
+                            message={`Please make sure the ${isStudent ? "student" : "employee"}, reason for visit, and vital signs are correct. A Health Case Report with the selected status will also be created for this visit.`}
                             confirmLabel="Save Visit"
                             disabled={pending}
-                            className="inline-flex h-11 items-center gap-2 rounded-lg bg-[#15664f] px-5 text-sm font-semibold text-white shadow-sm hover:bg-[#10523f] disabled:opacity-60"
+                            className="inline-flex h-12 items-center gap-2 rounded-lg bg-[#15664f] px-6 text-sm font-semibold text-white shadow-sm hover:bg-[#10523f] disabled:opacity-60"
                         >
                             <Save className="h-4 w-4" />
                             {pending ? "Saving..." : "Save Visit"}

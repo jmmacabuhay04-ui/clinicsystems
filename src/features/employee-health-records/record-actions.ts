@@ -14,8 +14,8 @@ const BASE = "/dashboard/employee-health-records";
 // prisma.$transaction(async (tx) => ...), whatever Prisma version or
 // client extensions the project uses.
 type Tx = {
-    $queryRaw: <T = unknown>(query: TemplateStringsArray, ...values: any[]) => PromiseLike<T>;
-    $executeRaw: (query: TemplateStringsArray, ...values: any[]) => PromiseLike<number>;
+    $queryRaw: <T = unknown>(query: TemplateStringsArray, ...values: unknown[]) => PromiseLike<T>;
+    $executeRaw: (query: TemplateStringsArray, ...values: unknown[]) => PromiseLike<number>;
 };
 
 type VisitCase = {
@@ -26,6 +26,8 @@ type VisitCase = {
     staffName: string | null;
     notes: string | null;
     recordedBy: string | number;
+    /** pending / referred / resolved (galing sa Status sa Log Clinic Visit) */
+    status: string;
 };
 
 async function nextCaseNumber(tx: Tx, year: number) {
@@ -85,7 +87,7 @@ async function createCaseFromVisit(tx: Tx, v: VisitCase): Promise<boolean> {
        staff_name, status, notes, recorded_by)
     VALUES
       (${caseNumber}, ${v.studentId}, ${v.employeeId}, ${v.complaint},
-       CAST(${v.reportDate} AS DATE), ${v.staffName}, 'pending',
+       CAST(${v.reportDate} AS DATE), ${v.staffName}, ${v.status},
        ${v.notes}, ${v.recordedBy})
   `;
 
@@ -108,9 +110,7 @@ function readValues(formData: FormData) {
         dateOfBirth: get("dateOfBirth"),
         gender: get("gender"),
         visitDate: get("visitDate"),
-        visitTime: get("visitTime"), // HH:MM, optional
         complaint: get("complaint"),
-        notes: get("notes"), // symptoms / notes, optional
         actionTaken: get("actionTaken"),
         attendingStaff: get("attendingStaff"),
         heightCm: get("heightCm"),
@@ -118,6 +118,7 @@ function readValues(formData: FormData) {
         heartRate: get("heartRate"),
         bloodPressure: get("bloodPressure"),
         temperature: get("temperature"),
+        status: get("status") || "pending",
     };
 }
 
@@ -135,11 +136,8 @@ export async function createEmployeeRecord(
     if (!values.employeeNumber || !values.visitDate || !values.complaint) {
         return { error: "Employee, visit date, and complaint are required.", values };
     }
-    if (values.visitTime && !/^\d{2}:\d{2}$/.test(values.visitTime)) {
-        return { error: "Enter a valid visit time.", values };
-    }
-    if (values.notes.length > 500) {
-        return { error: "Symptoms / notes must be 500 characters or less.", values };
+    if (!["pending", "referred", "resolved"].includes(values.status)) {
+        return { error: "Select a valid status.", values };
     }
 
     try {
@@ -170,18 +168,17 @@ export async function createEmployeeRecord(
 
             await tx.$executeRaw`
       INSERT INTO employee_health_records
-        (employee_id, visit_date, visit_time, complaint, notes, action_taken, attending_staff,
+        (employee_id, visit_date, complaint, action_taken, attending_staff,
          height_cm, weight_kg, heart_rate, blood_pressure, temperature, recorded_by)
       VALUES
-        (${employeeId}, ${values.visitDate}::date, CAST(${values.visitTime || null} AS TIME),
-         ${values.complaint}, ${values.notes || null},
+        (${employeeId}, ${values.visitDate}::date, ${values.complaint},
          ${values.actionTaken || null}, ${values.attendingStaff || null},
          ${num(formData, "heightCm")}, ${num(formData, "weightKg")},
          ${num(formData, "heartRate")}, ${values.bloodPressure || null},
          ${num(formData, "temperature")}, ${session.username})
     `;
 
-            // Every clinic visit becomes a pending Health Case Report.
+            // Every clinic visit becomes a Health Case Report (status galing sa form, default Pending).
             await createCaseFromVisit(tx, {
                 studentId: null,
                 employeeId,
@@ -190,6 +187,7 @@ export async function createEmployeeRecord(
                 staffName: values.attendingStaff || null,
                 notes: values.actionTaken || null,
                 recordedBy: session.userId,
+                status: values.status,
             });
         });
     } catch (err) {

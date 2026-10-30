@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { ClipboardCheck, Save, UserRound, X } from "lucide-react";
 import { updateCaseReport, type EditCaseState } from "@/features/case-reports/edit-actions";
 import ConfirmButton from "@/components/shared/confirm-button";
@@ -10,7 +10,7 @@ import SuggestInput from "@/components/shared/suggest-input";
 const initialState: EditCaseState = {};
 
 const inputClass =
-    "h-12 w-full rounded-lg border border-gray-300 bg-white px-4 text-[15px] text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20";
+    "h-12 w-full rounded-lg border border-gray-300 bg-white px-4 text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20";
 const cardClass = "rounded-xl border-2 border-[#cfe5d9] bg-white p-6 shadow-md shadow-[#15664f]/10 md:p-8";
 
 const COMMON_DIAGNOSES = [
@@ -38,9 +38,9 @@ const COMMON_ACTIONS = [
 
 // Kulay ng bawat status kapag napili.
 const STATUSES = [
-    { value: "pending", label: "Pending", checked: "peer-checked:border-yellow-400 peer-checked:bg-yellow-100 peer-checked:text-yellow-800" },
-    { value: "referred", label: "Referred", checked: "peer-checked:border-red-300 peer-checked:bg-red-100 peer-checked:text-red-700" },
-    { value: "resolved", label: "Resolved", checked: "peer-checked:border-green-300 peer-checked:bg-green-100 peer-checked:text-green-700" },
+    { value: "pending", label: "Pending", dot: "bg-yellow-500", checked: "peer-checked:border-yellow-400 peer-checked:bg-yellow-100 peer-checked:text-yellow-800" },
+    { value: "referred", label: "Referred", dot: "bg-red-500", checked: "peer-checked:border-red-300 peer-checked:bg-red-100 peer-checked:text-red-700" },
+    { value: "resolved", label: "Resolved", dot: "bg-green-500", checked: "peer-checked:border-green-300 peer-checked:bg-green-100 peer-checked:text-green-700" },
 ];
 
 // Kulay ng Student / Employee kapag napili.
@@ -52,7 +52,7 @@ const PATIENT_TYPES = [
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
     return (
         <label className="block space-y-1.5">
-            <span className="text-[15px] font-semibold text-gray-800">{label}</span>
+            <span className="text-sm font-semibold text-gray-800">{label}</span>
             {children}
         </label>
     );
@@ -67,7 +67,11 @@ type Props = {
     patientNumber: string;
     complaint: string;
     reportDate: string;
+    /** HH:MM; blangko kung walang oras ang lumang report */
+    reportTime?: string;
     staffName: string;
+    /** Ang dating staff na nag-record (ipinapakita sa ilalim ng Attending Staff) */
+    recordedBy?: string;
     status: string;
     notes: string;
     actionTaken?: string;
@@ -90,6 +94,19 @@ export default function EditCaseForm(props: Props) {
     const currentStatus = v.status ?? props.status;
     const [notesLength, setNotesLength] = useState((v.notes ?? props.notes).length);
 
+    // Kung walang oras ang report (hal. lumang report), ilagay ang oras ngayon (Manila)
+    const timeRef = useRef<HTMLInputElement>(null);
+    useEffect(() => {
+        const el = timeRef.current;
+        if (!el || el.value) return;
+        el.value = new Intl.DateTimeFormat("en-GB", {
+            timeZone: "Asia/Manila",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+        }).format(new Date());
+    }, []);
+
     // Kapag pinalitan ang uri, huwag dalhin ang number ng ibang uri.
     const numberDefault =
         patientType === props.patientType ? (v.patientNumber ?? props.patientNumber) : (v.patientNumber ?? "");
@@ -111,20 +128,20 @@ export default function EditCaseForm(props: Props) {
                             <UserRound className="h-6 w-6 text-[#15664f]" />
                             <h2 className="text-lg font-semibold text-gray-900">Patient &amp; Case</h2>
                         </div>
-                        <span className="rounded-full bg-[#eef6f2] px-3 py-1 text-xs font-semibold text-[#15664f]">
+                        <span className="rounded-full bg-[#eef6f2] px-3 py-1 text-sm font-semibold text-[#15664f]">
                             Case {props.caseNumber}
                         </span>
                     </div>
 
                     <div className="flex flex-wrap items-center justify-between gap-3">
-                        <span className="text-[15px] font-semibold text-gray-800">Patient Type</span>
+                        <span className="text-sm font-semibold text-gray-800">Patient Type</span>
                         <div className="inline-flex rounded-lg border border-gray-200 bg-white p-1">
                             {PATIENT_TYPES.map((p) => (
                                 <button
                                     key={p.type}
                                     type="button"
                                     onClick={() => setPatientType(p.type)}
-                                    className={`rounded-md px-5 py-2 text-[15px] font-medium transition-colors ${patientType === p.type ? p.active : "text-gray-700 hover:bg-gray-100"
+                                    className={`rounded-md px-5 py-2 text-sm font-medium transition-colors ${patientType === p.type ? p.active : "text-gray-600 hover:bg-gray-100"
                                         }`}
                                 >
                                     {p.label}
@@ -145,6 +162,7 @@ export default function EditCaseForm(props: Props) {
                         />
                     </Field>
 
+                    {/* Petsa at oras: magkatabi, gaya ng Log Clinic Visit */}
                     <div className="grid gap-5 sm:grid-cols-2">
                         <Field label="Report Date *">
                             <input
@@ -156,17 +174,33 @@ export default function EditCaseForm(props: Props) {
                                 className={inputClass}
                             />
                         </Field>
-                        <Field label="Attending Staff">
+                        <Field label="Report Time">
                             <input
-                                name="staffName"
-                                defaultValue={v.staffName ?? props.staffName}
-                                placeholder="e.g. Nurse Reyes"
-                                maxLength={100}
+                                ref={timeRef}
+                                name="reportTime"
+                                type="time"
+                                defaultValue={v.reportTime ?? props.reportTime ?? ""}
                                 suppressHydrationWarning
                                 className={inputClass}
                             />
                         </Field>
                     </div>
+
+                    <Field label="Attending Staff">
+                        <input
+                            name="staffName"
+                            defaultValue={v.staffName ?? props.staffName}
+                            placeholder="e.g. Nurse Reyes"
+                            maxLength={100}
+                            suppressHydrationWarning
+                            className={inputClass}
+                        />
+                        {props.recordedBy && props.recordedBy !== props.staffName && (
+                            <p className="mt-1 text-sm text-gray-600">
+                                Recorded by <span className="font-medium text-gray-900">{props.recordedBy}</span>
+                            </p>
+                        )}
+                    </Field>
 
                     <Field label="Diagnosis / Complaint *">
                         <SuggestInput
@@ -200,7 +234,7 @@ export default function EditCaseForm(props: Props) {
                     </div>
 
                     <div className="space-y-1.5">
-                        <span className="block text-[15px] font-semibold text-gray-800">Status</span>
+                        <span className="block text-sm font-semibold text-gray-800">Status</span>
                         <div className="grid grid-cols-3 gap-2">
                             {STATUSES.map((s) => (
                                 <label key={s.value} className="cursor-pointer">
@@ -212,8 +246,9 @@ export default function EditCaseForm(props: Props) {
                                         className="peer sr-only"
                                     />
                                     <span
-                                        className={`flex h-12 items-center justify-center rounded-lg border border-gray-300 bg-white text-[15px] font-semibold text-gray-600 transition-colors hover:bg-gray-50 peer-focus-visible:ring-2 peer-focus-visible:ring-[#15664f]/30 ${s.checked}`}
+                                        className={`flex h-12 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-2 text-sm font-semibold text-gray-600 transition-colors hover:bg-gray-50 peer-focus-visible:ring-2 peer-focus-visible:ring-[#15664f]/30 ${s.checked}`}
                                     >
+                                        <span className={`h-2 w-2 shrink-0 rounded-full ${s.dot}`} />
                                         {s.label}
                                     </span>
                                 </label>
@@ -230,15 +265,15 @@ export default function EditCaseForm(props: Props) {
                             maxLength={1000}
                             placeholder="Additional details about the case..."
                             suppressHydrationWarning
-                            className="w-full resize-none rounded-lg border border-gray-300 bg-white px-4 py-3 text-[15px] text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20"
+                            className="w-full resize-none rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20"
                         />
-                        <span className="block text-right text-xs text-gray-500">{notesLength}/1000</span>
+                        <span className="block text-right text-sm text-gray-600">{notesLength}/1000</span>
                     </Field>
 
                     <div className="mt-auto flex justify-end gap-3 pt-2">
                         <Link
                             href={props.cancelHref}
-                            className="inline-flex h-12 items-center gap-2 rounded-lg border border-gray-300 bg-white px-5 text-[15px] font-medium text-gray-700 hover:bg-gray-50"
+                            className="inline-flex h-12 items-center gap-2 rounded-lg border border-gray-300 bg-white px-5 text-sm font-medium text-gray-600 hover:bg-gray-50"
                         >
                             <X className="h-4 w-4" />
                             Cancel
@@ -248,7 +283,7 @@ export default function EditCaseForm(props: Props) {
                             message="Save your changes to this health case report? The existing information will be replaced."
                             confirmLabel="Save"
                             disabled={pending}
-                            className="inline-flex h-12 items-center gap-2 rounded-lg bg-[#15664f] px-6 text-[15px] font-semibold text-white shadow-sm hover:bg-[#10523f] disabled:opacity-60"
+                            className="inline-flex h-12 items-center gap-2 rounded-lg bg-[#15664f] px-6 text-sm font-semibold text-white shadow-sm hover:bg-[#10523f] disabled:opacity-60"
                         >
                             <Save className="h-4 w-4" />
                             {pending ? "Saving..." : "Save Changes"}

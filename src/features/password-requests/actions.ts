@@ -16,7 +16,7 @@ type PendingRow = { student_id: number | null; employee_id: number | null };
 // Nurse sets the new password directly from the request row
 export async function setPasswordFromRequest(formData: FormData) {
     const session = await getSession();
-    if (!session || !canManageStudents(session.role)) return;
+    if (!session || (!canManageStudents(session.role) && session.role !== "ittech")) return;
 
     const requestId = Number(formData.get("requestId"));
     const password = String(formData.get("password") ?? "");
@@ -79,7 +79,7 @@ export async function setPasswordFromRequest(formData: FormData) {
 
 export async function dismissRequest(formData: FormData) {
     const session = await getSession();
-    if (!session || !canManageStudents(session.role)) return;
+    if (!session || (!canManageStudents(session.role) && session.role !== "ittech")) return;
 
     const requestId = Number(formData.get("requestId"));
     if (!requestId) return;

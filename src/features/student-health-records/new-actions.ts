@@ -18,8 +18,8 @@ class ValidationError extends Error { }
 // prisma.$transaction(async (tx) => ...), whatever Prisma version or
 // client extensions the project uses.
 type Tx = {
-    $queryRaw: <T = unknown>(query: TemplateStringsArray, ...values: any[]) => PromiseLike<T>;
-    $executeRaw: (query: TemplateStringsArray, ...values: any[]) => PromiseLike<number>;
+    $queryRaw: <T = unknown>(query: TemplateStringsArray, ...values: unknown[]) => PromiseLike<T>;
+    $executeRaw: (query: TemplateStringsArray, ...values: unknown[]) => PromiseLike<number>;
 };
 
 type VisitCase = {
@@ -30,6 +30,8 @@ type VisitCase = {
     staffName: string | null;
     notes: string | null;
     recordedBy: string | number;
+    /** pending / referred / resolved (galing sa Status sa Log Clinic Visit) */
+    status: string;
 };
 
 async function nextCaseNumber(tx: Tx, year: number) {
@@ -89,7 +91,7 @@ async function createCaseFromVisit(tx: Tx, v: VisitCase): Promise<boolean> {
        staff_name, status, notes, recorded_by)
     VALUES
       (${caseNumber}, ${v.studentId}, ${v.employeeId}, ${v.complaint},
-       CAST(${v.reportDate} AS DATE), ${v.staffName}, 'pending',
+       CAST(${v.reportDate} AS DATE), ${v.staffName}, ${v.status},
        ${v.notes}, ${v.recordedBy})
   `;
 
@@ -126,8 +128,7 @@ export async function addHealthRecord(_prev: RecordState, formData: FormData): P
     const bloodPressure = get("bloodPressure");
     const dateOfBirth = get("dateOfBirth");
     const gender = get("gender");
-    const visitTime = get("visitTime"); // HH:MM, optional
-    const notes = get("notes"); // symptoms / notes, optional
+    const status = get("status") || "pending";
 
     if (!studentNumber || !visitDate || !complaint) {
         return fail("Student number, visit date, and complaint are required.");
@@ -135,11 +136,10 @@ export async function addHealthRecord(_prev: RecordState, formData: FormData): P
     if (!/^\d{4}-\d{2}-\d{2}$/.test(visitDate)) return fail("Enter a valid visit date.");
     if (dateOfBirth && !/^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth)) return fail("Enter a valid date of birth.");
     if (gender && gender !== "Male" && gender !== "Female") return fail("Select a valid gender.");
+    if (!["pending", "referred", "resolved"].includes(status)) return fail("Select a valid status.");
     if (bloodPressure && !/^\d{2,3}\/\d{2,3}$/.test(bloodPressure)) {
         return fail("Blood pressure must look like 110/70.");
     }
-    if (visitTime && !/^\d{2}:\d{2}$/.test(visitTime)) return fail("Enter a valid visit time.");
-    if (notes.length > 500) return fail("Symptoms / notes must be 500 characters or less.");
 
     let height: number | null;
     let weight: number | null;
@@ -170,11 +170,10 @@ export async function addHealthRecord(_prev: RecordState, formData: FormData): P
         await prisma.$transaction(async (tx) => {
             await tx.$executeRaw`
         INSERT INTO health_records
-          (student_id, visit_date, visit_time, complaint, notes, action_taken, attending_staff,
+          (student_id, visit_date, complaint, action_taken, attending_staff,
            height_cm, weight_kg, heart_rate, blood_pressure, temperature, recorded_by)
         VALUES
-          (${studentId}, CAST(${visitDate} AS DATE), CAST(${visitTime || null} AS TIME),
-           ${complaint}, ${notes || null}, ${actionTaken || null},
+          (${studentId}, CAST(${visitDate} AS DATE), ${complaint}, ${actionTaken || null},
            ${attendingStaff || null}, ${height}, ${weight}, ${heartRate},
            ${bloodPressure || null}, ${temperature}, ${session.userId})
       `;
@@ -186,7 +185,7 @@ export async function addHealthRecord(_prev: RecordState, formData: FormData): P
         WHERE student_id = ${studentId}
       `;
 
-            // Every clinic visit becomes a pending Health Case Report.
+            // Every clinic visit becomes a Health Case Report (status galing sa form, default Pending).
             await createCaseFromVisit(tx, {
                 studentId,
                 employeeId: null,
@@ -195,10 +194,17 @@ export async function addHealthRecord(_prev: RecordState, formData: FormData): P
                 staffName: attendingStaff || null,
                 notes: actionTaken || null,
                 recordedBy: session.userId,
+                status,
             });
         });
     } catch (err) {
         console.error("Add health record error:", err);
+        // Habang naka-"npm run dev": ipakita ang totoong error sa form para madaling makita.
+        // Sa production, ang simpleng mensahe lang ang lalabas.
+        if (process.env.NODE_ENV !== "production") {
+            const detail = err instanceof Error ? err.message : String(err);
+            return fail(`Could not save the record. ${detail}`);
+        }
         return fail("Could not save the record. Please try again.");
     }
 

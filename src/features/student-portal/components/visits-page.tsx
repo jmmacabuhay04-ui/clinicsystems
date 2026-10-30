@@ -13,7 +13,7 @@ function DateBlock({ date }: { date: Date }) {
     const day = d.toLocaleDateString("en-US", { day: "numeric", timeZone: "UTC" });
     return (
         <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-lg bg-[#eef6f2] text-[#15664f]">
-            <span className="text-[10px] font-bold tracking-wide">{month}</span>
+            <span className="text-sm font-semibold tracking-wide">{month}</span>
             <span className="text-xl font-bold leading-none">{day}</span>
         </div>
     );
@@ -37,9 +37,8 @@ export default async function StudentVisitsPage() {
                 {/* Header */}
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
-                        <Stethoscope className="h-10 w-10 shrink-0 text-[#15664f]" />
                         <div>
-                            <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">My Visits</h1>
+                            <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">My Visits</h1>
                             <p className="text-sm text-gray-600">Your clinic visits and the care you received.</p>
                         </div>
                     </div>
@@ -52,7 +51,7 @@ export default async function StudentVisitsPage() {
                     <div className="flex flex-col items-center rounded-xl border-2 border-dashed border-[#cfe5d9] bg-white p-12 text-center">
                         <Stethoscope className="h-12 w-12 text-[#15664f]/30" />
                         <p className="mt-3 font-semibold text-gray-800">No clinic visits yet</p>
-                        <p className="mt-1 text-sm text-gray-500">Your visits will appear here after you are seen at the clinic.</p>
+                        <p className="mt-1 text-sm text-gray-600">Your visits will appear here after you are seen at the clinic.</p>
                     </div>
                 )}
 
@@ -65,7 +64,7 @@ export default async function StudentVisitsPage() {
                                     <p className="break-words font-semibold capitalize text-gray-900">{v.complaint}</p>
                                     <p className="text-sm text-gray-600">{formatDate(v.visit_date)}</p>
                                     {v.attending_staff && (
-                                        <p className="break-words text-xs text-gray-500">Seen by {v.attending_staff}</p>
+                                        <p className="break-words text-sm text-gray-600">Seen by {v.attending_staff}</p>
                                     )}
                                 </div>
                                 <span className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-[#15664f]">
@@ -80,28 +79,28 @@ export default async function StudentVisitsPage() {
                                     <div className="flex items-start gap-3 rounded-lg bg-[#f6faf8] p-3">
                                         <Stethoscope className="mt-0.5 h-4 w-4 shrink-0 text-[#15664f]" />
                                         <div className="min-w-0">
-                                            <p className="text-xs text-gray-600">Complaint</p>
+                                            <p className="text-sm text-gray-600">Complaint</p>
                                             <p className="break-words font-semibold capitalize text-gray-900">{v.complaint || "—"}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-start gap-3 rounded-lg bg-[#f6faf8] p-3">
                                         <UserRound className="mt-0.5 h-4 w-4 shrink-0 text-[#15664f]" />
                                         <div className="min-w-0">
-                                            <p className="text-xs text-gray-600">Attending Staff</p>
+                                            <p className="text-sm text-gray-600">Attending Staff</p>
                                             <p className="break-words font-semibold text-gray-900">{v.attending_staff || "—"}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-start gap-3 rounded-lg bg-[#f6faf8] p-3">
                                         <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-[#15664f]" />
                                         <div className="min-w-0">
-                                            <p className="text-xs text-gray-600">Visit Date</p>
+                                            <p className="text-sm text-gray-600">Visit Date</p>
                                             <p className="font-semibold text-gray-900">{formatDate(v.visit_date, "short")}</p>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div className="rounded-lg border border-gray-200 p-4">
-                                    <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                    <p className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-gray-600">
                                         <ClipboardCheck className="h-4 w-4 text-[#15664f]" />
                                         Action Taken
                                     </p>

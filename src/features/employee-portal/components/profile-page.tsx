@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Clock, IdCard, KeyRound, LockKeyhole, Phone, Send, UserRound } from "lucide-react";
+import { Clock, IdCard, LockKeyhole, Phone, Send, UserRound } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getEmployeeSession } from "@/lib/auth/employee-session";
 import EmployeeNav from "@/components/layout/employee-nav";
@@ -21,9 +21,6 @@ function InfoCard({ icon, title, fields }: { icon: React.ReactNode; title: strin
     return (
         <section className={`${card} min-w-0 overflow-hidden`}>
             <div className="flex items-center gap-3 p-5 pb-4">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#eef6f2] text-[#15664f]">
-                    {icon}
-                </span>
                 <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
             </div>
             <dl className="divide-y divide-gray-100 border-t border-gray-100">
@@ -83,9 +80,8 @@ export default async function EmployeeProfilePage({ searchParams }: Props) {
             <main className="mx-auto max-w-5xl space-y-6 p-4 pb-10 md:p-6">
                 {/* Header */}
                 <div className="flex items-center gap-3">
-                    <UserRound className="h-10 w-10 shrink-0 text-[#15664f]" />
                     <div>
-                        <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">My Profile</h1>
+                        <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">My Profile</h1>
                         <p className="text-sm text-gray-600">Your personal details on file at the clinic.</p>
                     </div>
                 </div>
@@ -109,16 +105,13 @@ export default async function EmployeeProfilePage({ searchParams }: Props) {
                     </div>
                 </div>
 
-                <p className="text-center text-xs text-gray-500">
+                <p className="text-center text-sm text-gray-600">
                     See something wrong? Ask the clinic nurse to update your details.
                 </p>
 
                 {/* Password change request */}
                 <section className={`${card} p-5 md:p-6`}>
                     <div className="flex items-start gap-3">
-                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#eef6f2] text-[#15664f]">
-                            <KeyRound className="h-5 w-5" />
-                        </span>
                         <div>
                             <h2 className="text-lg font-semibold text-gray-900">Password</h2>
                             <p className="text-sm text-gray-600">

@@ -1,18 +1,12 @@
 "use client";
-
-import { useRouter } from "next/navigation";
-import { useActionState, useEffect } from "react";
+import { useActionState } from "react";
 import { Briefcase, Camera, KeyRound, Phone, Save, ShieldCheck, UserRound, X } from "lucide-react";
 import { createEmployee, updateEmployee, type EmployeeState } from "@/features/employees/employee-actions";
-import BirthdateField from "@/components/shared/birthdate-field";
-import PasswordInput from "@/components/shared/password-input";
-import FlashMessage from "@/components/shared/flash-message";
 import ConfirmSubmit from "@/components/shared/confirm-submit";
 import ConfirmLink from "@/components/shared/confirm-link";
+import BirthdateField from "@/components/shared/birthdate-field";
+import PasswordInput from "@/components/shared/password-input";
 import RecordAvatar from "@/components/shared/record-avatar";
-
-/** Gaano katagal ipapakita ang success message bago lumipat ng page. */
-const SUCCESS_DELAY_MS = 3000;
 
 const initialState: EmployeeState = {};
 
@@ -21,11 +15,12 @@ const inputClass =
 
 const card = "rounded-xl border-2 border-[#cfe5d9] bg-white shadow-md shadow-[#15664f]/10";
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
     return (
         <label className="block space-y-1.5">
             <span className="text-sm font-semibold text-gray-800">{label}</span>
             {children}
+            {hint && <span className="block text-sm text-gray-600">{hint}</span>}
         </label>
     );
 }
@@ -42,12 +37,9 @@ function SectionHeader({
 }) {
     return (
         <div className="flex items-start gap-3 border-b border-gray-100 px-5 py-4 md:px-6">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
-                {icon}
-            </span>
             <div className="min-w-0">
                 <h2 className="text-base font-semibold text-gray-900 md:text-lg">{title}</h2>
-                {description && <p className="text-sm text-gray-500">{description}</p>}
+                {description && <p className="text-sm text-gray-600">{description}</p>}
             </div>
         </div>
     );
@@ -69,52 +61,27 @@ export type EmployeeValues = {
     photoUrl?: string;
 };
 
-export default function EmployeeForm({
-    mode,
-    employee,
-    cancelHref,
-    avatar = null,
-}: {
+type Props = {
     mode: "create" | "edit";
     employee: EmployeeValues;
     cancelHref: string;
     /** Kasalukuyang profile picture (edit lang) */
     avatar?: string | null;
-}) {
+};
+
+export default function EmployeeForm({ mode, employee, cancelHref, avatar = null }: Props) {
     const action = mode === "create" ? createEmployee : updateEmployee;
-    const [rawState, formAction, pending] = useActionState(action, initialState);
-    const router = useRouter();
-
-    // Maluwag na type: gumagana kahit wala ang success/redirectTo/values sa EmployeeState mo
-    const state = rawState as {
-        error?: string;
-        success?: string;
-        redirectTo?: string;
-        values?: Record<string, string>;
-    };
-
-    // Pagkatapos ng successful save: hintayin ang 3 segundo bago lumipat.
-    useEffect(() => {
-        if (!state.success || !state.redirectTo) return;
-        const timer = setTimeout(() => router.push(state.redirectTo!), SUCCESS_DELAY_MS);
-        return () => clearTimeout(timer);
-    }, [state, router]);
-
-    const saved = Boolean(state.success);
+    const [state, formAction, pending] = useActionState(action, initialState);
 
     const { employeeId, ...rest } = employee;
-    const v: Record<string, string> = { ...(rest as Record<string, string>), ...(state.values ?? {}) };
+    // Maluwag na type para gumana kahit anong laman ng EmployeeState mo
+    const extra = (state as { values?: Record<string, string> }).values ?? {};
+    const v: Record<string, string> = { ...(rest as Record<string, string>), ...extra };
 
     return (
         <form action={formAction} className="space-y-6">
             {state.error && (
                 <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{state.error}</p>
-            )}
-
-            {state.success && (
-                <FlashMessage key={state.success + String(state.redirectTo)} duration={SUCCESS_DELAY_MS}>
-                    {state.success} Returning to the employee list...
-                </FlashMessage>
             )}
 
             {mode === "edit" && <input type="hidden" name="employeeId" value={employeeId} />}
@@ -178,15 +145,15 @@ export default function EmployeeForm({
                                     type="employee"
                                     id={employeeId}
                                     current={avatar}
-                                    initials={`${employee.firstName[0] ?? ""}${employee.lastName[0] ?? ""}`.toUpperCase()}
+                                    initials={`${(employee.firstName[0] ?? "")}${(employee.lastName[0] ?? "")}`.toUpperCase()}
                                     canEdit
                                 />
                             ) : (
-                                <span className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-dashed border-amber-300 bg-amber-50 text-amber-500">
+                                <span className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-dashed border-[#cfe5d9] bg-[#f6faf8] text-[#15664f]/50">
                                     <Camera className="h-7 w-7" />
                                 </span>
                             )}
-                            <span className="text-center text-xs text-gray-500">
+                            <span className="text-center text-sm text-gray-600">
                                 {mode === "edit"
                                     ? "Click the photo to upload or change it."
                                     : "You can add a photo after saving."}
@@ -292,7 +259,6 @@ export default function EmployeeForm({
                                 autoComplete="new-password"
                                 minLength={8}
                                 required={mode === "create"}
-                                suppressHydrationWarning
                                 className={inputClass}
                             />
                         </Field>
@@ -303,7 +269,6 @@ export default function EmployeeForm({
                                 autoComplete="new-password"
                                 minLength={8}
                                 required={mode === "create"}
-                                suppressHydrationWarning
                                 className={inputClass}
                             />
                         </Field>
@@ -314,20 +279,19 @@ export default function EmployeeForm({
                             <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
                             <div>
                                 <p className="text-sm font-semibold text-amber-900">Confirm it&apos;s you</p>
-                                <p className="mt-0.5 text-xs text-amber-800">
+                                <p className="mt-0.5 text-sm text-amber-800">
                                     Employee passwords are confidential. Enter your own account password to save this
                                     {mode === "create" ? " new account." : " password change."}
                                 </p>
                             </div>
                         </div>
                         <div className="w-full md:max-w-xs">
-                            <Field label={mode === "create" ? "Your Password *" : "Your Password"}>
+                            <Field label="Your Password *">
                                 <PasswordInput
                                     name="staffPassword"
                                     placeholder="Your own login password"
                                     autoComplete="current-password"
                                     required={mode === "create"}
-                                    suppressHydrationWarning
                                     className={inputClass}
                                 />
                             </Field>
@@ -343,7 +307,7 @@ export default function EmployeeForm({
                     title="Discard changes?"
                     message="The information you entered will not be saved."
                     confirmLabel="Discard"
-                    className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                    className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-5 text-sm font-semibold text-gray-600 hover:bg-gray-50"
                 >
                     <X className="h-4 w-4" />
                     Cancel
@@ -356,11 +320,11 @@ export default function EmployeeForm({
                             : "The employee's current information will be replaced with your changes."
                     }
                     confirmLabel="Save"
-                    disabled={pending || saved}
+                    disabled={pending}
                     className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-[#15664f] px-6 text-sm font-semibold text-white shadow-sm hover:bg-[#10523f] disabled:opacity-60"
                 >
                     <Save className="h-4 w-4" />
-                    {pending ? "Saving..." : saved ? "Saved" : mode === "create" ? "Create Employee" : "Save Changes"}
+                    {pending ? "Saving..." : mode === "create" ? "Create Employee" : "Save Changes"}
                 </ConfirmSubmit>
             </div>
         </form>

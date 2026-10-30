@@ -39,9 +39,8 @@ export default async function StudentChangePasswordPage({
                 )}
 
                 <div className="flex items-center gap-3">
-                    <LockKeyhole className="h-10 w-10 shrink-0 text-[#15664f]" />
                     <div>
-                        <h1 className="text-2xl font-semibold text-gray-900">Change Password</h1>
+                        <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">Change Password</h1>
                         <p className="text-sm text-gray-600">{PASSWORD_RULES_TEXT}</p>
                     </div>
                 </div>
@@ -99,7 +98,7 @@ export default async function StudentChangePasswordPage({
                     </button>
                 </form>
 
-                <p className="text-xs text-gray-500">
+                <p className="text-sm text-gray-600">
                     If you forget your password, visit the clinic and present your ID. It cannot
                     be emailed to you because the system does not store email addresses.
                 </p>

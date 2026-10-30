@@ -38,7 +38,7 @@ function DateBlock({ date, tint }: { date: Date; tint: string }) {
     const day = d.toLocaleDateString("en-US", { day: "numeric", timeZone: "UTC" });
     return (
         <div className={`flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-lg ${tint}`}>
-            <span className="text-[10px] font-bold tracking-wide">{month}</span>
+            <span className="text-sm font-semibold tracking-wide">{month}</span>
             <span className="text-xl font-bold leading-none">{day}</span>
         </div>
     );
@@ -56,9 +56,6 @@ function SectionHeader({
     return (
         <div className="flex items-center justify-between gap-3 p-5 pb-4">
             <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#eef6f2] text-[#15664f]">
-                    {icon}
-                </span>
                 <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
             </div>
             <a
@@ -95,13 +92,16 @@ export default async function StudentDashboardPage() {
     `;
     const caseCount = caseRows[0]?.total ?? 0;
 
-    const todayText = new Intl.DateTimeFormat("en-US", {
-        weekday: "long",
+    const dateToday = new Intl.DateTimeFormat("en-US", {
         month: "long",
         day: "numeric",
         year: "numeric",
         timeZone: "Asia/Manila",
     }).format(new Date());
+    const weekdayToday = new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: "Asia/Manila" }).format(new Date());
+    const hour =
+        Number(new Intl.DateTimeFormat("en-US", { hour: "numeric", hour12: false, timeZone: "Asia/Manila" }).format(new Date())) % 24;
+    const greeting = hour < 12 ? "Good Morning" : hour < 18 ? "Good Afternoon" : "Good Evening";
 
     const subline = [student.student_number, student.program, student.grade_level].filter(Boolean).join(" · ");
 
@@ -117,13 +117,29 @@ export default async function StudentDashboardPage() {
             <StudentNav fullName={fullName} initials={initialsOf(student.first_name, student.last_name)} />
 
             <main className="mx-auto max-w-5xl space-y-6 p-4 pb-10 md:p-6">
-                {/* Welcome banner */}
-                <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#15664f] to-[#0f4d3b] p-6 text-white shadow-lg shadow-[#15664f]/20 md:p-8">
-                    <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10" />
-                    <div className="pointer-events-none absolute -bottom-16 right-16 h-32 w-32 rounded-full bg-white/5" />
+                {/* Welcome banner (kapareho ng disenyo sa staff dashboard) */}
+                <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#15664f] via-[#1b7a5e] to-[#2f8f6f] px-5 py-6 text-white shadow-lg shadow-[#15664f]/20 sm:px-8 sm:py-7">
+                    <div aria-hidden className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-white/10" />
+                    <div aria-hidden className="pointer-events-none absolute -bottom-24 right-32 h-48 w-48 rounded-full bg-amber-300/15 blur-2xl" />
+                    <div aria-hidden className="pointer-events-none absolute -bottom-16 -left-10 h-40 w-40 rounded-full bg-white/5" />
+                    <svg
+                        aria-hidden
+                        viewBox="0 0 600 80"
+                        preserveAspectRatio="none"
+                        className="pointer-events-none absolute inset-x-0 bottom-3 h-14 w-full text-white/15"
+                    >
+                        <polyline
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            points="0,50 150,50 175,50 190,20 205,70 220,10 235,60 250,50 400,50 420,50 432,32 444,62 456,50 600,50"
+                        />
+                    </svg>
 
                     {/* Phone: nasa ilalim ang petsa. sm pataas: nasa kanan */}
-                    <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center md:gap-5">
+                    <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex min-w-0 flex-1 items-center gap-4 md:gap-5">
                             {student.avatar ? (
                                 // eslint-disable-next-line @next/next/no-img-element
@@ -138,15 +154,25 @@ export default async function StudentDashboardPage() {
                                 </span>
                             )}
                             <div className="min-w-0 flex-1">
-                                <p className="text-sm text-white/80 md:text-base">Welcome back,</p>
-                                <p className="break-words text-2xl font-bold sm:text-3xl md:text-4xl">{student.first_name}!</p>
-                                {subline && <p className="mt-1 text-sm text-white/80">{subline}</p>}
+                                <span className="mb-1.5 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-sm font-semibold text-emerald-800 ring-1 ring-inset ring-emerald-600/25">
+                                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                                    Student
+                                </span>
+                                <h1 className="break-words text-2xl font-bold text-white md:text-3xl">
+                                    {greeting}, {student.first_name}!
+                                </h1>
+                                {subline && <p className="mt-1 text-sm text-white/85">{subline}</p>}
                             </div>
                         </div>
-                        <span className="inline-flex w-fit shrink-0 items-center gap-2 rounded-lg bg-white/15 px-3 py-2 text-xs font-medium sm:text-sm">
-                            <CalendarDays className="h-4 w-4" />
-                            {todayText}
-                        </span>
+                        <div className="flex w-fit shrink-0 items-center gap-3 rounded-xl bg-white/15 px-4 py-2.5 ring-1 ring-white/25 backdrop-blur-sm">
+                            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-[#15664f]">
+                                <CalendarDays className="h-5 w-5" strokeWidth={1.8} />
+                            </div>
+                            <div className="leading-tight">
+                                <p className="text-sm font-semibold text-white">{dateToday}</p>
+                                <p className="text-sm text-white/80">{weekdayToday}</p>
+                            </div>
+                        </div>
                     </div>
                 </section>
 
@@ -158,7 +184,7 @@ export default async function StudentDashboardPage() {
                                 {s.icon}
                             </div>
                             <div className="min-w-0">
-                                <p className="text-xs text-gray-600 md:text-sm">{s.label}</p>
+                                <p className="text-sm text-gray-600 md:text-sm">{s.label}</p>
                                 <p
                                     className={`truncate font-bold text-gray-900 ${s.small ? "text-base md:text-lg" : "text-2xl"}`}
                                 >
@@ -176,7 +202,7 @@ export default async function StudentDashboardPage() {
                         {visits.length === 0 ? (
                             <div className="flex flex-col items-center border-t border-gray-100 p-8 text-center">
                                 <Stethoscope className="h-10 w-10 text-[#15664f]/30" />
-                                <p className="mt-2 text-sm text-gray-500">No clinic visits recorded yet.</p>
+                                <p className="mt-2 text-sm text-gray-600">No clinic visits recorded yet.</p>
                             </div>
                         ) : (
                             <ul className="divide-y divide-gray-100 border-t border-gray-100">
@@ -185,7 +211,7 @@ export default async function StudentDashboardPage() {
                                         <DateBlock date={v.visit_date} tint="bg-[#eef6f2] text-[#15664f]" />
                                         <div className="min-w-0 flex-1">
                                             <p className="break-words font-semibold capitalize text-gray-900">{v.complaint}</p>
-                                            <p className="text-xs text-gray-500">{formatDate(v.visit_date)}</p>
+                                            <p className="text-sm text-gray-600">{formatDate(v.visit_date)}</p>
                                             {v.attending_staff && (
                                                 <p className="mt-0.5 break-words text-sm text-gray-600">Seen by {v.attending_staff}</p>
                                             )}
@@ -202,7 +228,7 @@ export default async function StudentDashboardPage() {
                         {dental.length === 0 ? (
                             <div className="flex flex-col items-center border-t border-gray-100 p-8 text-center">
                                 <ToothIcon className="h-10 w-10 text-[#15664f]/30" />
-                                <p className="mt-2 text-sm text-gray-500">No dental visits recorded yet.</p>
+                                <p className="mt-2 text-sm text-gray-600">No dental visits recorded yet.</p>
                             </div>
                         ) : (
                             <ul className="divide-y divide-gray-100 border-t border-gray-100">
@@ -211,7 +237,7 @@ export default async function StudentDashboardPage() {
                                         <DateBlock date={r.visit_date} tint="bg-cyan-50 text-cyan-700" />
                                         <div className="min-w-0 flex-1">
                                             <p className="break-words font-semibold capitalize text-gray-900">{r.procedure_name}</p>
-                                            <p className="text-xs text-gray-500">{formatDate(r.visit_date)}</p>
+                                            <p className="text-sm text-gray-600">{formatDate(r.visit_date)}</p>
                                             {r.dentist_name && (
                                                 <p className="break-words text-sm text-gray-600">Dentist: {r.dentist_name}</p>
                                             )}
@@ -225,7 +251,7 @@ export default async function StudentDashboardPage() {
 
                 <CaseReportTable patientType="student" patientId={student.student_id} limit={3} viewAllHref="/student/case-reports" />
 
-                <p className="flex items-center justify-center gap-1.5 text-center text-xs text-gray-600">
+                <p className="flex items-center justify-center gap-1.5 text-center text-sm text-gray-600">
                     <Lock className="h-3.5 w-3.5 shrink-0" />
                     Your records are private and only visible to you and authorized clinic staff.
                 </p>

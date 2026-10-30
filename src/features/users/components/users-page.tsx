@@ -1,13 +1,7 @@
 import { redirect } from "next/navigation";
 import { Fragment } from "react";
 import Link from "next/link";
-import {
-    KeyRound,
-    Mail,
-    Pencil,
-    ShieldCheck,
-    Trash2,
-} from "lucide-react";
+import { KeyRound, Mail, ShieldCheck, Trash2 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import UserForm from "./user-form";
@@ -18,6 +12,7 @@ import ConfirmSubmit from "@/components/shared/confirm-submit";
 import FlashMessage from "@/components/shared/flash-message";
 import { canCreateAccounts } from "@/lib/permissions";
 import RoleBadge from "@/components/shared/role-badge";
+import RowActionMenu, { type RowAction } from "@/components/shared/row-action-menu";
 type Props = {
     searchParams: Promise<{
         reset?: string;
@@ -26,6 +21,7 @@ type Props = {
         edit?: string;
         del?: string;
         derr?: string;
+        pw?: string;
     }>;
 };
 
@@ -52,15 +48,9 @@ const notices: Record<string, { tone: "green" | "red"; text: string }> = {
 
 const card = "rounded-xl border-2 border-[#cfe5d9] bg-white shadow-md shadow-[#15664f]/10";
 
-// Mobile: bawat row ay card, at ang data-label ang nagsisilbing label ng bawat field.
-// md pataas: normal na table.
+// Mobile: bawat row ay card. md pataas: normal na table.
 const tr =
     "mb-3 block rounded-lg border border-gray-200 py-2 md:mb-0 md:table-row md:rounded-none md:border-0 md:border-t md:border-gray-100 md:py-0 md:hover:bg-[#f6faf8]";
-const td =
-    "flex items-start justify-between gap-3 px-4 py-1.5 text-right text-sm before:shrink-0 before:text-left before:text-sm before:font-semibold before:uppercase before:text-gray-600 before:content-[attr(data-label)] md:table-cell md:py-3.5 md:text-left md:align-middle md:before:hidden";
-// Para sa mga cell na may form: nasa ilalim ng label ang laman sa mobile.
-const tdBlock = "block px-4 py-2 md:table-cell md:py-3.5 md:align-middle";
-const mobileLabel = "mb-1 text-sm font-semibold uppercase text-gray-600 md:hidden";
 
 const smallInput =
     "h-9 rounded-lg border border-gray-300 bg-white px-3 text-base text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20 md:text-sm";
@@ -82,7 +72,8 @@ export default async function UsersPage({ searchParams }: Props) {
     if (!session) redirect("/login");
     if (!canCreateAccounts(session.role)) redirect("/dashboard");
     const canReset = session.role === "admin" || session.role === "ittech";
-    const { reset, otp, err, edit, del, derr } = await searchParams;
+    const { reset, otp, err, edit, del, derr, pw } = await searchParams;
+    const pwId = Number(pw) || 0;
     const otpUserId = Number(otp) || 0;
     const editId = Number(edit) || 0;
     const delUserId = Number(del) || 0;
@@ -187,21 +178,64 @@ export default async function UsersPage({ searchParams }: Props) {
                                     <th className="px-4 py-3 font-semibold">Account</th>
                                     <th className="px-4 py-3 font-semibold">Role</th>
                                     <th className="px-4 py-3 font-semibold">Created</th>
-                                    <th className="whitespace-nowrap px-4 py-3 font-semibold">Reset Password</th>
-                                    {canReset && <th className="px-4 py-3 font-semibold">Actions</th>}
+                                    <th className="w-20 px-4 py-3 text-center font-semibold">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="block md:table-row-group">
                                 {users.map((u) => {
                                     const isMe = u.user_id === session.userId;
+                                    const actions: RowAction[] = [
+                                        {
+                                            label: "Reset Password",
+                                            href: `/dashboard/users?pw=${u.user_id}`,
+                                            title: "Reset password?",
+                                            message: `Set a new password for ${u.username}. An OTP will be emailed to the account owner before it changes.`,
+                                            confirmLabel: "Continue",
+                                            icon: "key",
+                                        },
+                                    ];
+                                    if (canReset) {
+                                        actions.push({
+                                            label: "Edit Account",
+                                            href: `/dashboard/users?edit=${u.user_id}`,
+                                            title: "Edit account?",
+                                            message: `Change the email or role of ${u.username}.`,
+                                            confirmLabel: "Edit",
+                                            icon: "edit",
+                                        });
+                                        if (!isMe) {
+                                            // Pagka-confirm: magpapadala agad ng OTP, tapos lalabas ang form ng OTP
+                                            actions.push({
+                                                label: "Delete Account",
+                                                href: `/dashboard/users?del=${u.user_id}`,
+                                                title: "Delete account?",
+                                                message: `A 6-digit OTP will be sent to ${u.username}. Enter it to permanently delete this account.`,
+                                                confirmLabel: "Send OTP",
+                                                icon: "delete",
+                                                tone: "danger",
+                                                formAction: requestDeleteOtp,
+                                                fields: { userId: String(u.user_id) },
+                                            });
+                                        }
+                                    }
+
+                                    // Isang panel lang sa ilalim ng row ang bukas sa isang pagkakataon
+                                    const panel =
+                                        u.user_id === otpUserId
+                                            ? "otp"
+                                            : u.user_id === delUserId
+                                                ? "del"
+                                                : u.user_id === pwId
+                                                    ? "pw"
+                                                    : canReset && u.user_id === editId
+                                                        ? "edit"
+                                                        : null;
+                                    const danger = panel === "del";
+
                                     return (
                                         <Fragment key={u.user_id}>
-                                            <tr className={tr}>
-                                                {/* Mobile: header ng card (picture, email, role, created). Desktop: unang column */}
-                                                <td
-                                                    data-label="Account"
-                                                    className={`${td} border-b border-gray-100 max-md:justify-start max-md:pb-3 max-md:text-left max-md:before:hidden md:border-b-0`}
-                                                >
+                                            <tr className={`${tr} ${panel ? "md:bg-[#f6faf8]" : ""}`}>
+                                                <td className="flex items-center justify-between gap-3 px-4 py-2 md:table-cell md:py-3.5 md:align-middle">
                                                     <div className="flex min-w-0 items-center gap-3">
                                                         {/* Profile picture ng account (galing sa Settings); initial kapag wala pa */}
                                                         {u.avatar ? (
@@ -212,7 +246,7 @@ export default async function UsersPage({ searchParams }: Props) {
                                                                 className="h-11 w-11 shrink-0 rounded-full object-cover ring-2 ring-[#15664f]/30 md:h-9 md:w-9"
                                                             />
                                                         ) : (
-                                                            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#eef6f2] text-sm font-semibold text-[#15664f] md:h-9 md:w-9 md:text-sm">
+                                                            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#eef6f2] text-sm font-semibold text-[#15664f] md:h-9 md:w-9">
                                                                 {u.username.charAt(0).toUpperCase()}
                                                             </span>
                                                         )}
@@ -240,76 +274,71 @@ export default async function UsersPage({ searchParams }: Props) {
                                                             </span>
                                                         </span>
                                                     </div>
+                                                    {/* Mobile: ⋮ sa kanan ng card */}
+                                                    <span className="shrink-0 md:hidden">
+                                                        <RowActionMenu actions={actions} label={`Actions for ${u.username}`} />
+                                                    </span>
                                                 </td>
-                                                <td data-label="Role" className={`${td} max-md:hidden`}>
+                                                <td className="hidden px-4 py-3.5 align-middle text-sm md:table-cell">
                                                     <RoleBadge role={u.role} />
                                                 </td>
-                                                <td data-label="Created" className={`${td} text-gray-600 max-md:hidden md:whitespace-nowrap`}>
+                                                <td className="hidden whitespace-nowrap px-4 py-3.5 align-middle text-sm text-gray-600 md:table-cell">
                                                     {formatCreated(u.created_at)}
                                                 </td>
-                                                <td className={tdBlock}>
-                                                    <p className={mobileLabel}>Reset Password</p>
-                                                    {u.user_id === otpUserId ? (
-                                                        /* STEP 2: enter OTP */
-                                                        <form action={verifyResetOtp} className="flex flex-wrap items-center gap-2">
-                                                            <input type="hidden" name="userId" value={u.user_id} />
-                                                            <input
-                                                                name="otp"
-                                                                inputMode="numeric"
-                                                                pattern="[0-9]{6}"
-                                                                maxLength={6}
-                                                                placeholder="6-digit OTP"
-                                                                required
-                                                                autoComplete="one-time-code"
-                                                                suppressHydrationWarning
-                                                                className={`${smallInput} w-32 border-amber-400 text-center tracking-widest`}
-                                                            />
-                                                            <ConfirmSubmit
-                                                                title="Verify OTP?"
-                                                                message={`The password of ${u.username} will be changed if the OTP is correct.`}
-                                                                confirmLabel="Verify"
-                                                                className={btnGreen}
-                                                            >
-                                                                <ShieldCheck className="h-3.5 w-3.5" />
-                                                                Verify
-                                                            </ConfirmSubmit>
-                                                            <a href="/dashboard/users" className={btnCancel}>
-                                                                Cancel
-                                                            </a>
-                                                        </form>
-                                                    ) : (
-                                                        /* STEP 1: new password */
-                                                        <form action={resetUserPassword} className="flex items-center gap-2">
-                                                            <input type="hidden" name="userId" value={u.user_id} />
-                                                            <input
-                                                                name="password"
-                                                                type="password"
-                                                                placeholder="New password"
-                                                                minLength={8}
-                                                                required
-                                                                autoComplete="new-password"
-                                                                suppressHydrationWarning
-                                                                className={`${smallInput} min-w-0 flex-1 md:w-36 md:flex-none`}
-                                                            />
-                                                            <ConfirmSubmit
-                                                                title="Send OTP to account owner?"
-                                                                message={`A 6-digit OTP will be emailed to ${u.username}. The password will only change after you enter the OTP they give you.`}
-                                                                confirmLabel="Send OTP"
-                                                                className={btnGreen}
-                                                            >
-                                                                <KeyRound className="h-3.5 w-3.5" />
-                                                                Reset
-                                                            </ConfirmSubmit>
-                                                        </form>
-                                                    )}
+                                                <td className="hidden px-4 py-3.5 text-center align-middle md:table-cell">
+                                                    <RowActionMenu actions={actions} label={`Actions for ${u.username}`} />
                                                 </td>
+                                            </tr>
 
-                                                {canReset && (
-                                                    <td className={tdBlock}>
-                                                        <p className={mobileLabel}>Actions</p>
-                                                        {u.user_id === delUserId ? (
-                                                            /* DELETE STEP 2: enter the OTP sent to the account owner's email */
-                                                            <form action={confirmDeleteOtp} className="flex flex-wrap items-center gap-2">
+                                            {panel && (
+                                                <tr
+                                                    className={`mb-3 block rounded-lg border md:mb-0 md:table-row md:rounded-none md:border-0 ${danger ? "border-red-200 bg-red-50/70" : "border-[#cfe5d9] bg-[#eef6f2]"
+                                                        }`}
+                                                >
+                                                    <td colSpan={4} className="block px-4 py-4 md:table-cell">
+                                                        <p
+                                                            className={`mb-2 text-sm font-semibold uppercase tracking-wide ${danger ? "text-red-700" : "text-[#15664f]"
+                                                                }`}
+                                                        >
+                                                            {panel === "pw" && "Reset password"}
+                                                            {panel === "otp" && "Enter reset OTP"}
+                                                            {panel === "edit" && "Edit account"}
+                                                            {panel === "del" && "Enter deletion OTP"}
+                                                        </p>
+
+                                                        {panel === "pw" && (
+                                                            /* RESET STEP 1: bagong password -> OTP sa may-ari */
+                                                            <form action={resetUserPassword} className="flex flex-wrap items-center gap-3">
+                                                                <input type="hidden" name="userId" value={u.user_id} />
+                                                                <input
+                                                                    name="password"
+                                                                    type="password"
+                                                                    placeholder="New password (min. 8 characters)"
+                                                                    minLength={8}
+                                                                    required
+                                                                    autoFocus
+                                                                    autoComplete="new-password"
+                                                                    suppressHydrationWarning
+                                                                    className={`${smallInput} w-full sm:w-72`}
+                                                                />
+                                                                <ConfirmSubmit
+                                                                    title="Send OTP to account owner?"
+                                                                    message={`A 6-digit OTP will be emailed to ${u.username}. The password will only change after you enter the OTP they give you.`}
+                                                                    confirmLabel="Send OTP"
+                                                                    className={btnGreen}
+                                                                >
+                                                                    <KeyRound className="h-3.5 w-3.5" />
+                                                                    Send OTP
+                                                                </ConfirmSubmit>
+                                                                <Link href="/dashboard/users" className={btnCancel}>
+                                                                    Cancel
+                                                                </Link>
+                                                            </form>
+                                                        )}
+
+                                                        {panel === "otp" && (
+                                                            /* RESET STEP 2: OTP */
+                                                            <form action={verifyResetOtp} className="flex flex-wrap items-center gap-3">
                                                                 <input type="hidden" name="userId" value={u.user_id} />
                                                                 <input
                                                                     name="otp"
@@ -318,9 +347,73 @@ export default async function UsersPage({ searchParams }: Props) {
                                                                     maxLength={6}
                                                                     placeholder="6-digit OTP"
                                                                     required
+                                                                    autoFocus
                                                                     autoComplete="one-time-code"
                                                                     suppressHydrationWarning
-                                                                    className={`${smallInput} w-32 border-red-400 text-center tracking-widest focus:border-red-600 focus:ring-red-200`}
+                                                                    className={`${smallInput} w-40 border-amber-400 text-center tracking-widest`}
+                                                                />
+                                                                <ConfirmSubmit
+                                                                    title="Verify OTP?"
+                                                                    message={`The password of ${u.username} will be changed if the OTP is correct.`}
+                                                                    confirmLabel="Verify"
+                                                                    className={btnGreen}
+                                                                >
+                                                                    <ShieldCheck className="h-3.5 w-3.5" />
+                                                                    Verify
+                                                                </ConfirmSubmit>
+                                                                <Link href="/dashboard/users" className={btnCancel}>
+                                                                    Cancel
+                                                                </Link>
+                                                            </form>
+                                                        )}
+
+                                                        {panel === "edit" && (
+                                                            <form action={updateUser} className="flex flex-wrap items-center gap-3">
+                                                                <input type="hidden" name="userId" value={u.user_id} />
+                                                                <input
+                                                                    name="username"
+                                                                    type="email"
+                                                                    defaultValue={u.username}
+                                                                    required
+                                                                    suppressHydrationWarning
+                                                                    className={`${smallInput} w-full sm:w-72`}
+                                                                />
+                                                                <select name="role" defaultValue={u.role} className={smallInput}>
+                                                                    <option value="admin">Administrator</option>
+                                                                    <option value="ittech">IT Technician</option>
+                                                                    <option value="doctor">Doctor</option>
+                                                                    <option value="nurse">Nurse</option>
+                                                                    <option value="dentist">Dentist</option>
+                                                                </select>
+                                                                <ConfirmSubmit
+                                                                    title="Save changes?"
+                                                                    message={`Update the account ${u.username}?`}
+                                                                    confirmLabel="Save"
+                                                                    className={btnGreen}
+                                                                >
+                                                                    Save Changes
+                                                                </ConfirmSubmit>
+                                                                <Link href="/dashboard/users" className={btnCancel}>
+                                                                    Cancel
+                                                                </Link>
+                                                            </form>
+                                                        )}
+
+                                                        {panel === "del" && (
+                                                            /* DELETE STEP 2: OTP mula sa may-ari */
+                                                            <form action={confirmDeleteOtp} className="flex flex-wrap items-center gap-3">
+                                                                <input type="hidden" name="userId" value={u.user_id} />
+                                                                <input
+                                                                    name="otp"
+                                                                    inputMode="numeric"
+                                                                    pattern="[0-9]{6}"
+                                                                    maxLength={6}
+                                                                    placeholder="6-digit OTP"
+                                                                    required
+                                                                    autoFocus
+                                                                    autoComplete="one-time-code"
+                                                                    suppressHydrationWarning
+                                                                    className={`${smallInput} w-40 border-red-400 text-center tracking-widest focus:border-red-600 focus:ring-red-200`}
                                                                 />
                                                                 <ConfirmSubmit
                                                                     title="Permanently delete account?"
@@ -331,75 +424,11 @@ export default async function UsersPage({ searchParams }: Props) {
                                                                     <Trash2 className="h-3.5 w-3.5" />
                                                                     Confirm Delete
                                                                 </ConfirmSubmit>
-                                                                <a href="/dashboard/users" className={btnCancel}>
+                                                                <Link href="/dashboard/users" className={btnCancel}>
                                                                     Cancel
-                                                                </a>
-                                                            </form>
-                                                        ) : (
-                                                            <div className="flex items-center gap-2">
-                                                                <Link
-                                                                    href={`/dashboard/users?edit=${u.user_id}`}
-                                                                    className={`inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg border px-3 text-sm font-semibold ${u.user_id === editId
-                                                                        ? "border-[#15664f] bg-[#eef6f2] text-[#15664f]"
-                                                                        : "border-[#15664f] bg-white text-[#15664f] hover:bg-[#eef6f2]"
-                                                                        }`}
-                                                                >
-                                                                    <Pencil className="h-3.5 w-3.5" />
-                                                                    Edit
                                                                 </Link>
-                                                                {/* DELETE STEP 1: send OTP to the email of the account being deleted */}
-                                                                <form action={requestDeleteOtp}>
-                                                                    <input type="hidden" name="userId" value={u.user_id} />
-                                                                    <button
-                                                                        type="submit"
-                                                                        title={`Send a deletion OTP to ${u.username}`}
-                                                                        className="inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg border border-red-300 bg-white px-3 text-sm font-semibold text-red-600 hover:bg-red-50"
-                                                                    >
-                                                                        <Trash2 className="h-3.5 w-3.5" />
-                                                                        Delete
-                                                                    </button>
-                                                                </form>
-                                                            </div>
+                                                            </form>
                                                         )}
-                                                    </td>
-                                                )}
-                                            </tr>
-
-                                            {canReset && u.user_id === editId && (
-                                                <tr className="mb-3 block rounded-lg border border-[#cfe5d9] bg-[#eef6f2] md:mb-0 md:table-row md:rounded-none md:border-0">
-                                                    <td colSpan={5} className="block px-4 py-4 md:table-cell">
-                                                        <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-[#15664f]">
-                                                            Edit account
-                                                        </p>
-                                                        <form action={updateUser} className="flex flex-wrap items-center gap-3">
-                                                            <input type="hidden" name="userId" value={u.user_id} />
-                                                            <input
-                                                                name="username"
-                                                                type="email"
-                                                                defaultValue={u.username}
-                                                                required
-                                                                suppressHydrationWarning
-                                                                className={`${smallInput} w-full sm:w-72`}
-                                                            />
-                                                            <select name="role" defaultValue={u.role} className={smallInput}>
-                                                                <option value="admin">Administrator</option>
-                                                                <option value="ittech">IT Technician</option>
-                                                                <option value="doctor">Doctor</option>
-                                                                <option value="nurse">Nurse</option>
-                                                                <option value="dentist">Dentist</option>
-                                                            </select>
-                                                            <ConfirmSubmit
-                                                                title="Save changes?"
-                                                                message={`Update the account ${u.username}?`}
-                                                                confirmLabel="Save"
-                                                                className={btnGreen}
-                                                            >
-                                                                Save Changes
-                                                            </ConfirmSubmit>
-                                                            <Link href="/dashboard/users" className={btnCancel}>
-                                                                Cancel
-                                                            </Link>
-                                                        </form>
                                                     </td>
                                                 </tr>
                                             )}

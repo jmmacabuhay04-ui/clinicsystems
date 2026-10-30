@@ -30,7 +30,7 @@ function DateBlock({ date }: { date: Date }) {
     const day = d.toLocaleDateString("en-US", { day: "numeric", timeZone: "UTC" });
     return (
         <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-lg bg-cyan-50 text-cyan-700">
-            <span className="text-[10px] font-bold tracking-wide">{month}</span>
+            <span className="text-sm font-semibold tracking-wide">{month}</span>
             <span className="text-xl font-bold leading-none">{day}</span>
         </div>
     );
@@ -54,9 +54,8 @@ export default async function EmployeeDentalPage() {
                 {/* Header */}
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
-                        <ToothIcon className="h-10 w-10 shrink-0 text-[#15664f]" />
                         <div>
-                            <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">Dental Records</h1>
+                            <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">Dental Records</h1>
                             <p className="text-sm text-gray-600">Your dental procedures and the dentist&apos;s notes.</p>
                         </div>
                     </div>
@@ -69,7 +68,7 @@ export default async function EmployeeDentalPage() {
                     <div className="flex flex-col items-center rounded-xl border-2 border-dashed border-[#cfe5d9] bg-white p-12 text-center">
                         <ToothIcon className="h-12 w-12 text-[#15664f]/30" />
                         <p className="mt-3 font-semibold text-gray-800">No dental visits yet</p>
-                        <p className="mt-1 text-sm text-gray-500">Your dental records will appear here after your visit.</p>
+                        <p className="mt-1 text-sm text-gray-600">Your dental records will appear here after your visit.</p>
                     </div>
                 )}
 
@@ -84,7 +83,7 @@ export default async function EmployeeDentalPage() {
                                         <div className="flex flex-wrap items-center gap-2">
                                             <p className="break-words font-semibold capitalize text-gray-900">{r.procedure_name}</p>
                                             <span
-                                                className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${followUp ? "bg-amber-100 text-amber-800" : "bg-green-100 text-green-700"
+                                                className={`rounded-full px-2.5 py-0.5 text-sm font-semibold ${followUp ? "bg-amber-100 text-amber-800" : "bg-green-100 text-green-700"
                                                     }`}
                                             >
                                                 {followUp ? "Follow-up" : "Completed"}
@@ -104,14 +103,14 @@ export default async function EmployeeDentalPage() {
                                         <div className="flex items-start gap-3 rounded-lg bg-[#f6faf8] p-3">
                                             <ToothIcon className="mt-0.5 h-4 w-4 shrink-0 text-[#15664f]" />
                                             <div className="min-w-0">
-                                                <p className="text-xs text-gray-600">Tooth</p>
+                                                <p className="text-sm text-gray-600">Tooth</p>
                                                 <p className="break-words font-semibold text-gray-900">{r.tooth || "—"}</p>
                                             </div>
                                         </div>
                                         <div className="flex items-start gap-3 rounded-lg bg-[#f6faf8] p-3">
                                             <UserRound className="mt-0.5 h-4 w-4 shrink-0 text-[#15664f]" />
                                             <div className="min-w-0">
-                                                <p className="text-xs text-gray-600">Attending Dentist</p>
+                                                <p className="text-sm text-gray-600">Attending Dentist</p>
                                                 <p className="break-words font-semibold text-gray-900">{r.dentist_name || "—"}</p>
                                             </div>
                                         </div>
@@ -122,14 +121,14 @@ export default async function EmployeeDentalPage() {
                                                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-600" />
                                             )}
                                             <div className="min-w-0">
-                                                <p className="text-xs text-gray-600">Status</p>
+                                                <p className="text-sm text-gray-600">Status</p>
                                                 <p className="font-semibold text-gray-900">{followUp ? "Follow-up" : "Completed"}</p>
                                             </div>
                                         </div>
                                     </div>
 
                                     <div className="rounded-lg border border-gray-200 p-4">
-                                        <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                        <p className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-gray-600">
                                             <NotebookPen className="h-4 w-4 text-[#15664f]" />
                                             Notes
                                         </p>

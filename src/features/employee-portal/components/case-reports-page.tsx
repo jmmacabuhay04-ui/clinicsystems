@@ -29,7 +29,7 @@ const STATUS_STYLES: Record<string, string> = {
 function StatusPill({ status }: { status: string }) {
     return (
         <span
-            className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${STATUS_STYLES[status] ?? "bg-gray-100 text-gray-700"
+            className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-0.5 text-sm font-semibold capitalize ${STATUS_STYLES[status] ?? "bg-gray-100 text-gray-600"
                 }`}
         >
             {status}
@@ -44,7 +44,7 @@ function DateBlock({ date }: { date: Date }) {
     const day = d.toLocaleDateString("en-US", { day: "numeric", timeZone: "UTC" });
     return (
         <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-lg bg-amber-50 text-amber-700">
-            <span className="text-[10px] font-bold tracking-wide">{month}</span>
+            <span className="text-sm font-semibold tracking-wide">{month}</span>
             <span className="text-xl font-bold leading-none">{day}</span>
         </div>
     );
@@ -74,9 +74,8 @@ export default async function EmployeeCaseReportsPage() {
                 {/* Header */}
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
-                        <FileText className="h-10 w-10 shrink-0 text-[#15664f]" />
                         <div>
-                            <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">Case Reports</h1>
+                            <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">Case Reports</h1>
                             <p className="text-sm text-gray-600">Health cases recorded for you by the clinic.</p>
                         </div>
                     </div>
@@ -89,7 +88,7 @@ export default async function EmployeeCaseReportsPage() {
                     <div className="flex flex-col items-center rounded-xl border-2 border-dashed border-[#cfe5d9] bg-white p-12 text-center">
                         <FileText className="h-12 w-12 text-[#15664f]/30" />
                         <p className="mt-3 font-semibold text-gray-800">No case reports yet</p>
-                        <p className="mt-1 text-sm text-gray-500">Health cases recorded by the clinic will appear here.</p>
+                        <p className="mt-1 text-sm text-gray-600">Health cases recorded by the clinic will appear here.</p>
                     </div>
                 )}
 
@@ -104,7 +103,7 @@ export default async function EmployeeCaseReportsPage() {
                                         <StatusPill status={c.status} />
                                     </div>
                                     <p className="text-sm text-gray-600">{formatDate(c.report_date)}</p>
-                                    {c.staff_name && <p className="break-words text-xs text-gray-500">Seen by {c.staff_name}</p>}
+                                    {c.staff_name && <p className="break-words text-sm text-gray-600">Seen by {c.staff_name}</p>}
                                 </div>
                                 <span className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-[#15664f]">
                                     <span className="hidden sm:inline group-open:hidden">View details</span>
@@ -118,21 +117,21 @@ export default async function EmployeeCaseReportsPage() {
                                     <div className="flex items-start gap-3 rounded-lg bg-[#f6faf8] p-3">
                                         <Hash className="mt-0.5 h-4 w-4 shrink-0 text-[#15664f]" />
                                         <div className="min-w-0">
-                                            <p className="text-xs text-gray-600">Case No.</p>
+                                            <p className="text-sm text-gray-600">Case No.</p>
                                             <p className="font-semibold text-gray-900">{c.case_number}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-start gap-3 rounded-lg bg-[#f6faf8] p-3">
                                         <UserRound className="mt-0.5 h-4 w-4 shrink-0 text-[#15664f]" />
                                         <div className="min-w-0">
-                                            <p className="text-xs text-gray-600">Attending Staff</p>
+                                            <p className="text-sm text-gray-600">Attending Staff</p>
                                             <p className="break-words font-semibold text-gray-900">{c.staff_name || "—"}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-start gap-3 rounded-lg bg-[#f6faf8] p-3">
                                         <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-[#15664f]" />
                                         <div className="min-w-0">
-                                            <p className="text-xs text-gray-600">Report Date</p>
+                                            <p className="text-sm text-gray-600">Report Date</p>
                                             <p className="font-semibold text-gray-900">{formatDate(c.report_date, "short")}</p>
                                         </div>
                                     </div>
@@ -140,14 +139,14 @@ export default async function EmployeeCaseReportsPage() {
 
                                 <div className="grid gap-3 sm:grid-cols-2">
                                     <div className="rounded-lg border border-gray-200 p-4">
-                                        <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                        <p className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-gray-600">
                                             <ClipboardCheck className="h-4 w-4 text-[#15664f]" />
                                             Action Taken
                                         </p>
                                         <p className="mt-2 whitespace-pre-wrap break-words text-sm text-gray-900">{c.action_taken || "—"}</p>
                                     </div>
                                     <div className="rounded-lg border border-gray-200 p-4">
-                                        <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                        <p className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-gray-600">
                                             <NotebookPen className="h-4 w-4 text-[#15664f]" />
                                             Notes
                                         </p>

@@ -37,6 +37,8 @@ export async function updateCaseReport(
     const patientNumber = get("patientNumber");
     const complaint = get("complaint");
     const reportDate = get("reportDate");
+    // Oras ng report (HH:MM). Opsyonal.
+    const reportTime = get("reportTime");
     const staffName = get("staffName");
     const status = get("status") || "pending";
     const notes = get("notes");
@@ -48,6 +50,7 @@ export async function updateCaseReport(
         return fail(`${label}, complaint, and date are required.`);
     }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(reportDate)) return fail("Enter a valid date.");
+    if (reportTime && !/^([01]\d|2[0-3]):[0-5]\d$/.test(reportTime)) return fail("Enter a valid time.");
     if (!["pending", "referred", "resolved"].includes(status)) return fail("Select a valid status.");
 
     try {
@@ -80,6 +83,7 @@ export async function updateCaseReport(
                 employee_id = ${employeeId},
                 complaint   = ${complaint},
                 report_date = CAST(${reportDate} AS DATE),
+                report_time = CAST(NULLIF(${reportTime}, '') AS TIME),
                 staff_name  = ${staffName || null},
                 status      = ${status},
                 notes       = ${notes || null},

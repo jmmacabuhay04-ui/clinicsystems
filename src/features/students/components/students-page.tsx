@@ -11,6 +11,7 @@ import AutoSubmitSelect from "@/components/shared/auto-submit-select";
 import ListPagination from "@/components/shared/list-pagination";
 import SearchInput from "@/components/shared/search-input";
 import RowActionMenu, { type RowAction } from "@/components/shared/row-action-menu";
+import UnauthorizedAccess from "@/components/shared/unauthorized-access";
 
 const BASE = "/dashboard/students";
 const HEALTH_BASE = "/dashboard/student-health-records";
@@ -53,6 +54,10 @@ function formatGender(g?: string | null) {
 export default async function StudentsPage({ searchParams }: Props) {
     const session = await getSession();
     if (!session) redirect("/login");
+    // Admin: health records lang ang makikita, hindi ang detalye ng student/employee
+    if (session.role === "admin") {
+        return <UnauthorizedAccess message="Administrators can view health records only, not personal details of students and employees." />;
+    }
 
     const params = await searchParams;
     const filters: StudentFilters = {

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { Eye, MoreVertical, Pencil } from "lucide-react";
+import { Archive, Eye, KeyRound, MoreVertical, Pencil, Trash2 } from "lucide-react";
 
 // "⋮" na button sa dulo ng row ng table. Pagka-click, lalabas ang maliit na menu
 // (hal. View Health Record, Edit Details). May confirmation bago pumunta sa page.
@@ -14,17 +14,30 @@ export type RowAction = {
     title: string;
     message: string;
     confirmLabel?: string;
-    icon?: "view" | "edit";
+    icon?: "view" | "edit" | "key" | "delete" | "archive";
+    /** "danger" = pula (hal. Delete) */
+    tone?: "danger";
+    /**
+     * Opsyonal: server action na tatakbo pagka-confirm (sa halip na pumunta sa `href`).
+     * Hal. magpadala agad ng OTP. Ang `fields` ay ipapasa bilang hidden inputs.
+     */
+    formAction?: (formData: FormData) => void | Promise<void>;
+    fields?: Record<string, string>;
 };
 
-const ICONS = { view: Eye, edit: Pencil } as const;
+const ICONS = { view: Eye, edit: Pencil, key: KeyRound, delete: Trash2, archive: Archive } as const;
 
 export default function RowActionMenu({ actions, label = "Actions" }: { actions: RowAction[]; label?: string }) {
     const router = useRouter();
     const buttonRef = useRef<HTMLButtonElement>(null);
     const menuRef = useRef<HTMLDivElement>(null);
     const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
-    const [pending, setPending] = useState<RowAction | null>(null);
+    const [pending, setPendingState] = useState<RowAction | null>(null);
+    const [submitting, setSubmitting] = useState(false);
+    const setPending = (a: RowAction | null) => {
+        setSubmitting(false);
+        setPendingState(a);
+    };
 
     // Isara ang menu kapag nag-click sa labas, nag-scroll, o pinindot ang Esc
     useEffect(() => {
@@ -76,7 +89,10 @@ export default function RowActionMenu({ actions, label = "Actions" }: { actions:
                             setPos(null);
                             setPending(a);
                         }}
-                        className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm font-medium text-gray-600 hover:bg-[#eef6f2] hover:text-[#15664f]"
+                        className={`flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm font-medium ${a.tone === "danger"
+                            ? "text-red-600 hover:bg-red-50 hover:text-red-700"
+                            : "text-gray-600 hover:bg-[#eef6f2] hover:text-[#15664f]"
+                            }`}
                     >
                         <Icon className="h-4 w-4 shrink-0" />
                         {a.label}
@@ -96,7 +112,10 @@ export default function RowActionMenu({ actions, label = "Actions" }: { actions:
                 className="w-full max-w-md rounded-xl bg-white p-6 text-left shadow-xl"
             >
                 <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#15664f]/10 text-[#15664f]">
+                    <div
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${pending.tone === "danger" ? "bg-red-100 text-red-600" : "bg-[#15664f]/10 text-[#15664f]"
+                            }`}
+                    >
                         <PendingIcon className="h-5 w-5" />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -112,17 +131,35 @@ export default function RowActionMenu({ actions, label = "Actions" }: { actions:
                     >
                         Cancel
                     </button>
-                    <button
-                        type="button"
-                        onClick={() => {
-                            const href = pending.href;
-                            setPending(null);
-                            router.push(href);
-                        }}
-                        className="h-10 rounded-lg bg-[#15664f] px-4 text-sm font-semibold text-white hover:bg-[#10523f]"
-                    >
-                        {pending.confirmLabel ?? "Continue"}
-                    </button>
+                    {pending.formAction ? (
+                        // Server action (hal. magpadala ng OTP)
+                        <form action={pending.formAction} onSubmit={() => setSubmitting(true)}>
+                            {Object.entries(pending.fields ?? {}).map(([name, value]) => (
+                                <input key={name} type="hidden" name={name} value={value} />
+                            ))}
+                            <button
+                                type="submit"
+                                disabled={submitting}
+                                className={`h-10 rounded-lg px-4 text-sm font-semibold text-white disabled:opacity-60 ${pending.tone === "danger" ? "bg-red-600 hover:bg-red-700" : "bg-[#15664f] hover:bg-[#10523f]"
+                                    }`}
+                            >
+                                {submitting ? "Please wait..." : (pending.confirmLabel ?? "Continue")}
+                            </button>
+                        </form>
+                    ) : (
+                        <button
+                            type="button"
+                            onClick={() => {
+                                const href = pending.href;
+                                setPending(null);
+                                router.push(href);
+                            }}
+                            className={`h-10 rounded-lg px-4 text-sm font-semibold text-white ${pending.tone === "danger" ? "bg-red-600 hover:bg-red-700" : "bg-[#15664f] hover:bg-[#10523f]"
+                                }`}
+                        >
+                            {pending.confirmLabel ?? "Continue"}
+                        </button>
+                    )}
                 </div>
             </div>
         </div>

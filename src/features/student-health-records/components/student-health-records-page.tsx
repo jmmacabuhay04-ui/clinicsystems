@@ -214,6 +214,7 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
                 backHref={historyOnly ? "/dashboard" : listHref(requestedPage)}
                 canEdit={canEdit}
                 canEditStudent={canAddStudent}
+                hidePersonal={session.role === "admin"}
             />
         );
     }

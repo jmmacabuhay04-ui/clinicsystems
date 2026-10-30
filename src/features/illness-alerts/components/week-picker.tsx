@@ -3,49 +3,71 @@
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 
-type Week = {
-    value: string;
+type Option = {
+    value: string; // "m:YYYY-MM" (buwan) o "w:YYYY-MM-DD" (linggo)
     label: string;
 };
 
 type Props = {
-    weeks: Week[];
+    months: Option[];
+    weeks: Option[];
     current: string;
 };
 
-export default function WeekPicker({ weeks, current }: Props) {
+const selectClass =
+    "h-11 min-w-0 rounded-lg border-2 border-[#cfe5d9] bg-white px-3 text-sm font-medium text-gray-900 shadow-sm outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20 disabled:opacity-60";
+
+// Dalawang dropdown:
+//   1) View: Week o Month
+//   2) Aling linggo / buwan (nagbabago ang laman depende sa View)
+export default function WeekPicker({ months, weeks, current }: Props) {
     const router = useRouter();
     const [pending, startTransition] = useTransition();
+    const isMonth = current.startsWith("m:");
 
-    function onChange(value: string) {
+    function go(value: string) {
+        const [kind, v] = value.split(":");
         startTransition(() => {
-            // The page reads ?week= and re-runs its query on the server.
-            router.push(`/dashboard/illness-alerts?week=${value}`);
+            // Binabasa ng page ang ?month= o ?week= at kinukuha ulit ang data
+            router.push(`/dashboard/illness-alerts?${kind === "m" ? "month" : "week"}=${v}`, { scroll: false });
         });
     }
 
     return (
-        <div className="flex items-center gap-2">
-            <label htmlFor="week" className="text-sm font-semibold text-gray-700">
-                Week
+        <div className="flex w-full items-center gap-2 sm:w-auto" aria-busy={pending}>
+            <label htmlFor="view" className="text-sm font-semibold text-gray-600">
+                View
             </label>
+            <select
+                id="view"
+                value={isMonth ? "month" : "week"}
+                disabled={pending}
+                // Pagpalit ng View: ngayong linggo o ngayong buwan ang unang ipapakita
+                onChange={(e) => go(e.target.value === "month" ? months[0].value : weeks[0].value)}
+                suppressHydrationWarning
+                className={`${selectClass} w-28 shrink-0`}
+            >
+                <option value="week">Week</option>
+                <option value="month">Month</option>
+            </select>
 
             <select
-                id="week"
+                id="period"
+                aria-label={isMonth ? "Month" : "Week"}
                 value={current}
                 disabled={pending}
-                onChange={(e) => onChange(e.target.value)}
+                onChange={(e) => go(e.target.value)}
                 suppressHydrationWarning
-                className="h-11 rounded-lg border-2 border-[#cfe5d9] bg-white px-3 text-sm font-medium text-gray-900 shadow-sm outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20 disabled:opacity-60"
+                // Pirming lapad para hindi gumalaw kapag nagpalit ng Week/Month
+                className={`${selectClass} w-full sm:w-64`}
             >
-                {weeks.map((w) => (
-                    <option key={w.value} value={w.value}>
-                        {w.label}
+                {(isMonth ? months : weeks).map((o) => (
+                    <option key={o.value} value={o.value}>
+                        {o.label}
                     </option>
                 ))}
             </select>
 
-            {pending ? <span className="text-xs text-gray-500">Loading…</span> : null}
         </div>
     );
 }

@@ -6,6 +6,8 @@ const IT_TECH_ALLOWED = [
     "/dashboard/users",
     "/dashboard/settings",
     "/dashboard/access-logs",
+    "/dashboard/password-requests",
+    "/dashboard/walk-in-reset",
 ];
 
 // Session expires after this many minutes of inactivity
@@ -24,7 +26,8 @@ export async function proxy(req: NextRequest) {
         }
 
         if (staff.role === "ittech") {
-            const allowed = IT_TECH_ALLOWED.some((path) => pathname.startsWith(path));
+            // "/dashboard" mismo (header lang ang makikita) + mga page sa IT_TECH_ALLOWED
+            const allowed = pathname === "/dashboard" || IT_TECH_ALLOWED.some((path) => pathname.startsWith(path));
             if (!allowed) {
                 return NextResponse.redirect(new URL("/dashboard/users", req.url));
             }

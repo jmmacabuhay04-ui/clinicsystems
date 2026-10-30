@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-    Activity,
     Archive,
     Briefcase,
     ChevronDown,
@@ -73,9 +72,9 @@ function isGroup(entry: NavEntry): entry is NavGroup {
 }
 
 const navItems: NavEntry[] = [
-    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "doctor", "dentist", "nurse"], section: "Overview" },
-    { href: "/dashboard/students", label: "Student", icon: User2, roles: ["admin", "nurse"], section: "People" },
-    { href: "/dashboard/employees", label: "Employee", icon: User2, roles: ["admin", "nurse"], section: "People" },
+    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "doctor", "dentist", "nurse", "ittech"], section: "Overview" },
+    { href: "/dashboard/students", label: "Student", icon: User2, roles: ["nurse"], section: "People" },
+    { href: "/dashboard/employees", label: "Employee", icon: User2, roles: ["nurse"], section: "People" },
     {
         label: "Record",
         icon: ClipboardCheck,
@@ -116,8 +115,8 @@ const navItems: NavEntry[] = [
         section: "Account",
         children: [
             { href: "/dashboard/settings", label: "Account Settings", icon: Settings },
-            { href: "/dashboard/password-requests", label: "Password Requests", icon: KeyRound, roles: ["nurse"] },
-            { href: "/dashboard/walk-in-reset", label: "Walk-in Reset", icon: UserCheck, roles: ["nurse"] },
+            { href: "/dashboard/password-requests", label: "Password Requests", icon: KeyRound, roles: ["nurse", "ittech"] },
+            { href: "/dashboard/walk-in-reset", label: "Walk-in Reset", icon: UserCheck, roles: ["nurse", "ittech"] },
         ],
     },
 ];
@@ -138,23 +137,47 @@ type Props = {
     avatar?: string | null;
 };
 
+// Naka-collapse ba ang sidebar (icons only)? Nakatabi sa localStorage para matandaan.
+const COLLAPSE_KEY = "sidebar-collapsed";
+const COLLAPSE_EVENT = "sidebar-collapsed-change";
+function subscribeCollapsed(onChange: () => void) {
+    window.addEventListener("storage", onChange);
+    window.addEventListener(COLLAPSE_EVENT, onChange);
+    return () => {
+        window.removeEventListener("storage", onChange);
+        window.removeEventListener(COLLAPSE_EVENT, onChange);
+    };
+}
+function readCollapsed() {
+    try {
+        return localStorage.getItem(COLLAPSE_KEY) === "1";
+    } catch {
+        return false;
+    }
+}
+
 export default function AdminSidebar({ username, displayName: savedName, role, avatar }: Props) {
     const pathname = usePathname();
-    const [collapsed, setCollapsed] = useState(false); // desktop: icons only
+    // desktop: icons only (false habang nire-render sa server)
+    const collapsed = useSyncExternalStore(subscribeCollapsed, readCollapsed, () => false);
     const [mobileOpen, setMobileOpen] = useState(false); // phone: show/hide drawer
-    const [openGroup, setOpenGroup] = useState<string | null>(null); // aling dropdown ang bukas
+    // Pangalan ng menu na lumalabas sa tabi ng icon kapag naka-collapse (icons only)
+    const [tip, setTip] = useState<{ label: string; top: number; left: number } | null>(null);
+    const tipProps = (label: string) => ({
+        onMouseEnter: (e: React.MouseEvent<HTMLElement>) => {
+            if (!collapsed) return;
+            const r = e.currentTarget.getBoundingClientRect();
+            setTip({ label, top: r.top + r.height / 2, left: r.right + 12 });
+        },
+        onFocus: (e: React.FocusEvent<HTMLElement>) => {
+            if (!collapsed) return;
+            const r = e.currentTarget.getBoundingClientRect();
+            setTip({ label, top: r.top + r.height / 2, left: r.right + 12 });
+        },
+        onMouseLeave: () => setTip(null),
+        onBlur: () => setTip(null),
+    });
 
-    // Tandaan ang huling pinili (collapsed o hindi)
-    useEffect(() => {
-        try {
-            setCollapsed(localStorage.getItem("sidebar-collapsed") === "1");
-        } catch { }
-    }, []);
-
-    // Isara ang drawer pagkatapos pumunta sa ibang page
-    useEffect(() => {
-        setMobileOpen(false);
-    }, [pathname]);
 
     // Kapag bukas ang drawer sa phone: huwag mag-scroll ang page sa likod, at isara gamit ang Esc
     useEffect(() => {
@@ -172,13 +195,12 @@ export default function AdminSidebar({ username, displayName: savedName, role, a
     }, [mobileOpen]);
 
     function toggleCollapsed() {
-        setCollapsed((prev) => {
-            const next = !prev;
-            try {
-                localStorage.setItem("sidebar-collapsed", next ? "1" : "0");
-            } catch { }
-            return next;
-        });
+        try {
+            localStorage.setItem(COLLAPSE_KEY, collapsed ? "0" : "1");
+        } catch {
+            /* walang localStorage: hayaan na lang */
+        }
+        window.dispatchEvent(new Event(COLLAPSE_EVENT));
     }
 
     const localPart = username.split("@")[0];
@@ -202,21 +224,26 @@ export default function AdminSidebar({ username, displayName: savedName, role, a
         return !entry.roles || entry.roles.includes(role) ? [entry] : [];
     });
 
-    // Kapag nasa loob ng isang form page, awtomatikong bukas ang dropdown nito
-    useEffect(() => {
-        const group = visibleItems.find(
-            (e): e is NavGroup => isGroup(e) && e.children.some((c) => isActive(c.href)),
-        );
-        if (group) setOpenGroup(group.label);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [pathname, role]);
+    // Dropdown na may laman ang kasalukuyang page (awtomatikong bukas)
+    const activeGroup =
+        visibleItems.find((e): e is NavGroup => isGroup(e) && e.children.some((c) => isActive(c.href)))?.label ?? null;
+    const [openGroup, setOpenGroup] = useState<string | null>(activeGroup); // aling dropdown ang bukas
+
+    // Pagpalit ng page: isara ang drawer (phone) at buksan ang dropdown ng bagong page.
+    // Ginagawa habang nagre-render (hindi sa useEffect) ayon sa rekomendasyon ng React.
+    const [lastPath, setLastPath] = useState(pathname);
+    if (pathname !== lastPath) {
+        setLastPath(pathname);
+        setMobileOpen(false);
+        if (activeGroup) setOpenGroup(activeGroup);
+    }
 
     return (
         <>
             {/* PHONE: top bar na laging nasa taas (nakatago sa md pataas) */}
             <header className="sticky top-0 z-30 flex h-14 items-center justify-between bg-[#15664f] px-4 text-white shadow-md md:hidden">
                 <Link
-                    href={role === "ittech" ? "/dashboard/users" : "/dashboard"}
+                    href="/dashboard"
                     className="flex items-center gap-2.5"
                 >
                     <img src="/bcas.jpg" alt="BCAS" className="h-9 w-9 rounded-full bg-white object-contain" />
@@ -251,19 +278,27 @@ export default function AdminSidebar({ username, displayName: savedName, role, a
                         }`}
                 >
                     <Link
-                        href={role === "ittech" ? "/dashboard/users" : "/dashboard"}
+                        href="/dashboard"
                         onClick={() => setMobileOpen(false)}
                         title="Go to Dashboard"
-                        className={`flex w-full flex-col items-center gap-2 px-6 text-center hover:opacity-90 ${collapsed ? "md:hidden" : ""
+                        className={`flex w-full min-w-0 select-none flex-col items-center gap-1 overflow-hidden px-3 text-center hover:opacity-90 ${collapsed ? "md:hidden" : ""
                             }`}
                     >
-                        {/* Malaking logo sa gitna, pangalan sa ilalim */}
-                        <img
-                            src="/bcas.jpg"
-                            alt="BCAS"
-                            className="h-24 w-24 shrink-0 rounded-full bg-white object-contain shadow-lg shadow-black/25"
-                        />
-                        <p className="text-xl font-semibold tracking-wide text-white">School Clinic</p>
+                        {/* Kapareho ng login page: walang border, malambot na liwanag sa likod at lumulutang na anino */}
+                        <span className="relative">
+                            <span
+                                aria-hidden
+                                className="absolute -inset-3 rounded-full bg-gradient-to-br from-white/30 via-[#3fae86]/30 to-amber-300/40 blur-xl"
+                            />
+                            <img
+                                src="/bcas.jpg"
+                                alt="BCAS"
+                                className="relative h-24 w-24 shrink-0 rounded-full bg-white object-contain shadow-[0_18px_40px_-12px_rgba(0,0,0,0.55)]"
+                            />
+                        </span>
+
+                        {/* Pangalan (gaya ng login page) */}
+                        <span className="mt-2 text-xl font-bold tracking-tight text-white">School Clinic</span>
                     </Link>
 
                     {/* Phone: isara ang drawer */}
@@ -304,7 +339,7 @@ export default function AdminSidebar({ username, displayName: savedName, role, a
                 {/* Body (nasa ibabaw ng alon) */}
                 <div className="relative z-10 flex min-h-0 flex-1 flex-col">
                     {/* Menu */}
-                    <nav className="no-scrollbar flex-1 overflow-y-auto px-3 py-3">
+                    <nav className="no-scrollbar flex-1 overflow-y-auto px-3 py-3" onScroll={() => setTip(null)}>
                         {visibleItems.map((item, index) => {
                             const Icon = item.icon;
                             // Pamagat ng section kapag iba ito sa nauna
@@ -334,11 +369,13 @@ export default function AdminSidebar({ username, displayName: savedName, role, a
                                         {sectionDivider}
                                         <button
                                             type="button"
-                                            title={item.label}
+                                            {...tipProps(item.label)}
+                                            aria-label={item.label}
                                             aria-expanded={open}
                                             onClick={() => {
                                                 // Kung icons-only, i-expand muna ang sidebar para makita ang dropdown
                                                 if (collapsed) {
+                                                    setTip(null);
                                                     toggleCollapsed();
                                                     setOpenGroup(item.label);
                                                 } else {
@@ -411,8 +448,12 @@ export default function AdminSidebar({ username, displayName: savedName, role, a
                                     {sectionDivider}
                                     <Link
                                         href={item.href}
-                                        title={item.label}
-                                        onClick={() => setMobileOpen(false)}
+                                        {...tipProps(item.label)}
+                                        aria-label={item.label}
+                                        onClick={() => {
+                                            setTip(null);
+                                            setMobileOpen(false);
+                                        }}
                                         className={`group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-base transition-all ${collapsed ? "md:justify-center md:px-0" : ""
                                             } ${active
                                                 ? "bg-[#4f9a7c]/70 font-semibold text-white shadow-sm shadow-black/10 ring-1 ring-white/15"
@@ -468,7 +509,7 @@ export default function AdminSidebar({ username, displayName: savedName, role, a
                                     title="Sign out"
                                     message="Are you sure you want to sign out?"
                                     confirmLabel="Sign out"
-                                    className="flex h-9 w-9 items-center justify-center rounded-lg text-white/80 hover:bg-yellow-500/90 hover:text-white"
+                                    className="flex h-9 w-9 items-center justify-center rounded-lg text-white/80 hover:bg-amber-400 hover:text-[#10523f]"
                                 >
                                     <LogOut className="h-[18px] w-[18px]" strokeWidth={1.8} />
                                     <span className="sr-only">Sign out</span>
@@ -478,6 +519,20 @@ export default function AdminSidebar({ username, displayName: savedName, role, a
                     </div>
                 </div>
             </aside>
+
+            {/* Pangalan ng menu sa tabi ng icon (kapag naka-collapse lang, desktop) */}
+            {collapsed && tip && (
+                <div
+                    role="tooltip"
+                    style={{ top: tip.top, left: tip.left }}
+                    className="pointer-events-none fixed z-[60] hidden -translate-y-1/2 items-center md:flex"
+                >
+                    <span className="-mr-1.5 h-3 w-3 rotate-45 border-b border-l border-[#cfe5d9] bg-white" />
+                    <span className="whitespace-nowrap rounded-xl border border-[#cfe5d9] bg-white px-4 py-2 text-base font-semibold text-[#10523f] shadow-xl shadow-black/15">
+                        {tip.label}
+                    </span>
+                </div>
+            )}
 
             {/* Desktop: nakapirmi (fixed) ang sidebar sa kaliwa at laging buong taas ng screen,
                 kaya kailangan ng pamalit na espasyo para hindi matakpan ang laman. */}

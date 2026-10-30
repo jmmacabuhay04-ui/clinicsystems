@@ -21,7 +21,7 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
         <label className="block space-y-1.5">
             <span className="text-sm font-semibold text-gray-800">{label}</span>
             {children}
-            {hint && <span className="block text-xs text-gray-500">{hint}</span>}
+            {hint && <span className="block text-sm text-gray-600">{hint}</span>}
         </label>
     );
 }
@@ -38,12 +38,9 @@ function SectionHeader({
 }) {
     return (
         <div className="flex items-start gap-3 border-b border-gray-100 px-5 py-4 md:px-6">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#eef6f2] text-[#15664f]">
-                {icon}
-            </span>
             <div className="min-w-0">
                 <h2 className="text-base font-semibold text-gray-900 md:text-lg">{title}</h2>
-                {description && <p className="text-sm text-gray-500">{description}</p>}
+                {description && <p className="text-sm text-gray-600">{description}</p>}
             </div>
         </div>
     );
@@ -155,7 +152,7 @@ export default function StudentForm({ mode, student, cancelHref, avatar = null }
                                     <Camera className="h-7 w-7" />
                                 </span>
                             )}
-                            <span className="text-center text-xs text-gray-500">
+                            <span className="text-center text-sm text-gray-600">
                                 {mode === "edit"
                                     ? "Click the photo to upload or change it."
                                     : "You can add a photo after saving."}
@@ -281,7 +278,7 @@ export default function StudentForm({ mode, student, cancelHref, avatar = null }
                             <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
                             <div>
                                 <p className="text-sm font-semibold text-amber-900">Confirm it&apos;s you</p>
-                                <p className="mt-0.5 text-xs text-amber-800">
+                                <p className="mt-0.5 text-sm text-amber-800">
                                     Student passwords are confidential. Enter your own account password to save this
                                     {mode === "create" ? " new account." : " password change."}
                                 </p>
@@ -309,7 +306,7 @@ export default function StudentForm({ mode, student, cancelHref, avatar = null }
                     title="Discard changes?"
                     message="The information you entered will not be saved."
                     confirmLabel="Discard"
-                    className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                    className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-5 text-sm font-semibold text-gray-600 hover:bg-gray-50"
                 >
                     <X className="h-4 w-4" />
                     Cancel

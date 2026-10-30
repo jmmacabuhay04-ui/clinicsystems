@@ -8,7 +8,7 @@ import { validatePasswordPair } from "@/lib/auth/password-policy";
 import { logAccess } from "@/lib/access-log";
 
 // Who can perform a walk-in reset? Nurse and admin.
-const ALLOWED_ROLES = ["nurse", "admin"];
+const ALLOWED_ROLES = ["nurse", "admin", "ittech"];
 
 export async function walkInReset(formData: FormData) {
     const session = await getSession();
