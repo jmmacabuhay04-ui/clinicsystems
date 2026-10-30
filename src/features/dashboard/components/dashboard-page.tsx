@@ -48,7 +48,6 @@ type DentalRow = {
 };
 
 
-type CountRow = { total: bigint };
 
 // One row per day for the last 7 days (used by the overview chart + distribution).
 type WeeklyRow = { day: Date; clinic: bigint; dental: bigint; reports: bigint };
@@ -696,6 +695,12 @@ function RecentActivity({
     );
 }
 
+// Sabay-sabay na patakbuhin ang mga query nang walang mabigat na type-checking.
+// (Iwas sa "Type instantiation is excessively deep" na error ng Promise.all + Prisma.)
+function parallel<T extends readonly unknown[]>(items: { [K in keyof T]: PromiseLike<T[K]> }): Promise<T> {
+    return Promise.all(items as unknown as readonly PromiseLike<unknown>[]) as unknown as Promise<T>;
+}
+
 async function loadDashboard(
     isDentist: boolean,
     isDoctor: boolean,
@@ -708,49 +713,52 @@ async function loadDashboard(
     const chart = chartBuckets(chartRange, today);
 
     try {
-        // Hinati sa dalawang batch para hindi sabay-sabay ang 13 queries
-        // (iwas sa sobrang daming connection at sa "excessively deep" na type error).
+        // Lahat ng bilang sa mga card ay kinukuha sa ISANG query lang (isang biyahe sa database),
+        // kaya mas mabilis, lalo na't nasa Singapore ang Supabase.
+        type SummaryRow = {
+            students: bigint;
+            employees: bigint;
+            visits_today: bigint;
+            pending_reports: bigint;
+            dental_today: bigint;
+            dental_follow: bigint;
+            cases_today: bigint;
+        };
+
+        // Lahat ng query ay sabay-sabay sa iisang batch (dati: 4 na magkasunod na batch, 18 queries)
         const [
-            students,
-            employees,
-            visitsToday,
+            summaryRows,
             recentVisits,
-            caseSummary,
-            visitors,
-            dentalToday,
             recentDental,
-        ]: [
-                CountRow[],
-                CountRow[],
-                CountRow[],
-                VisitRow[],
-                CountRow[],
-                CountRow[],
-                CountRow[],
-                DentalRow[],
-            ] = await Promise.all([
-                prisma.$queryRaw<CountRow[]>`
-          SELECT COUNT(*) AS total FROM students WHERE archived_at IS NULL
-        `,
-                showEmployees
-                    ? prisma.$queryRaw<CountRow[]>`
-          SELECT COUNT(*) AS total FROM employees
-        `
-                    : Promise.resolve([] as CountRow[]),
-                isDentist
-                    ? Promise.resolve([] as CountRow[])
-                    : prisma.$queryRaw<CountRow[]>`
-          SELECT (
+            weekly,
+            activityClinicStudent,
+            activityClinicEmployee,
+            activityDental,
+            activityReports,
+            reasonRows,
+        ] = await parallel<
+            [SummaryRow[], VisitRow[], DentalRow[], WeeklyRow[], ActivityRow[], ActivityRow[], ActivityRow[], ActivityRow[], ReasonRow[]]
+        >([
+            prisma.$queryRaw<SummaryRow[]>`
+          SELECT
+            (SELECT COUNT(*) FROM students WHERE archived_at IS NULL) AS students,
+            (SELECT COUNT(*) FROM employees) AS employees,
             (SELECT COUNT(*) FROM health_records
               WHERE archived_at IS NULL AND visit_date = CAST(${today} AS DATE))
-            +
-            (SELECT COUNT(*) FROM employee_health_records
-              WHERE archived_at IS NULL AND visit_date = CAST(${today} AS DATE))
-          ) AS total
+            + (SELECT COUNT(*) FROM employee_health_records
+              WHERE archived_at IS NULL AND visit_date = CAST(${today} AS DATE)) AS visits_today,
+            (SELECT COUNT(*) FROM health_case_reports
+              WHERE archived_at IS NULL AND LOWER(TRIM(status::text)) = 'pending') AS pending_reports,
+            (SELECT COUNT(*) FROM dental_records
+              WHERE archived_at IS NULL AND CAST(visit_date AS DATE) = CAST(${today} AS DATE)) AS dental_today,
+            (SELECT COUNT(*) FROM dental_records
+              WHERE archived_at IS NULL AND status = 'follow-up') AS dental_follow,
+            (SELECT COUNT(*) FROM health_case_reports
+              WHERE archived_at IS NULL AND CAST(report_date AS DATE) = CAST(${today} AS DATE)) AS cases_today
         `,
-                isDentist
-                    ? Promise.resolve([] as VisitRow[])
-                    : prisma.$queryRaw<VisitRow[]>`
+            isDentist
+                ? Promise.resolve([] as VisitRow[])
+                : prisma.$queryRaw<VisitRow[]>`
           SELECT v.record_id, v.patient_type, v.ref_number, v.last_name, v.first_name,
                  v.complaint, v.visit_date, v.avatar
           FROM (
@@ -773,21 +781,7 @@ async function loadDashboard(
           ORDER BY v.visit_date DESC, v.record_id DESC
           LIMIT 8
         `,
-                // Pending Reports = case reports na "pending" ang status lang
-                // (tugma sa Health Case Reports > Status: Pending)
-                prisma.$queryRaw<CountRow[]>`
-          SELECT COUNT(*) AS total FROM health_case_reports
-          WHERE archived_at IS NULL AND LOWER(TRIM(status::text)) = 'pending'
-        `,
-                prisma.$queryRaw<CountRow[]>`
-          SELECT COUNT(*) AS total FROM visitor_logs
-          WHERE archived_at IS NULL AND visit_date = CAST(${today} AS DATE)
-        `,
-                prisma.$queryRaw<CountRow[]>`
-          SELECT COUNT(*) AS total FROM dental_records
-          WHERE archived_at IS NULL AND CAST(visit_date AS DATE) = CAST(${today} AS DATE)
-        `,
-                prisma.$queryRaw<DentalRow[]>`
+            prisma.$queryRaw<DentalRow[]>`
           SELECT d.dental_id,
                  COALESCE(s.student_number, e.employee_number) AS ref_number,
                  COALESCE(s.last_name, e.last_name)            AS last_name,
@@ -804,16 +798,7 @@ async function loadDashboard(
           ORDER BY d.visit_date DESC, d.dental_id DESC
           LIMIT 8
         `,
-            ]);
 
-        const [
-            weekly,
-            activityClinicStudent,
-            activityClinicEmployee,
-            activityDental,
-            activityReports,
-            reasonRows,
-        ]: [WeeklyRow[], ActivityRow[], ActivityRow[], ActivityRow[], ActivityRow[], ReasonRow[]] = await Promise.all([
             // ---- Clinic Overview: bilang kada araw (linggo/buwan) o kada buwan (taon) ----
             prisma.$queryRaw<WeeklyRow[]>`
           WITH b AS (
@@ -983,40 +968,18 @@ async function loadDashboard(
             .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
             .slice(0, 5);
 
-        // Dental na kailangang balikan (para sa bell)
-        const dentalFollow = await prisma.$queryRaw<CountRow[]>`
-          SELECT COUNT(*) AS total FROM dental_records
-          WHERE archived_at IS NULL AND status = 'follow-up'
-        `;
-
-        // Dagdag na card: case reports at referral slips ngayong araw, at mga naka-archive
-        const [casesToday, slipsToday, archived] = await Promise.all([
-            prisma.$queryRaw<CountRow[]>`
-          SELECT COUNT(*) AS total FROM health_case_reports
-          WHERE archived_at IS NULL AND CAST(report_date AS DATE) = CAST(${today} AS DATE)
-        `,
-            prisma.$queryRaw<CountRow[]>`
-          SELECT COUNT(*) AS total FROM referral_slips
-          WHERE archived_at IS NULL AND CAST(slip_date AS DATE) = CAST(${today} AS DATE)
-        `,
-            prisma.$queryRaw<CountRow[]>`
-          SELECT (SELECT COUNT(*) FROM students WHERE archived_at IS NOT NULL)
-               + (SELECT COUNT(*) FROM employees WHERE archived_at IS NOT NULL) AS total
-        `,
-        ]);
+        const sum = summaryRows[0];
+        const n = (v: bigint | undefined) => Number(v ?? 0);
 
         return {
             today,
-            dentalFollowUps: Number(dentalFollow[0]?.total ?? 0),
-            casesToday: Number(casesToday[0]?.total ?? 0),
-            slipsToday: Number(slipsToday[0]?.total ?? 0),
-            archivedPeople: Number(archived[0]?.total ?? 0),
-            totalStudents: Number(students[0]?.total ?? 0),
-            totalEmployees: Number(employees[0]?.total ?? 0),
-            visitsToday: Number(visitsToday[0]?.total ?? 0),
-            pendingReports: Number(caseSummary[0]?.total ?? 0),
-            visitorsToday: Number(visitors[0]?.total ?? 0),
-            dentalToday: Number(dentalToday[0]?.total ?? 0),
+            dentalFollowUps: n(sum?.dental_follow),
+            casesToday: n(sum?.cases_today),
+            totalStudents: n(sum?.students),
+            totalEmployees: showEmployees ? n(sum?.employees) : 0,
+            visitsToday: isDentist ? 0 : n(sum?.visits_today),
+            pendingReports: n(sum?.pending_reports),
+            dentalToday: n(sum?.dental_today),
             recentVisits,
             recentDental,
             weeklyPoints,
@@ -1034,13 +997,10 @@ async function loadDashboard(
             today,
             dentalFollowUps: 0,
             casesToday: 0,
-            slipsToday: 0,
-            archivedPeople: 0,
             totalStudents: 0,
             totalEmployees: 0,
             visitsToday: 0,
             pendingReports: 0,
-            visitorsToday: 0,
             dentalToday: 0,
             recentVisits: [] as VisitRow[],
             recentDental: [] as DentalRow[],

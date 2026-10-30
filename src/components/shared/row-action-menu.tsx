@@ -140,8 +140,8 @@ export default function RowActionMenu({ actions, label = "Actions" }: { actions:
                             <button
                                 type="submit"
                                 disabled={submitting}
-                                className={`h-10 rounded-lg px-4 text-sm font-semibold text-white disabled:opacity-60 ${pending.tone === "danger" ? "bg-red-600 hover:bg-red-700" : "bg-[#15664f] hover:bg-[#10523f]"
-                                    }`}
+                                // Laging green ang Continue (kahit sa Delete), kapareho ng ibang button
+                                className="h-10 rounded-lg bg-[#15664f] px-4 text-sm font-semibold text-white hover:bg-[#10523f] disabled:opacity-60"
                             >
                                 {submitting ? "Please wait..." : (pending.confirmLabel ?? "Continue")}
                             </button>
@@ -154,8 +154,8 @@ export default function RowActionMenu({ actions, label = "Actions" }: { actions:
                                 setPending(null);
                                 router.push(href);
                             }}
-                            className={`h-10 rounded-lg px-4 text-sm font-semibold text-white ${pending.tone === "danger" ? "bg-red-600 hover:bg-red-700" : "bg-[#15664f] hover:bg-[#10523f]"
-                                }`}
+                            // Laging green ang "Continue": nagbubukas lang ito ng form, wala pang binubura
+                            className="h-10 rounded-lg bg-[#15664f] px-4 text-sm font-semibold text-white hover:bg-[#10523f]"
                         >
                             {pending.confirmLabel ?? "Continue"}
                         </button>

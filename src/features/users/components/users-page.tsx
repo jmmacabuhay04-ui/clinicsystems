@@ -23,6 +23,7 @@ type Props = {
         del?: string;
         derr?: string;
         pw?: string;
+        rm?: string;
     }>;
 };
 
@@ -73,8 +74,9 @@ export default async function UsersPage({ searchParams }: Props) {
     if (!session) redirect("/login");
     if (!canCreateAccounts(session.role)) redirect("/dashboard");
     const canReset = session.role === "admin" || session.role === "ittech";
-    const { reset, otp, err, edit, del, derr, pw } = await searchParams;
+    const { reset, otp, err, edit, del, derr, pw, rm } = await searchParams;
     const pwId = Number(pw) || 0;
+    const rmId = Number(rm) || 0;
     const otpUserId = Number(otp) || 0;
     const editId = Number(edit) || 0;
     const delUserId = Number(del) || 0;
@@ -205,17 +207,16 @@ export default async function UsersPage({ searchParams }: Props) {
                                             icon: "edit",
                                         });
                                         if (!isMe) {
-                                            // Pagka-confirm: magpapadala agad ng OTP, tapos lalabas ang form ng OTP
+                                            // Kapareho ng Reset Password: magbubukas muna ng panel sa ilalim ng row,
+                                            // at doon pipindutin ang "Send OTP".
                                             actions.push({
                                                 label: "Delete Account",
-                                                href: `/dashboard/users?del=${u.user_id}`,
+                                                href: `/dashboard/users?rm=${u.user_id}`,
                                                 title: "Delete account?",
-                                                message: `A 6-digit OTP will be sent to ${u.username}. Enter it to permanently delete this account.`,
-                                                confirmLabel: "Send OTP",
+                                                message: `Permanently delete ${u.username}. An OTP will be emailed to the account owner before it is deleted.`,
+                                                confirmLabel: "Continue",
                                                 icon: "delete",
                                                 tone: "danger",
-                                                formAction: requestDeleteOtp,
-                                                fields: { userId: String(u.user_id) },
                                             });
                                         }
                                     }
@@ -226,12 +227,14 @@ export default async function UsersPage({ searchParams }: Props) {
                                             ? "otp"
                                             : u.user_id === delUserId
                                                 ? "del"
-                                                : u.user_id === pwId
-                                                    ? "pw"
-                                                    : canReset && u.user_id === editId
-                                                        ? "edit"
-                                                        : null;
-                                    const danger = panel === "del";
+                                                : canReset && !isMe && u.user_id === rmId
+                                                    ? "rm"
+                                                    : u.user_id === pwId
+                                                        ? "pw"
+                                                        : canReset && u.user_id === editId
+                                                            ? "edit"
+                                                            : null;
+                                    const danger = panel === "del" || panel === "rm";
 
                                     return (
                                         <Fragment key={u.user_id}>
@@ -304,6 +307,7 @@ export default async function UsersPage({ searchParams }: Props) {
                                                             {panel === "pw" && "Reset password"}
                                                             {panel === "otp" && "Enter reset OTP"}
                                                             {panel === "edit" && "Edit account"}
+                                                            {panel === "rm" && "Delete account"}
                                                             {panel === "del" && "Enter deletion OTP"}
                                                         </p>
 
@@ -314,14 +318,14 @@ export default async function UsersPage({ searchParams }: Props) {
                                                                 {/* May Show password (mata) at Clear (X) */}
                                                                 <PasswordInput
                                                                     name="password"
-                                                                    placeholder="New password (min. 8 characters)"
+                                                                    placeholder="New password (8+ characters)"
                                                                     minLength={8}
                                                                     required
                                                                     autoFocus
                                                                     autoComplete="new-password"
                                                                     suppressHydrationWarning
                                                                     clearable
-                                                                    wrapperClassName="w-full sm:w-72"
+                                                                    wrapperClassName="w-full sm:w-80"
                                                                     className={`${smallInput} w-full`}
                                                                 />
                                                                 <ConfirmSubmit
@@ -395,6 +399,39 @@ export default async function UsersPage({ searchParams }: Props) {
                                                                     className={btnGreen}
                                                                 >
                                                                     Save Changes
+                                                                </ConfirmSubmit>
+                                                                <Link href="/dashboard/users" className={btnCancel}>
+                                                                    Cancel
+                                                                </Link>
+                                                            </form>
+                                                        )}
+
+                                                        {panel === "rm" && (
+                                                            /* DELETE STEP 1: magpadala ng OTP sa may-ari (kapareho ng Reset Password) */
+                                                            <form action={requestDeleteOtp} className="flex flex-wrap items-center gap-3">
+                                                                <input type="hidden" name="userId" value={u.user_id} />
+                                                                {/* Kumpirmasyon: i-type ang email ng account (kapareho ng format ng Reset Password) */}
+                                                                <input
+                                                                    name="confirmEmail"
+                                                                    type="text"
+                                                                    placeholder="Type the email to confirm"
+                                                                    pattern={u.username.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}
+                                                                    title={`Type ${u.username} exactly to confirm`}
+                                                                    required
+                                                                    autoFocus
+                                                                    autoComplete="off"
+                                                                    spellCheck={false}
+                                                                    suppressHydrationWarning
+                                                                    className={`${smallInput} w-full border-red-300 focus:border-red-600 focus:ring-red-200 sm:w-80`}
+                                                                />
+                                                                <ConfirmSubmit
+                                                                    title="Send deletion OTP?"
+                                                                    message={`A 6-digit OTP will be emailed to ${u.username}. Enter it to permanently delete this account.`}
+                                                                    confirmLabel="Send OTP"
+                                                                    className={btnGreen}
+                                                                >
+                                                                    <Mail className="h-3.5 w-3.5" />
+                                                                    Send OTP
                                                                 </ConfirmSubmit>
                                                                 <Link href="/dashboard/users" className={btnCancel}>
                                                                     Cancel
