@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { logout } from "@/features/auth/login-actions";
 import ConfirmSubmit from "@/components/shared/confirm-submit";
+import RoleBadge from "@/components/shared/role-badge";
 
 // Custom tooth icon (same props as the lucide icons used here).
 function ToothIcon({ className, strokeWidth = 2 }: { className?: string; strokeWidth?: number }) {
@@ -73,8 +74,8 @@ function isGroup(entry: NavEntry): entry is NavGroup {
 
 const navItems: NavEntry[] = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "doctor", "dentist", "nurse", "ittech"], section: "Overview" },
-    { href: "/dashboard/students", label: "Student", icon: User2, roles: ["nurse"], section: "People" },
-    { href: "/dashboard/employees", label: "Employee", icon: User2, roles: ["nurse"], section: "People" },
+    { href: "/dashboard/students", label: "Student", icon: User2, roles: ["nurse", "admin"], section: "People" }, // admin: Unauthorized Access page
+    { href: "/dashboard/employees", label: "Employee", icon: User2, roles: ["nurse", "admin"], section: "People" },
     {
         label: "Record",
         icon: ClipboardCheck,
@@ -121,13 +122,6 @@ const navItems: NavEntry[] = [
     },
 ];
 
-const roleLabels: Record<string, string> = {
-    admin: "Administrator",
-    doctor: "Doctor",
-    dentist: "Dentist",
-    nurse: "Nurse",
-    ittech: "IT Technician",
-};
 
 type Props = {
     username: string;
@@ -499,8 +493,9 @@ export default function AdminSidebar({ username, displayName: savedName, role, a
                                 <p className="truncate text-base font-semibold" title={username}>
                                     {displayName}
                                 </p>
-                                <span className="mt-0.5 inline-block rounded-full bg-amber-400/90 px-2 py-0.5 text-sm font-semibold text-[#14532D]">
-                                    {roleLabels[role] ?? role}
+                                {/* Kapareho ng badge sa Dashboard header (may tuldok) */}
+                                <span className="mt-1 inline-block">
+                                    <RoleBadge role={role} withDot />
                                 </span>
                             </div>
 
