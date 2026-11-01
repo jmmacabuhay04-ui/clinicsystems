@@ -1051,13 +1051,14 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                         </p>
                     </div>
                 </div>
-                <div className={`${card} flex items-center gap-4 p-5 md:min-w-[220px]`}>
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
+                <div className="relative flex items-center gap-3 overflow-hidden rounded-2xl border border-[#dcebe3] bg-white p-4 shadow-sm md:min-w-[220px]">
+                    <span aria-hidden className="absolute inset-x-0 top-0 h-1 bg-[#f2b705]" />
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#f2b705]/15 text-[#a67c00]">
                         <Archive className="h-5 w-5" />
                     </span>
                     <div>
-                        <p className="text-sm text-gray-600">{q ? "Matching Items" : "Total Archived"}</p>
-                        <p className="text-2xl font-bold text-gray-900">{total}</p>
+                        <p className="text-sm font-medium text-gray-600">{q ? "Matching Items" : "Total Archived"}</p>
+                        <p className="text-[1.75rem] font-bold leading-tight text-gray-900">{total}</p>
                     </div>
                 </div>
             </div>

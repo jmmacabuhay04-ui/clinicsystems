@@ -3,7 +3,6 @@ import { CalendarDays, ChevronRight, FileText, Lock, Stethoscope } from "lucide-
 import { prisma } from "@/lib/prisma";
 import { getStudentSession } from "@/lib/auth/student-session";
 import StudentNav from "@/components/layout/student-nav";
-import CaseReportTable from "@/features/case-reports/components/case-report-table";
 import {
     getStudent,
     getVisits,
@@ -11,6 +10,13 @@ import {
     formatDate,
     initialsOf,
 } from "@/features/student-portal/data";
+
+// Kulay ng status ng case report
+const CASE_STATUS: Record<string, { label: string; className: string; dot: string }> = {
+    pending: { label: "Pending", className: "bg-yellow-100 text-yellow-800", dot: "bg-yellow-500" },
+    referred: { label: "Referred", className: "bg-red-100 text-red-700", dot: "bg-red-500" },
+    resolved: { label: "Resolved", className: "bg-green-100 text-green-700", dot: "bg-green-500" },
+};
 
 const card = "rounded-xl border-2 border-[#cfe5d9] bg-white shadow-md shadow-[#15664f]/10";
 
@@ -92,6 +98,17 @@ export default async function StudentDashboardPage() {
     `;
     const caseCount = caseRows[0]?.total ?? 0;
 
+    // Huling 3 case reports (para sa "Recent Case Reports" na listahan)
+    const recentCases = await prisma.$queryRaw<
+        { case_id: number; case_number: string; report_date: Date; complaint: string; notes: string | null; staff_name: string | null; status: string }[]
+    >`
+      SELECT case_id, case_number, report_date, complaint, notes, staff_name, status
+      FROM health_case_reports
+      WHERE student_id = ${student.student_id} AND archived_at IS NULL
+      ORDER BY report_date DESC, case_id DESC
+      LIMIT 3
+    `;
+
     const dateToday = new Intl.DateTimeFormat("en-US", {
         month: "long",
         day: "numeric",
@@ -103,13 +120,12 @@ export default async function StudentDashboardPage() {
         Number(new Intl.DateTimeFormat("en-US", { hour: "numeric", hour12: false, timeZone: "Asia/Manila" }).format(new Date())) % 24;
     const greeting = hour < 12 ? "Good Morning" : hour < 18 ? "Good Afternoon" : "Good Evening";
 
-    const subline = [student.student_number, student.program, student.grade_level].filter(Boolean).join(" · ");
 
     const stats = [
-        { label: "Clinic Visits", value: String(visits.length), icon: <Stethoscope className="h-5 w-5" />, tint: "bg-[#eef6f2] text-[#15664f]" },
-        { label: "Dental Visits", value: String(dental.length), icon: <ToothIcon className="h-5 w-5" />, tint: "bg-cyan-50 text-cyan-700" },
-        { label: "Case Reports", value: String(caseCount), icon: <FileText className="h-5 w-5" />, tint: "bg-amber-100 text-amber-700" },
-        { label: "Last Visit", value: lastVisit ? formatDate(lastVisit, "short") : "—", icon: <CalendarDays className="h-5 w-5" />, tint: "bg-rose-50 text-rose-600", small: true },
+        { label: "Clinic Visits", value: String(visits.length), icon: <Stethoscope className="h-5 w-5" />, bar: "bg-[#15664f]", tint: "bg-[#15664f]/10 text-[#15664f]" },
+        { label: "Dental Visits", value: String(dental.length), icon: <ToothIcon className="h-5 w-5" />, bar: "bg-[#f2b705]", tint: "bg-[#f2b705]/15 text-[#a67c00]" },
+        { label: "Case Reports", value: String(caseCount), icon: <FileText className="h-5 w-5" />, bar: "bg-[#3fae86]", tint: "bg-[#3fae86]/15 text-[#2a8a67]" },
+        { label: "Last Visit", value: lastVisit ? formatDate(lastVisit, "short") : "—", icon: <CalendarDays className="h-5 w-5" />, bar: "bg-[#15664f]", tint: "bg-[#15664f]/10 text-[#15664f]", small: true },
     ];
 
     return (
@@ -117,74 +133,62 @@ export default async function StudentDashboardPage() {
             <StudentNav fullName={fullName} initials={initialsOf(student.first_name, student.last_name)} />
 
             <main className="mx-auto max-w-5xl space-y-6 p-4 pb-10 md:p-6">
-                {/* Welcome banner (kapareho ng disenyo sa staff dashboard) */}
-                <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#15664f] via-[#1b7a5e] to-[#2f8f6f] px-5 py-6 text-white shadow-lg shadow-[#15664f]/20 sm:px-8 sm:py-7">
-                    <div aria-hidden className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-white/10" />
-                    <div aria-hidden className="pointer-events-none absolute -bottom-24 right-32 h-48 w-48 rounded-full bg-amber-300/15 blur-2xl" />
-                    <div aria-hidden className="pointer-events-none absolute -bottom-16 -left-10 h-40 w-40 rounded-full bg-white/5" />
-                    <svg
-                        aria-hidden
-                        viewBox="0 0 600 80"
-                        preserveAspectRatio="none"
-                        className="pointer-events-none absolute inset-x-0 bottom-3 h-14 w-full text-white/15"
-                    >
-                        <polyline
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            points="0,50 150,50 175,50 190,20 205,70 220,10 235,60 250,50 400,50 420,50 432,32 444,62 456,50 600,50"
-                        />
-                    </svg>
+                {/* Welcome banner: kapareho ng banner ng nurse/staff Dashboard
+                    (madilim na green sa kaliwa, litrato ng BCAS sa kanan, quote, logo at dahon) */}
+                <section
+                    className="relative overflow-hidden rounded-2xl bg-[#10523f] px-5 py-3.5 text-white shadow-lg shadow-[#15664f]/20 sm:px-6 sm:py-4"
+                    style={{
+                        backgroundImage:
+                            "linear-gradient(90deg, rgba(16,82,63,1) 0%, rgba(16,82,63,0.97) 40%, rgba(21,102,79,0.35) 70%, rgba(21,102,79,0.05) 100%), url('/banner.jpg')",
+                        backgroundSize: "100% 100%, 62% auto",
+                        backgroundPosition: "center, right 50%",
+                        backgroundRepeat: "no-repeat",
+                    }}
+                >
+                    {/* Kanan: BCAS logo at mga dahon (malaking screen lang) */}
+                    <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 hidden w-36 items-center justify-center lg:flex">
+                        <span className="relative drop-shadow-[0_10px_14px_rgba(0,0,0,0.45)]">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                                src="/bcas.jpg"
+                                alt=""
+                                className="block h-20 w-20 rounded-full bg-white object-cover [clip-path:circle(49%)]"
+                            />
+                        </span>
+                        <svg viewBox="0 0 120 120" className="absolute -bottom-4 -right-2 h-24 w-24 text-[#3fae86]/60">
+                            <path d="M20 118 C 14 80, 30 46, 70 30 C 74 68, 58 100, 20 118 Z" fill="currentColor" />
+                            <path d="M58 120 C 60 88, 84 64, 118 58 C 116 92, 96 114, 58 120 Z" fill="currentColor" opacity="0.8" />
+                        </svg>
+                    </div>
 
-                    {/* Phone: nasa ilalim ang petsa. sm pataas: nasa kanan */}
-                    <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="flex min-w-0 flex-1 items-center gap-4 md:gap-5">
-                            {student.avatar ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img
-                                    src={student.avatar}
-                                    alt=""
-                                    className="h-16 w-16 shrink-0 rounded-full object-cover ring-4 ring-white/25 md:h-20 md:w-20"
-                                />
-                            ) : (
-                                <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-white/15 text-2xl font-bold ring-4 ring-white/25 md:h-20 md:w-20">
-                                    {initialsOf(student.first_name, student.last_name)}
-                                </span>
-                            )}
-                            <div className="min-w-0 flex-1">
-                                <span className="mb-1.5 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-sm font-semibold text-emerald-800 ring-1 ring-inset ring-emerald-600/25">
-                                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                                    Student
-                                </span>
-                                <h1 className="break-words text-2xl font-bold text-white md:text-3xl">
-                                    {greeting}, {student.first_name}!
-                                </h1>
-                                {subline && <p className="mt-1 text-sm text-white/85">{subline}</p>}
-                            </div>
-                        </div>
-                        <div className="flex w-fit shrink-0 items-center gap-3 rounded-xl bg-white/15 px-4 py-2.5 ring-1 ring-white/25 backdrop-blur-sm">
-                            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-[#15664f]">
+                    <div className="relative flex flex-col gap-3 md:flex-row md:items-center md:gap-10 lg:pr-40">
+                        {/* Kaliwa: pagbati, pangalan at petsa */}
+                        <div className="min-w-0 md:w-80 md:shrink-0">
+                            <p className="text-lg font-semibold text-white md:text-xl">{greeting},</p>
+                            <h1 className="break-words text-2xl font-bold leading-tight text-amber-300 md:text-3xl">
+                                {student.first_name}!
+                            </h1>
+                            <p className="mt-2 flex items-center gap-2 text-base text-white/90">
                                 <CalendarDays className="h-5 w-5" strokeWidth={1.8} />
-                            </div>
-                            <div className="leading-tight">
-                                <p className="text-sm font-semibold text-white">{dateToday}</p>
-                                <p className="text-sm text-white/80">{weekdayToday}</p>
-                            </div>
+                                <span className="font-semibold text-white">{dateToday}</span>
+                                <span className="text-white/85">· {weekdayToday}</span>
+                            </p>
                         </div>
+
                     </div>
                 </section>
 
                 {/* Stat cards */}
                 <section className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
                     {stats.map((s) => (
-                        <div key={s.label} className={`${card} flex min-w-0 items-center gap-3 p-4 md:p-5`}>
-                            <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${s.tint}`}>
+                        // Kapareho ng ibang page: puting card, may kulay na guhit sa itaas
+                        <div key={s.label} className="relative flex min-w-0 items-center gap-3 overflow-hidden rounded-2xl border border-[#dcebe3] bg-white p-3 shadow-sm sm:p-4">
+                            <span aria-hidden className={`absolute inset-x-0 top-0 h-1 ${s.bar}`} />
+                            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl sm:h-11 sm:w-11 ${s.tint}`}>
                                 {s.icon}
                             </div>
                             <div className="min-w-0">
-                                <p className="text-sm text-gray-600 md:text-sm">{s.label}</p>
+                                <p className="truncate text-sm font-medium text-gray-600">{s.label}</p>
                                 <p
                                     className={`truncate font-bold text-gray-900 ${s.small ? "text-base md:text-lg" : "text-2xl"}`}
                                 >
@@ -234,7 +238,7 @@ export default async function StudentDashboardPage() {
                             <ul className="divide-y divide-gray-100 border-t border-gray-100">
                                 {dental.slice(0, 3).map((r) => (
                                     <li key={r.dental_id} className="flex items-center gap-4 px-5 py-4">
-                                        <DateBlock date={r.visit_date} tint="bg-cyan-50 text-cyan-700" />
+                                        <DateBlock date={r.visit_date} tint="bg-[#f2b705]/15 text-[#a67c00]" />
                                         <div className="min-w-0 flex-1">
                                             <p className="break-words font-semibold capitalize text-gray-900">{r.procedure_name}</p>
                                             <p className="text-sm text-gray-600">{formatDate(r.visit_date)}</p>
@@ -249,7 +253,41 @@ export default async function StudentDashboardPage() {
                     </section>
                 </div>
 
-                <CaseReportTable patientType="student" patientId={student.student_id} limit={3} viewAllHref="/student/case-reports" />
+                {/* Recent Case Reports: kapareho ng format ng Recent Visits */}
+                <section className={`${card} min-w-0 overflow-hidden`}>
+                    <SectionHeader icon={<FileText className="h-5 w-5" />} title="Recent Case Reports" href="/student/case-reports" />
+                    {recentCases.length === 0 ? (
+                        <div className="flex flex-col items-center border-t border-gray-100 p-8 text-center">
+                            <FileText className="h-10 w-10 text-[#15664f]/30" />
+                            <p className="mt-2 text-sm text-gray-600">No case reports recorded yet.</p>
+                        </div>
+                    ) : (
+                        <ul className="divide-y divide-gray-100 border-t border-gray-100">
+                            {recentCases.map((c) => {
+                                const st = CASE_STATUS[c.status] ?? CASE_STATUS.pending;
+                                return (
+                                    <li key={c.case_id} className="flex items-center gap-4 px-5 py-4">
+                                        <DateBlock date={c.report_date} tint="bg-[#3fae86]/15 text-[#2a8a67]" />
+                                        <div className="min-w-0 flex-1">
+                                            <p className="break-words font-semibold capitalize text-gray-900">{c.complaint}</p>
+                                            <p className="text-sm text-gray-600">
+                                                <span className="font-semibold text-[#15664f]">Case {c.case_number}</span> · {formatDate(c.report_date)}
+                                            </p>
+                                            {c.notes && <p className="break-words text-sm text-gray-600">{c.notes}</p>}
+                                            {c.staff_name && <p className="break-words text-sm text-gray-600">Seen by {c.staff_name}</p>}
+                                        </div>
+                                        <span
+                                            className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-0.5 text-sm font-semibold ${st.className}`}
+                                        >
+                                            <span className={`h-1.5 w-1.5 rounded-full ${st.dot}`} />
+                                            {st.label}
+                                        </span>
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    )}
+                </section>
 
                 <p className="flex items-center justify-center gap-1.5 text-center text-sm text-gray-600">
                     <Lock className="h-3.5 w-3.5 shrink-0" />

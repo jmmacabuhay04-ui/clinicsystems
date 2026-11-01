@@ -167,14 +167,17 @@ export default function LoginPage() {
                             aria-hidden
                             className="absolute -inset-4 rounded-full bg-gradient-to-br from-[#15664f]/25 via-white/60 to-amber-300/30 blur-2xl"
                         />
-                        <Image
-                            src="/bcas.jpg"
-                            alt="BCAS logo"
-                            width={320}
-                            height={320}
-                            priority
-                            className="relative h-24 w-24 rounded-full bg-white object-contain shadow-[0_18px_40px_-12px_rgba(16,82,63,0.45)] sm:h-28 sm:w-28 lg:h-40 lg:w-40"
-                        />
+                        {/* Malinis na bilog (clip-path), anino nasa lalagyan para hindi magupit */}
+                        <span className="relative block drop-shadow-[0_18px_24px_rgba(16,82,63,0.4)]">
+                            <Image
+                                src="/bcas.jpg"
+                                alt="BCAS logo"
+                                width={320}
+                                height={320}
+                                priority
+                                className="block h-24 w-24 rounded-full bg-white object-cover [clip-path:circle(49%)] sm:h-28 sm:w-28 lg:h-40 lg:w-40"
+                            />
+                        </span>
                     </div>
 
                     <h2 className="mt-5 whitespace-nowrap text-[2.6rem] font-bold leading-none tracking-tight text-[#15664f] sm:text-6xl lg:text-[3.9rem] xl:text-7xl">

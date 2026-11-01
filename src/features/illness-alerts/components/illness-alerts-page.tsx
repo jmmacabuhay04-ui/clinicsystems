@@ -505,7 +505,7 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
 
     const levels = {
         safe: {
-            box: "border-[#cfe5d9] bg-white border-l-4 border-l-[#15664f]",
+            box: "bg-[#15664f]",
             tab: `Safe ${unit}`,
             mode: "Face-to-Face",
             title: `Safe ${unit} - Face-to-Face Classes Continue`,
@@ -518,7 +518,7 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
             text: "text-[#15664f]",
         },
         warning: {
-            box: "border-[#cfe5d9] bg-white border-l-4 border-l-amber-400",
+            box: "bg-[#f2b705]",
             tab: `Warning ${unit}`,
             mode: "Blended",
             title: `Warning ${unit} - Blended Classes Recommended`,
@@ -531,7 +531,7 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
             text: "text-amber-700",
         },
         outbreak: {
-            box: "border-[#cfe5d9] bg-white border-l-4 border-l-red-600",
+            box: "bg-red-600",
             tab: `Outbreak ${unit}`,
             mode: "Online Classes",
             title: `Outbreak ${unit} - Online Classes Recommended`,
@@ -554,27 +554,27 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
             value: String(totalCases),
             hint: `${visitTotal} clinic visit${visitTotal === 1 ? "" : "s"} · ${reportTotal} case report${reportTotal === 1 ? "" : "s"}`,
             icon: Users,
-            box: "border-[#cfe5d9] bg-white border-l-4 border-l-[#15664f]",
-            tint: "bg-[#e7f3e2] text-[#15664f]",
-            valueClass: "text-[#10523f]",
+            box: "bg-[#15664f]",
+            tint: "bg-[#15664f]/10 text-[#15664f]",
+            valueClass: "text-gray-900",
         },
         {
             label: "Highest Persons in a Day",
             value: peak.count > 0 ? String(peak.count) : "0",
             hint: peak.count > 0 ? `on ${peak.peakLabel}` : "No sick persons yet",
             icon: CalendarDays,
-            box: "border-[#cfe5d9] bg-white border-l-4 border-l-sky-600",
-            tint: "bg-sky-50 text-sky-700",
-            valueClass: "text-sky-800",
+            box: "bg-[#f2b705]",
+            tint: "bg-[#f2b705]/15 text-[#a67c00]",
+            valueClass: "text-gray-900",
         },
         {
             label: "Top Illness",
             value: breakdown[0]?.illness ?? "—",
             hint: breakdown[0] ? `${breakdown[0].count} case${breakdown[0].count === 1 ? "" : "s"}` : "No cases yet",
             icon: Thermometer,
-            box: "border-[#cfe5d9] bg-white border-l-4 border-l-rose-500",
-            tint: "bg-rose-50 text-rose-600",
-            valueClass: "text-rose-700",
+            box: "bg-[#3fae86]",
+            tint: "bg-[#3fae86]/15 text-[#2a8a67]",
+            valueClass: "text-gray-900",
         },
         {
             label: "Recommended Mode",
@@ -641,15 +641,14 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                 {stats.map((s) => {
                     const StatIcon = s.icon;
                     return (
-                        <div
-                            key={s.label}
-                            className={`flex min-w-0 items-start gap-3 rounded-xl border p-3 shadow-sm sm:p-4 ${s.box}`}
-                        >
-                            <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${s.tint}`}>
+                        // Kapareho ng ibang page: puting card, may kulay na guhit sa itaas (s.box = kulay ng guhit)
+                        <div key={s.label} className="relative flex min-w-0 items-start gap-3 overflow-hidden rounded-2xl border border-[#dcebe3] bg-white p-3 shadow-sm sm:p-4">
+                            <span aria-hidden className={`absolute inset-x-0 top-0 h-1 ${s.box}`} />
+                            <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${s.tint}`}>
                                 <StatIcon className="h-5 w-5" strokeWidth={1.9} />
                             </span>
                             <div className="min-w-0">
-                                <p className="text-sm font-semibold text-gray-700">{s.label}</p>
+                                <p className="text-sm font-medium text-gray-600">{s.label}</p>
                                 <p className={`break-words text-xl font-bold leading-tight sm:text-2xl ${s.valueClass}`}>{s.value}</p>
                                 {s.hint ? <p className="text-sm text-gray-600">{s.hint}</p> : null}
                             </div>

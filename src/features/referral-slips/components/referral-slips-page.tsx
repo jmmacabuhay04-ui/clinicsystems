@@ -39,8 +39,8 @@ const tabs = [
 const card = "rounded-xl border-2 border-[#cfe5d9] bg-white shadow-md shadow-[#15664f]/10";
 
 const statusStyles: Record<string, { label: string; className: string }> = {
-    pending: { label: "Pending", className: "bg-amber-100 text-amber-800" },
     received: { label: "Received", className: "bg-green-100 text-green-700" },
+    pending: { label: "Pending", className: "bg-amber-100 text-amber-800" },
 };
 
 // Mobile: bawat row ay card, at ang data-label ang nagsisilbing label ng bawat field.
@@ -114,9 +114,9 @@ export default async function ReferralSlipsPage({ searchParams }: Props) {
     const pendingCount = slips.filter((s) => s.status === "pending").length;
     const receivedCount = slips.filter((s) => s.status === "received").length;
     const stats = [
-        { label: tab === "all" ? "Total Slips" : "Issued Today", value: slips.length, icon: ClipboardList, tint: "bg-[#eef6f2] text-[#15664f]" },
-        { label: "Pending", value: pendingCount, icon: Clock, tint: "bg-amber-100 text-amber-700" },
-        { label: "Received", value: receivedCount, icon: CheckCircle2, tint: "bg-green-100 text-green-700" },
+        { label: tab === "all" ? "Total Slips" : "Issued Today", value: slips.length, icon: ClipboardList, bar: "bg-[#15664f]", tile: "bg-[#15664f]/10 text-[#15664f]" },
+        { label: "Received", value: receivedCount, icon: CheckCircle2, bar: "bg-[#3fae86]", tile: "bg-[#3fae86]/15 text-[#2a8a67]" },
+        { label: "Pending", value: pendingCount, icon: Clock, bar: "bg-red-500", tile: "bg-red-50 text-red-600" },
     ];
 
     const listTitle =
@@ -167,17 +167,22 @@ export default async function ReferralSlipsPage({ searchParams }: Props) {
             </nav>
 
             {/* Stats */}
-            <section className="grid gap-4 sm:grid-cols-3">
+            {/* Phone: 3 maliliit na card sa iisang hilera. Mas malaking screen: icon sa kaliwa. (Kapareho ng Clinic Staff) */}
+            <section className="grid grid-cols-3 gap-2.5 sm:gap-4">
                 {stats.map((st) => {
                     const Icon = st.icon;
                     return (
-                        <div key={st.label} className={`${card} flex items-center gap-4 p-5`}>
-                            <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${st.tint}`}>
-                                <Icon className="h-5 w-5" />
-                            </div>
-                            <div>
-                                <p className="text-sm text-gray-600">{st.label}</p>
-                                <p className="text-2xl font-bold text-gray-900">{st.value}</p>
+                        <div
+                            key={st.label}
+                            className="relative flex min-w-0 flex-col items-start gap-2 overflow-hidden rounded-2xl border border-[#dcebe3] bg-white p-3 shadow-sm sm:flex-row sm:items-center sm:gap-3 sm:p-4"
+                        >
+                            <span aria-hidden className={`absolute inset-x-0 top-0 h-1 ${st.bar}`} />
+                            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl sm:h-11 sm:w-11 ${st.tile}`}>
+                                <Icon className="h-5 w-5" strokeWidth={1.9} />
+                            </span>
+                            <div className="min-w-0">
+                                <p className="text-2xl font-bold leading-tight text-gray-900 sm:text-[1.75rem]">{st.value}</p>
+                                <p className="truncate text-sm font-medium text-gray-600">{st.label}</p>
                             </div>
                         </div>
                     );

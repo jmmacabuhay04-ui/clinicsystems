@@ -95,9 +95,9 @@ export async function updateCaseReport(
 
         await logAccess(
             {
-                userId: Number((session as any).userId ?? 0),
+                userId: Number(session.userId ?? 0),
                 role: session.role,
-                name: String((session as any).fullName ?? (session as any).username ?? ""),
+                name: String(session.username ?? ""),
             },
             "health_case_report",
             caseId,

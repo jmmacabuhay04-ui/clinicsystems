@@ -9,7 +9,6 @@ import {
     Briefcase,
     FileText,
     ClipboardList,
-    Heart,
     Stethoscope,
     UserPlus,
     Users,
@@ -17,7 +16,6 @@ import {
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import ConfirmLink from "@/components/shared/confirm-link";
-import RoleBadge from "@/components/shared/role-badge";
 import UserMenu from "@/components/shared/user-menu";
 import NotificationBell from "@/components/shared/notification-bell";
 import StudentSearch from "./student-search";
@@ -143,6 +141,17 @@ function ToothIcon({ className, strokeWidth = 2 }: { className?: string; strokeW
     );
 }
 
+// Kulay ng stat cards: kapareho ng Clinic Visits Overview chart
+//   Clinic Visits = dark green (#15664f), Dental = dilaw (#f2b705), Case Reports = light green (#3fae86)
+type StatTone = "clinic" | "dental" | "report" | "pending";
+const STAT_TONES: Record<StatTone, { bar: string; tile: string }> = {
+    clinic: { bar: "bg-[#15664f]", tile: "bg-[#15664f]/10 text-[#15664f]" },
+    dental: { bar: "bg-[#f2b705]", tile: "bg-[#f2b705]/15 text-[#a67c00]" },
+    report: { bar: "bg-[#3fae86]", tile: "bg-[#3fae86]/15 text-[#2a8a67]" },
+    // Lahat ng "Pending" sa system ay pula
+    pending: { bar: "bg-red-500", tile: "bg-red-50 text-red-600" },
+};
+
 type QuickAction = {
     label: string;
     description: string;
@@ -248,25 +257,6 @@ function TodayList({ items, viewAllHref }: { items: TodayItem[]; viewAllHref: st
                 </ul>
             )}
         </CardShell>
-    );
-}
-
-// Maliit na card na may paalala (sa ibaba ng kanang column)
-function HealthyCard() {
-    return (
-        <div className="relative overflow-hidden rounded-2xl border border-[#dcebe3] bg-gradient-to-br from-[#eef6f2] to-[#e2f0e7] p-4 md:p-5">
-            <svg aria-hidden="true" viewBox="0 0 120 120" className="absolute -bottom-6 -right-4 h-24 w-24 text-[#15664f]/15">
-                <path d="M20 110 C 20 50, 60 15, 115 10 C 112 70, 75 108, 20 110 Z" fill="currentColor" />
-            </svg>
-            <div className="relative flex items-start gap-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#15664f] text-white">
-                    <Heart className="h-[18px] w-[18px]" strokeWidth={2} fill="currentColor" />
-                </span>
-                <p className="text-sm leading-relaxed text-gray-600">
-                    Healthy students build a stronger tomorrow. Let&apos;s keep them safe and well!
-                </p>
-            </div>
-        </div>
     );
 }
 
@@ -1062,7 +1052,6 @@ export default async function DashboardPage({
         .catch(() => null);
     const displayName = staffDisplayName(me?.full_name, String(session.username ?? ""), role) || roleName;
     const baseName = displayName.replace(/^Dr\.?\s*/i, "");
-    const greetingText = `${greeting}${displayName ? `, ${displayName}` : ""}!`;
     const dateToday = new Intl.DateTimeFormat("en-US", {
         month: "long",
         day: "numeric",
@@ -1076,46 +1065,61 @@ export default async function DashboardPage({
     // Pagbati sa itaas: pangalan at petsa (makikita ng lahat ng role)
     // Pagbati sa itaas: pangalan at petsa (makikita ng lahat ng role)
     const banner = (
-        <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#15664f] via-[#1b7a5e] to-[#2f8f6f] px-5 py-6 text-white shadow-lg shadow-[#15664f]/20 sm:px-8 sm:py-7">
-            {/* Mga dekorasyon sa likod */}
-            <div aria-hidden className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-white/10" />
-            <div aria-hidden className="pointer-events-none absolute -bottom-24 right-32 h-48 w-48 rounded-full bg-amber-300/15 blur-2xl" />
-            <div aria-hidden className="pointer-events-none absolute -left-10 -bottom-16 h-40 w-40 rounded-full bg-white/5" />
-            <svg
-                aria-hidden
-                viewBox="0 0 600 80"
-                preserveAspectRatio="none"
-                className="pointer-events-none absolute inset-x-0 bottom-3 h-14 w-full text-white/15"
-            >
-                <polyline
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    points="0,50 150,50 175,50 190,20 205,70 220,10 235,60 250,50 400,50 420,50 432,32 444,62 456,50 600,50"
-                />
-            </svg>
+        // Kaliwa: madilim na green na may puting text. Kanan: litrato ng BCAS (public/banner.jpg)
+        // na unti-unting lumilitaw, BCAS logo at mga dahon.
+        <section
+            className="relative overflow-hidden rounded-2xl bg-[#10523f] px-5 py-3.5 text-white shadow-lg shadow-[#15664f]/20 sm:px-6 sm:py-4"
+            style={{
+                backgroundImage:
+                    "linear-gradient(90deg, rgba(16,82,63,1) 0%, rgba(16,82,63,0.97) 40%, rgba(21,102,79,0.35) 70%, rgba(21,102,79,0.05) 100%), url('/banner.jpg')",
+                backgroundSize: "100% 100%, 62% auto",
+                backgroundPosition: "center, right 50%",
+                backgroundRepeat: "no-repeat",
+            }}
+        >
+            {/* Kanan: BCAS logo at mga dahon (malaking screen lang) */}
+            <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 hidden w-36 items-center justify-center lg:flex">
+                {/* Malinis na bilog na logo (clip-path); anino nasa lalagyan */}
+                <span className="relative drop-shadow-[0_10px_14px_rgba(0,0,0,0.45)]">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                        src="/bcas.jpg"
+                        alt=""
+                        className="block h-20 w-20 rounded-full bg-white object-cover [clip-path:circle(49%)]"
+                    />
+                </span>
+                <svg viewBox="0 0 120 120" className="absolute -bottom-4 -right-2 h-24 w-24 text-[#3fae86]/60">
+                    <path d="M20 118 C 14 80, 30 46, 70 30 C 74 68, 58 100, 20 118 Z" fill="currentColor" />
+                    <path d="M58 120 C 60 88, 84 64, 118 58 C 116 92, 96 114, 58 120 Z" fill="currentColor" opacity="0.8" />
+                </svg>
+            </div>
 
-            <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0">
-                    {/* Kulay ng role, kapareho ng nasa Manage Accounts */}
-                    {role && (
-                        <div className="mb-2">
-                            <RoleBadge role={role} withDot />
-                        </div>
-                    )}
-                    <h1 className="break-words text-2xl font-bold text-white md:text-3xl">{greetingText}</h1>
-                    <p className="mt-1 text-sm text-white/85">Here&apos;s an overview of your school clinic today.</p>
-                </div>
-                <div className="flex w-fit shrink-0 items-center gap-3 rounded-xl bg-white/15 px-4 py-2.5 ring-1 ring-white/25 backdrop-blur-sm">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-[#15664f]">
+            <div className="relative flex flex-col gap-3 md:flex-row md:items-center md:gap-10 lg:pr-40">
+                {/* Kaliwa: pagbati, pangalan at petsa */}
+                <div className="min-w-0 md:w-80 md:shrink-0">
+                    {/* Pagbati sa itaas, pangalan sa ibaba */}
+                    <p className="text-lg font-semibold text-white md:text-xl">{greeting},</p>
+                    <h1 className="break-words text-2xl font-bold leading-tight text-amber-300 md:text-3xl">
+                        {displayName ? `${displayName}!` : "Welcome!"}
+                    </h1>
+                    <p className="mt-2 flex items-center gap-2 text-base text-white/90">
                         <CalendarDays className="h-5 w-5" strokeWidth={1.8} />
-                    </div>
-                    <div className="leading-tight">
-                        <p className="text-sm font-semibold text-white">{dateToday}</p>
-                        <p className="text-sm text-white/80">{weekdayToday}</p>
-                    </div>
+                        <span className="font-semibold text-white">{dateToday}</span>
+                        <span className="text-white/85">· {weekdayToday}</span>
+                    </p>
+                </div>
+
+                {/* Gitna: quote na may dilaw na guhit sa ilalim */}
+                <div className="hidden text-lg italic leading-snug text-white [text-shadow:0_1px_4px_rgba(0,0,0,0.45)] md:block">
+                    <p>
+                        <span className="text-amber-300">&ldquo;</span>A healthy student
+                        <br />
+                        <span className="pl-4">is a successful learner.</span>
+                        <span className="text-amber-300">&rdquo;</span>
+                    </p>
+                    <svg aria-hidden viewBox="0 0 200 14" className="ml-8 mt-1 h-3 w-48">
+                        <path d="M2 10 C 60 2, 140 2, 198 7" fill="none" stroke="#f2c94c" strokeWidth="3" strokeLinecap="round" />
+                    </svg>
                 </div>
             </div>
         </section>
@@ -1134,7 +1138,7 @@ export default async function DashboardPage({
         label: string;
         value: number;
         icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
-        tone: "green" | "amber";
+        tone: StatTone;
         /** Maliit na paliwanag sa ilalim ng numero */
         hint?: string;
         alert?: boolean;
@@ -1143,7 +1147,7 @@ export default async function DashboardPage({
                 label: "Total Students",
                 value: data.totalStudents,
                 icon: Users,
-                tone: "green",
+                tone: "clinic",
                 hint: "Active students",
             },
             ...(showEmployees
@@ -1152,7 +1156,7 @@ export default async function DashboardPage({
                         label: "Total Employees",
                         value: data.totalEmployees,
                         icon: Briefcase,
-                        tone: "amber" as const,
+                        tone: "dental" as const,
                         hint: "Registered staff",
                     },
                 ]
@@ -1164,7 +1168,7 @@ export default async function DashboardPage({
                         label: "Clinic Visits Today",
                         value: data.visitsToday,
                         icon: Stethoscope,
-                        tone: "amber" as const,
+                        tone: "clinic" as const,
                         hint: "Recorded today",
                     },
                 ]),
@@ -1175,7 +1179,7 @@ export default async function DashboardPage({
                         label: "Dental Visits Today",
                         value: data.dentalToday,
                         icon: ToothIcon,
-                        tone: "green" as const,
+                        tone: "dental" as const,
                         hint: "Recorded today",
                     },
                 ]),
@@ -1186,7 +1190,7 @@ export default async function DashboardPage({
                         label: "Case Reports",
                         value: data.casesToday,
                         icon: ClipboardList,
-                        tone: "green" as const,
+                        tone: "clinic" as const,
                         hint: "Reported today",
                     },
                 ]),
@@ -1199,7 +1203,7 @@ export default async function DashboardPage({
                         ? data.dentalFollowUps
                         : data.pendingReports + data.dentalFollowUps,
                 icon: FileText,
-                tone: "amber",
+                tone: "pending",
                 alert: true,
             },
         ];
@@ -1410,96 +1414,94 @@ export default async function DashboardPage({
         <main className="min-w-0 space-y-5 p-4 pb-8 md:p-6">
             {topBar}
 
-            {/* Kaliwa: pagbati, stats, chart, Recent Activities. Kanan (malaking screen): Quick Actions, Today's Visits */}
-            <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_20rem] 2xl:grid-cols-[minmax(0,1fr)_22rem]">
-                <div className="min-w-0 space-y-5">
-                    {banner}
+            {banner}
 
-                    {/* Stat cards: icon sa itaas, label, malaking bilang, at paghahambing sa ibaba */}
-                    {/* Malaking screen: lahat ng card sa iisang hanay */}
-                    <section
-                        className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 xl:grid-cols-[repeat(var(--cards),minmax(0,1fr))]"
-                        style={{ "--cards": stats.length } as React.CSSProperties}
-                    >
-                        {stats.map((stat) => {
-                            const Icon = stat.icon;
-                            const amber = stat.tone === "amber";
-                            let footer: React.ReactNode = null;
-                            if (stat.alert) {
-                                footer =
-                                    stat.value > 0 ? (
-                                        <span className="inline-flex items-center gap-1 font-medium text-red-600">
-                                            <AlertTriangle className="h-5 w-5" />
-                                            Needs attention
-                                        </span>
-                                    ) : (
-                                        <span className="inline-flex items-center gap-1 font-medium text-[#15664f]">
-                                            <CheckCircle2 className="h-5 w-5" />
-                                            All clear
-                                        </span>
-                                    );
-                            } else if (stat.hint) {
-                                footer = <span className="text-gray-600">{stat.hint}</span>;
-                            }
-                            return (
-                                <div
-                                    key={stat.label}
-                                    className={`flex min-w-0 flex-col rounded-2xl border p-4 shadow-sm md:p-5 ${amber ? "border-[#f3e4b3] bg-[#fdf7e6]" : "border-[#d3e8dc] bg-[#eaf5ef]"
-                                        }`}
-                                >
-                                    <span
-                                        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${amber ? "bg-amber-300/80 text-[#7a5a00]" : "bg-[#15664f]/15 text-[#15664f]"
-                                            }`}
-                                    >
-                                        <Icon className="h-6 w-6" strokeWidth={1.9} />
-                                    </span>
-                                    <p className="mt-3 truncate text-base font-semibold text-gray-900">{stat.label}</p>
-                                    <p className="text-[2.25rem] font-bold leading-tight text-[#10523f]">
-                                        {stat.value.toLocaleString("en-US")}
-                                    </p>
-                                    <div className="mt-1 text-base">{footer}</div>
-                                </div>
+            {/* Stat cards: icon sa itaas, label, malaking bilang, at paghahambing sa ibaba */}
+            {/* Malaking screen: lahat ng card sa iisang hanay */}
+            <section
+                className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 xl:grid-cols-[repeat(var(--cards),minmax(0,1fr))]"
+                style={{ "--cards": stats.length } as React.CSSProperties}
+            >
+                {stats.map((stat) => {
+                    const Icon = stat.icon;
+                    const tone = STAT_TONES[stat.tone];
+                    let footer: React.ReactNode = null;
+                    if (stat.alert) {
+                        footer =
+                            stat.value > 0 ? (
+                                <span className="inline-flex items-center gap-1 font-medium text-red-600">
+                                    <AlertTriangle className="h-4 w-4" />
+                                    Needs attention
+                                </span>
+                            ) : (
+                                <span className="inline-flex items-center gap-1 font-medium text-[#15664f]">
+                                    <CheckCircle2 className="h-4 w-4" />
+                                    All clear
+                                </span>
                             );
-                        })}
-                    </section>
+                    } else if (stat.hint) {
+                        footer = <span className="text-gray-600">{stat.hint}</span>;
+                    }
+                    return (
+                        // Puting card, may kulay na guhit sa itaas; icon sa kaliwa, label at bilang sa kanan
+                        <div
+                            key={stat.label}
+                            className="relative flex min-w-0 items-start gap-3 overflow-hidden rounded-2xl border border-[#dcebe3] bg-white p-4 shadow-sm shadow-[#15664f]/5 transition hover:-translate-y-0.5 hover:shadow-md"
+                        >
+                            <span aria-hidden className={`absolute inset-x-0 top-0 h-1 ${tone.bar}`} />
+                            <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${tone.tile}`}>
+                                <Icon className="h-5 w-5" strokeWidth={1.9} />
+                            </span>
+                            <div className="min-w-0">
+                                <p className="truncate text-sm font-medium text-gray-600">{stat.label}</p>
+                                <p className="text-[1.75rem] font-bold leading-tight text-gray-900">
+                                    {stat.value.toLocaleString("en-US")}
+                                </p>
+                                <div className="text-sm">{footer}</div>
+                            </div>
+                        </div>
+                    );
+                })}
+            </section>
 
-                    {/* Chart + Visit Reasons */}
-                    <section className="grid gap-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
-                        <VisitsOverviewChart
-                            data={data.weeklyPoints}
-                            showClinic={!isDentist}
-                            showDental={!isDoctor}
-                            showReports={!isDentist}
-                            range={chartRange}
-                            reasonRange={reasonRange}
-                        />
-                        <VisitReasons
-                            reasons={data.reasons}
-                            range={reasonRange}
-                            chartRange={chartRange}
-                            showClinic={!isDentist}
-                            showDental={!isDoctor}
-                            showReports={!isDentist}
-                        />
-                    </section>
+            {/* Chart | Visit Reasons | Quick Actions (gaya ng reference) */}
+            <section
+                className={`grid gap-5 lg:grid-cols-2 ${role !== "admin" && quickActions.length > 0
+                    ? "xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,0.85fr)]"
+                    : "xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]"
+                    }`}
+            >
+                <VisitsOverviewChart
+                    data={data.weeklyPoints}
+                    showClinic={!isDentist}
+                    showDental={!isDoctor}
+                    showReports={!isDentist}
+                    range={chartRange}
+                    reasonRange={reasonRange}
+                />
+                <VisitReasons
+                    reasons={data.reasons}
+                    range={reasonRange}
+                    chartRange={chartRange}
+                    showClinic={!isDentist}
+                    showDental={!isDoctor}
+                    showReports={!isDentist}
+                />
+                {/* Walang Quick Actions ang admin (view-only) */}
+                {role !== "admin" && quickActions.length > 0 && (
+                    <QuickActionsSection actions={quickActions} className="lg:col-span-2 xl:col-span-1" />
+                )}
+            </section>
 
-                    {/* Recent Activities: sa ilalim ng Visits Overview at Visit Reasons */}
-                    <RecentActivity
-                        items={data.activity}
-                        today={data.today}
-                        viewAllHref={isDentist ? "/dashboard/dental-visits" : "/dashboard/clinic-visits"}
-                    />
-
-                </div>
-
-                {/* KANAN */}
-                <aside className="grid min-w-0 content-start gap-5 md:grid-cols-2 xl:grid-cols-1">
-                    {/* Walang Quick Actions ang admin (view-only) */}
-                    {role !== "admin" && quickActions.length > 0 && <QuickActionsSection actions={quickActions} />}
-                    <TodayList items={todayItems} viewAllHref={isDentist ? "/dashboard/dental-visits" : "/dashboard/clinic-visits"} />
-                    <HealthyCard />
-                </aside>
-            </div>
+            {/* Recent Activities | Today's Visits */}
+            <section className="grid gap-5 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+                <RecentActivity
+                    items={data.activity}
+                    today={data.today}
+                    viewAllHref={isDentist ? "/dashboard/dental-visits" : "/dashboard/clinic-visits"}
+                />
+                <TodayList items={todayItems} viewAllHref={isDentist ? "/dashboard/dental-visits" : "/dashboard/clinic-visits"} />
+            </section>
         </main>
     );
 }

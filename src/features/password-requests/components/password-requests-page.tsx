@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { KeyRound, X } from "lucide-react";
+import { Briefcase, Clock, GraduationCap, KeyRound, MessageSquareText, ShieldAlert, X } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { canManageStudents } from "@/lib/permissions";
@@ -60,11 +60,11 @@ export default async function PasswordRequestsPage({ searchParams }: Props) {
     `;
 
     const studentCount = requests.filter((r) => r.patient_type === "Student").length;
-    // Pending = pula (kailangang asikasuhin), Students = mint, Employees = dilaw
+    // Pending = pula (kailangang asikasuhin), Students = green, Employees = dilaw
     const stats = [
-        { label: "Pending Requests", value: requests.length, tone: "border-rose-200 bg-rose-50" },
-        { label: "Students", value: studentCount, tone: "border-[#d3e8dc] bg-[#eaf5ef]" },
-        { label: "Employees", value: requests.length - studentCount, tone: "border-[#f3e4b3] bg-[#fdf7e6]" },
+        { label: "Students", value: studentCount, icon: GraduationCap, bar: "bg-[#15664f]", tile: "bg-[#15664f]/10 text-[#15664f]" },
+        { label: "Employees", value: requests.length - studentCount, icon: Briefcase, bar: "bg-[#f2b705]", tile: "bg-[#f2b705]/15 text-[#a67c00]" },
+        { label: "Pending", value: requests.length, icon: Clock, bar: "bg-red-500", tile: "bg-red-50 text-red-600" },
     ];
 
     return (
@@ -87,22 +87,40 @@ export default async function PasswordRequestsPage({ searchParams }: Props) {
             )}
 
             {/* Reminder */}
-            <div className="rounded-2xl border border-amber-200 border-l-4 border-l-amber-400 bg-amber-50 p-4 text-sm">
-                <p className="font-semibold text-amber-900">Verify identity in person first</p>
-                <p className="mt-0.5 text-amber-800">
-                    Check the person&apos;s school ID before setting a new password, then give the password to them
-                    directly. Never send it through chat or text.
-                </p>
+            <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-600">
+                    <ShieldAlert className="h-5 w-5" strokeWidth={1.9} />
+                </span>
+                <div className="min-w-0">
+                    <p className="font-semibold text-amber-900">Verify identity in person first</p>
+                    <p className="mt-0.5 text-amber-800">
+                        Check the person&apos;s school ID before setting a new password, then give the password to them
+                        directly. Never send it through chat or text.
+                    </p>
+                </div>
             </div>
 
             {/* Stats */}
-            <section className="grid gap-4 sm:grid-cols-3">
-                {stats.map((st) => (
-                    <div key={st.label} className={`rounded-2xl border p-5 shadow-sm ${st.tone}`}>
-                        <p className="text-[1.75rem] font-bold leading-tight text-gray-900">{st.value}</p>
-                        <p className="mt-0.5 text-sm font-medium text-gray-600">{st.label}</p>
-                    </div>
-                ))}
+            {/* Phone: 3 maliliit na card sa iisang hilera. Mas malaking screen: icon sa kaliwa. */}
+            <section className="grid grid-cols-3 gap-2.5 sm:gap-4">
+                {stats.map((st) => {
+                    const Icon = st.icon;
+                    return (
+                        <div
+                            key={st.label}
+                            className="relative flex min-w-0 flex-col items-start gap-2 overflow-hidden rounded-2xl border border-[#dcebe3] bg-white p-3 shadow-sm sm:flex-row sm:items-center sm:gap-3 sm:p-4"
+                        >
+                            <span aria-hidden className={`absolute inset-x-0 top-0 h-1 ${st.bar}`} />
+                            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl sm:h-11 sm:w-11 ${st.tile}`}>
+                                <Icon className="h-5 w-5" strokeWidth={1.9} />
+                            </span>
+                            <div className="min-w-0">
+                                <p className="text-2xl font-bold leading-tight text-gray-900 sm:text-[1.75rem]">{st.value}</p>
+                                <p className="truncate text-sm font-medium text-gray-600">{st.label}</p>
+                            </div>
+                        </div>
+                    );
+                })}
             </section>
 
             {/* Requests */}
@@ -133,19 +151,28 @@ export default async function PasswordRequestsPage({ searchParams }: Props) {
                                                 {r.last_name}, {r.first_name}
                                             </p>
                                             <span
-                                                className={`rounded-full px-2.5 py-0.5 text-sm font-semibold ${isStudent ? "bg-[#15664f] text-white" : "bg-amber-300 text-gray-900"
+                                                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-sm font-semibold ring-1 ring-inset ${isStudent
+                                                    ? "bg-emerald-50 text-emerald-800 ring-emerald-600/25"
+                                                    : "bg-amber-50 text-amber-800 ring-amber-500/30"
                                                     }`}
                                             >
+                                                <span className={`h-1.5 w-1.5 rounded-full ${isStudent ? "bg-emerald-500" : "bg-amber-500"}`} />
                                                 {r.patient_type}
                                             </span>
                                         </div>
-                                        <p className="text-sm text-gray-600">{r.id_number}</p>
-                                        <p className="mt-1 text-sm text-gray-600">Requested {fmt(r.created_at)}</p>
+                                        <p className="text-sm font-medium text-gray-700">{r.id_number}</p>
+                                        <p className="mt-0.5 flex items-center gap-1.5 text-sm text-gray-600">
+                                            <Clock className="h-4 w-4 shrink-0" />
+                                            Requested {fmt(r.created_at)}
+                                        </p>
                                     </div>
                                 </div>
 
-                                <div className="mt-4 rounded-xl bg-[#f6faf8] p-3 text-sm">
-                                    <p className="text-sm font-semibold text-gray-600">Reason</p>
+                                <div className="mt-4 rounded-xl border border-[#e3efe8] bg-[#f6faf8] p-3 text-sm">
+                                    <p className="flex items-center gap-1.5 text-sm font-semibold text-gray-700">
+                                        <MessageSquareText className="h-4 w-4 text-[#15664f]" />
+                                        Reason
+                                    </p>
                                     <p className="mt-0.5 min-w-0 break-words text-gray-600">
                                         {r.note || <span className="italic text-gray-600">No reason given.</span>}
                                     </p>
@@ -153,40 +180,41 @@ export default async function PasswordRequestsPage({ searchParams }: Props) {
 
                                 <div className="mt-4 border-t border-gray-100 pt-4">
                                     <p className="mb-1.5 text-sm font-semibold text-gray-800">New Password</p>
-                                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                                        <form action={setPasswordFromRequest} className="flex min-w-0 flex-1 items-center gap-2">
-                                            <input type="hidden" name="requestId" value={r.request_id} />
-                                            <div className="min-w-0 flex-1">
-                                                <PasswordInput
-                                                    name="password"
-                                                    placeholder="At least 8 characters"
-                                                    autoComplete="new-password"
-                                                    minLength={8}
-                                                    required
-                                                    className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-base text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20 md:text-sm"
-                                                />
-                                            </div>
-                                            <ConfirmSubmit
-                                                title="Set new password?"
-                                                message={`Change the portal password of ${r.first_name} ${r.last_name} (${r.id_number})? Their old password will stop working.`}
-                                                confirmLabel="Set Password"
-                                                className="inline-flex h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-lg bg-[#15664f] px-4 text-sm font-semibold text-white shadow-sm hover:bg-[#10523f]"
-                                            >
-                                                <KeyRound className="h-4 w-4" />
-                                                Set Password
-                                            </ConfirmSubmit>
-                                        </form>
-                                        <form action={dismissRequest}>
+                                    {/* Phone: password sa itaas, tapos Set Password at Dismiss magkatabi.
+                                        Kasama ang password sa Set Password form gamit ang form="" attribute. */}
+                                    <PasswordInput
+                                        form={`set-${r.request_id}`}
+                                        name="password"
+                                        placeholder="At least 8 characters"
+                                        autoComplete="new-password"
+                                        minLength={8}
+                                        required
+                                        className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-base text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20 md:text-sm"
+                                    />
+                                    <div className="mt-2.5 grid grid-cols-2 gap-2 sm:flex sm:justify-end">
+                                        <form action={dismissRequest} className="sm:order-1">
                                             <input type="hidden" name="requestId" value={r.request_id} />
                                             <ConfirmButton
                                                 title="Dismiss request"
                                                 confirmLabel="Dismiss"
                                                 message={`Dismiss the request of ${r.first_name} ${r.last_name}? Their password will not be changed.`}
-                                                className="inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-lg border border-red-300 bg-white px-4 text-sm font-semibold text-red-600 hover:bg-red-50 sm:w-auto"
+                                                className="inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 hover:border-red-300 hover:bg-red-50 hover:text-red-600"
                                             >
                                                 <X className="h-4 w-4" />
                                                 Dismiss
                                             </ConfirmButton>
+                                        </form>
+                                        <form id={`set-${r.request_id}`} action={setPasswordFromRequest} className="sm:order-2">
+                                            <input type="hidden" name="requestId" value={r.request_id} />
+                                            <ConfirmSubmit
+                                                title="Set new password?"
+                                                message={`Change the portal password of ${r.first_name} ${r.last_name} (${r.id_number})? Their old password will stop working.`}
+                                                confirmLabel="Set Password"
+                                                className="inline-flex h-11 w-full items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-[#15664f] px-4 text-sm font-semibold text-white shadow-sm hover:bg-[#10523f]"
+                                            >
+                                                <KeyRound className="h-4 w-4" />
+                                                Set Password
+                                            </ConfirmSubmit>
                                         </form>
                                     </div>
                                 </div>

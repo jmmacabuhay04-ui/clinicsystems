@@ -90,9 +90,9 @@ export default function UserMenu({
             >
                 {avatar ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={avatar} alt="" className="h-9 w-9 rounded-full object-cover" />
+                    <img src={avatar} alt="" className="h-9 w-9 rounded-full object-cover ring-2 ring-gray-300" />
                 ) : (
-                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#15664f] text-sm font-semibold text-white">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#15664f] text-sm font-semibold text-white ring-2 ring-gray-300">
                         {initials}
                     </span>
                 )}

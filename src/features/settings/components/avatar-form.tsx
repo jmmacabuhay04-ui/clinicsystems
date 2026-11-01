@@ -2,7 +2,7 @@
 
 import { useActionState, useRef, useState } from "react";
 import { saveAvatar, removeAvatar, type AvatarState } from "@/features/settings/actions";
-import FlashMessage from "@/components/shared/flash-message";
+
 const initialState: AvatarState = {};
 
 // I-crop sa gitna (square) at paliitin sa 256x256 bago i-upload
@@ -85,7 +85,7 @@ export default function AvatarForm({
                         className="h-20 w-20 rounded-full object-cover ring-2 ring-[#15664f]/30"
                     />
                 ) : (
-                    <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#14532D] text-2xl font-semibold text-white">
+                    <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#15664f] text-2xl font-semibold text-white">
                         {username.charAt(0).toUpperCase()}
                     </div>
                 )}
@@ -105,7 +105,7 @@ export default function AvatarForm({
                     >
                         Choose Photo
                     </button>
-                    <p className="text-xs text-gray-600">JPG, PNG, or WebP. It will be cropped to a square.</p>
+                    <p className="text-sm text-gray-600">JPG, PNG, or WebP. It will be cropped to a square.</p>
                 </div>
             </div>
 
@@ -134,4 +134,4 @@ export default function AvatarForm({
             </div>
         </div>
     );
-}   
+}

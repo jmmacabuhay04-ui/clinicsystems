@@ -7,6 +7,7 @@ import {
     Archive,
     Briefcase,
     ChevronDown,
+    ChevronRight,
     ClipboardList,
     FileCheck,
     FileText,
@@ -240,7 +241,8 @@ export default function AdminSidebar({ username, displayName: savedName, role, a
                     href="/dashboard"
                     className="flex items-center gap-2.5"
                 >
-                    <img src="/bcas.jpg" alt="BCAS" className="h-9 w-9 rounded-full bg-white object-contain" />
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/bcas.jpg" alt="BCAS" className="h-9 w-9 rounded-full bg-white object-cover [clip-path:circle(49%)]" />
                     <span className="text-sm font-semibold uppercase tracking-wider">BCAS Clinic</span>
                 </Link>
                 <button
@@ -275,24 +277,20 @@ export default function AdminSidebar({ username, displayName: savedName, role, a
                         href="/dashboard"
                         onClick={() => setMobileOpen(false)}
                         title="Go to Dashboard"
-                        className={`flex w-full min-w-0 select-none flex-col items-center gap-1 overflow-hidden px-3 text-center hover:opacity-90 ${collapsed ? "md:hidden" : ""
+                        className={`flex w-full min-w-0 select-none flex-col items-center gap-2 overflow-hidden px-3 text-center hover:opacity-90 ${collapsed ? "md:hidden" : ""
                             }`}
                     >
-                        {/* Kapareho ng login page: walang border, malambot na liwanag sa likod at lumulutang na anino */}
-                        <span className="relative">
-                            <span
-                                aria-hidden
-                                className="absolute -inset-3 rounded-full bg-gradient-to-br from-white/30 via-[#3fae86]/30 to-amber-300/40 blur-xl"
-                            />
+                        {/* Logo (public/bcas.jpg): ginupit nang bilog gamit ang clip-path para walang puting kanto
+                            o gray na gilid; ang anino ay nasa lalagyan para hindi rin magupit */}
+                        <span className="shrink-0 drop-shadow-[0_8px_14px_rgba(0,0,0,0.45)]">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                                 src="/bcas.jpg"
                                 alt="BCAS"
-                                className="relative h-24 w-24 shrink-0 rounded-full bg-white object-contain shadow-[0_18px_40px_-12px_rgba(0,0,0,0.55)]"
+                                className="block h-24 w-24 rounded-full bg-white object-cover [clip-path:circle(49%)]"
                             />
                         </span>
-
-                        {/* Pangalan (gaya ng login page) */}
-                        <span className="mt-2 text-xl font-bold tracking-tight text-white">School Clinic</span>
+                        <span className="text-2xl font-bold tracking-tight text-white">School Clinic</span>
                     </Link>
 
                     {/* Phone: isara ang drawer */}
@@ -319,16 +317,23 @@ export default function AdminSidebar({ username, displayName: savedName, role, a
                     </button>
                 </div>
 
-                {/* Green at dilaw na alon sa ibaba ng sidebar (pang-dekorasyon) */}
+                {/* Dekorasyon sa pinakababa: green na alon, dalawang dilaw na guhit at mga dahon */}
                 <svg
                     aria-hidden="true"
-                    viewBox="0 0 260 120"
-                    preserveAspectRatio="none"
-                    className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-32 w-full"
+                    viewBox="0 0 260 110"
+                    preserveAspectRatio="xMidYMax slice"
+                    className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-28 w-full"
                 >
-                    <path d="M0 40 C 60 10, 120 20, 170 50 C 210 74, 240 80, 260 76 V120 H0 Z" fill="#2f8a6d" fillOpacity="0.45" />
-                    <path d="M0 64 C 70 34, 130 48, 180 76 C 214 94, 240 100, 260 98 V120 H0 Z" fill="#0b3f2e" fillOpacity="0.55" />
-                    <path d="M0 52 C 70 22, 130 36, 178 64 C 214 84, 240 90, 260 88" fill="none" stroke="#f2c94c" strokeWidth="3" />
+                    <path d="M0 110 V58 C 60 40, 130 50, 190 66 C 220 74, 244 72, 260 66 V110 Z" fill="#2f8a6d" fillOpacity="0.45" />
+                    <path d="M0 52 C 60 34, 130 44, 192 60 C 222 68, 246 66, 260 60" fill="none" stroke="#f2c94c" strokeWidth="3" />
+                    <path d="M0 62 C 62 46, 132 56, 194 72 C 224 80, 246 78, 260 72" fill="none" stroke="#f2c94c" strokeOpacity="0.55" strokeWidth="1.5" />
+                    <path d="M0 110 V78 C 70 64, 140 76, 200 90 C 228 96, 248 94, 260 90 V110 Z" fill="#0b3f2e" fillOpacity="0.9" />
+                    {/* Mga dahon sa kanan */}
+                    <path d="M196 108 C 186 84, 194 60, 222 46 C 230 74, 222 96, 196 108 Z" fill="#3fae86" fillOpacity="0.75" />
+                    <path d="M196 108 C 204 88, 212 70, 222 46" fill="none" stroke="#0b3f2e" strokeOpacity="0.45" strokeWidth="1" />
+                    <path d="M222 110 C 220 82, 236 60, 262 52 C 264 80, 250 102, 222 110 Z" fill="#2f8a6d" fillOpacity="0.9" />
+                    <path d="M222 110 C 234 90, 248 70, 262 52" fill="none" stroke="#0b3f2e" strokeOpacity="0.45" strokeWidth="1" />
+                    <path d="M176 110 C 166 96, 166 80, 178 70 C 188 82, 188 98, 176 110 Z" fill="#3fae86" fillOpacity="0.5" />
                 </svg>
                 {/* Body (nasa ibabaw ng alon) */}
                 <div className="relative z-10 flex min-h-0 flex-1 flex-col">
@@ -463,50 +468,57 @@ export default function AdminSidebar({ username, displayName: savedName, role, a
                                             strokeWidth={1.8}
                                         />
                                         <span className={`truncate ${collapsed ? "md:hidden" : ""}`}>{item.label}</span>
+                                        {item.href !== "/dashboard" && (
+                                            <ChevronRight
+                                                aria-hidden="true"
+                                                className={`ml-auto h-4 w-4 shrink-0 text-white/50 ${collapsed ? "md:hidden" : ""}`}
+                                            />
+                                        )}
                                     </Link>
                                 </div>
                             );
                         })}
                     </nav>
 
-                    <div className={`relative p-3 ${collapsed ? "md:px-2" : ""}`}>
+                    {/* Ibaba: guhit, user card at Log Out */}
+                    <div className={`relative px-3 pb-[4.5rem] pt-2 ${collapsed ? "md:px-2" : ""}`}>
+                        <div className="mx-2 mb-3 border-t border-white/15" />
+                        {/* User card (gaya ng dati): larawan, pangalan, role at Log Out icon sa kanan */}
                         <div
-                            className={`relative flex items-center gap-3 rounded-xl bg-white/10 p-2.5 backdrop-blur-sm ${collapsed ? "md:flex-col md:justify-center md:bg-transparent md:p-0" : ""
+                            className={`flex items-center gap-3 rounded-xl border border-white/15 bg-white/10 p-2.5 ${collapsed ? "md:flex-col md:justify-center md:border-0 md:bg-transparent md:p-0" : ""
                                 }`}
                         >
                             {avatar ? (
+                                // eslint-disable-next-line @next/next/no-img-element
                                 <img
                                     src={avatar}
                                     alt=""
-                                    className="h-10 w-10 shrink-0 rounded-full object-cover ring-2 ring-amber-400"
+                                    className="h-10 w-10 shrink-0 rounded-full object-cover ring-2 ring-white/80"
                                 />
                             ) : (
                                 <div
                                     aria-hidden="true"
-                                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-400 text-sm font-semibold text-[#14532D]"
+                                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#15664f] text-sm font-semibold text-white ring-2 ring-white/80"
                                 >
                                     {displayName.replace(/^Dr\.?\s*/i, "").charAt(0).toUpperCase()}
                                 </div>
                             )}
-
                             <div className={`min-w-0 flex-1 ${collapsed ? "md:hidden" : ""}`}>
                                 <p className="truncate text-base font-semibold" title={username}>
                                     {displayName}
                                 </p>
-                                {/* Kapareho ng badge sa Dashboard header (may tuldok) */}
                                 <span className="mt-1 inline-block">
                                     <RoleBadge role={role} withDot />
                                 </span>
                             </div>
-
-                            <form action={logout} className="shrink-0" title="Sign out ">
+                            <form action={logout} className="shrink-0" title="Sign out">
                                 <ConfirmSubmit
                                     title="Sign out"
                                     message="Are you sure you want to sign out?"
                                     confirmLabel="Sign out"
                                     className="flex h-9 w-9 items-center justify-center rounded-lg text-white/80 hover:bg-amber-400 hover:text-[#10523f]"
                                 >
-                                    <LogOut className="h-[18px] w-[18px]" strokeWidth={1.8} />
+                                    <LogOut className="h-5 w-5" strokeWidth={1.8} />
                                     <span className="sr-only">Sign out</span>
                                 </ConfirmSubmit>
                             </form>

@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import {
     Activity,
     ChevronDown,
+    ChevronRight,
     ClipboardList,
     FileText,
     LayoutDashboard,
@@ -68,7 +69,7 @@ function Avatar({
     size: "sm" | "md";
     employee: boolean;
 }) {
-    const box = size === "sm" ? "h-9 w-9 text-xs" : "h-11 w-11 text-sm";
+    const box = size === "sm" ? "h-9 w-9 text-sm" : "h-11 w-11 text-sm";
     return avatar ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -78,7 +79,7 @@ function Avatar({
         />
     ) : (
         <span
-            className={`${box} flex shrink-0 items-center justify-center rounded-full font-bold ${employee ? "bg-amber-300 text-gray-900" : "bg-[#15664f] text-white ring-2 ring-white/80"
+            className={`${box} flex shrink-0 items-center justify-center rounded-full font-semibold ${employee ? "bg-amber-300 text-gray-900" : "bg-[#15664f] text-white ring-2 ring-white/80"
                 }`}
         >
             {initials}
@@ -97,11 +98,25 @@ export default function PortalNav({ basePath, roleLabel, fullName, initials, ava
     const changePasswordHref = `${basePath}/change-password`;
     const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
 
-    // Isara ang lahat kapag lumipat ng page
-    useEffect(() => {
+    // Isara ang lahat kapag lumipat ng page.
+    // Ginagawa habang nagre-render (hindi sa useEffect) para walang "setState in effect" na error.
+    const [lastPath, setLastPath] = useState(pathname);
+    if (lastPath !== pathname) {
+        setLastPath(pathname);
         setMenuOpen(false);
         setUserOpen(false);
-    }, [pathname]);
+    }
+
+    // Laging nakareserba ang puwang ng scrollbar. Kung wala ito, may page na mahaba (may scrollbar)
+    // at may maikli (wala), kaya umuusog pakaliwa/pakanan ang buong nav tuwing lilipat ng tab.
+    useEffect(() => {
+        const html = document.documentElement;
+        const previous = html.style.scrollbarGutter;
+        html.style.scrollbarGutter = "stable";
+        return () => {
+            html.style.scrollbarGutter = previous;
+        };
+    }, []);
 
     // Escape para isara
     useEffect(() => {
@@ -166,8 +181,8 @@ export default function PortalNav({ basePath, roleLabel, fullName, initials, ava
                                 className="h-9 w-9 shrink-0 rounded-full bg-white object-contain ring-2 ring-white/30"
                             />
                             <span className="hidden min-w-0 leading-tight sm:block">
-                                <span className="block text-sm font-bold uppercase tracking-wider">BCAS Clinic</span>
-                                <span className="block text-[11px] text-white/70">{roleLabel} Portal</span>
+                                <span className="block text-sm font-semibold uppercase tracking-wider">BCAS Clinic</span>
+                                <span className="block text-sm text-white/70">{roleLabel} Portal</span>
                             </span>
                         </Link>
                     </div>
@@ -183,9 +198,11 @@ export default function PortalNav({ basePath, roleLabel, fullName, initials, ava
                                     key={href}
                                     href={href}
                                     aria-current={active ? "page" : undefined}
-                                    className={`inline-flex h-9 items-center gap-2 rounded-lg px-3 text-sm transition-colors ${active
-                                        ? "bg-amber-400 font-semibold text-[#14532D] shadow-sm"
-                                        : "font-medium text-white/85 hover:bg-white/10 hover:text-white"
+                                    // Iisang kapal ng font (semibold) sa lahat ng tab para hindi lumapad o kumitid
+                                    // ang tab kapag napili, kaya hindi gumagalaw ang nav.
+                                    className={`inline-flex h-9 items-center gap-2 rounded-lg px-3 text-sm font-semibold transition-colors ${active
+                                        ? "bg-amber-400 text-[#14532D] shadow-sm"
+                                        : "text-white/85 hover:bg-white/10 hover:text-white"
                                         }`}
                                 >
                                     <Icon className="h-4 w-4" strokeWidth={1.9} />
@@ -226,7 +243,7 @@ export default function PortalNav({ basePath, roleLabel, fullName, initials, ava
                                         {fullName}
                                     </p>
                                     <span
-                                        className={`mt-0.5 inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${roleLabel === "Employee" ? "bg-amber-300 text-gray-900" : "bg-[#15664f] text-white"
+                                        className={`mt-0.5 inline-block rounded-full px-2 py-0.5 text-sm font-semibold ${roleLabel === "Employee" ? "bg-amber-300 text-gray-900" : "bg-[#15664f] text-white"
                                             }`}
                                     >
                                         {roleLabel}
@@ -239,7 +256,7 @@ export default function PortalNav({ basePath, roleLabel, fullName, initials, ava
                                     role="menuitem"
                                     className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-[#eef6f2] hover:text-[#15664f]"
                                 >
-                                    <User className="h-4 w-4 text-gray-500" />
+                                    <User className="h-4 w-4 text-gray-600" />
                                     My Profile
                                 </Link>
                                 <Link
@@ -247,7 +264,7 @@ export default function PortalNav({ basePath, roleLabel, fullName, initials, ava
                                     role="menuitem"
                                     className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-[#eef6f2] hover:text-[#15664f]"
                                 >
-                                    <LockKeyhole className="h-4 w-4 text-gray-500" />
+                                    <LockKeyhole className="h-4 w-4 text-gray-600" />
                                     Change Password
                                 </Link>
                                 <form action={logoutAction} className="mt-1 border-t border-gray-100 pt-1">
@@ -274,83 +291,141 @@ export default function PortalNav({ basePath, roleLabel, fullName, initials, ava
                 className={`fixed inset-0 z-40 bg-black/50 transition-opacity duration-200 xl:hidden ${menuOpen ? "opacity-100" : "pointer-events-none opacity-0"}`}
             />
 
-            {/* Drawer para sa phone/tablet (kapareho ng admin sidebar) */}
+            {/* Drawer para sa phone/tablet: kapareho ng sidebar ng nurse/staff */}
             <aside
                 id="portal-drawer"
-                className={`fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col bg-gradient-to-b from-[#15664f] to-[#0c3f30] text-white shadow-xl transition-[transform,visibility] duration-200 xl:hidden ${menuOpen ? "visible translate-x-0" : "invisible -translate-x-full"}`}
+                className={`fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col overflow-hidden bg-gradient-to-b from-[#176b52] via-[#11593f] to-[#0b3f2e] text-white shadow-xl transition-[transform,visibility] duration-200 xl:hidden ${menuOpen ? "visible translate-x-0" : "invisible -translate-x-full"}`}
             >
-                <div className="relative flex items-center gap-3 border-b border-white/10 px-4 py-4 pr-12">
-                    <Image
-                        src="/bcas.jpg"
-                        alt="BCAS logo"
-                        width={44}
-                        height={44}
-                        className="h-11 w-11 shrink-0 rounded-full bg-white object-contain ring-2 ring-white/30"
-                    />
-                    <div className="min-w-0">
-                        <p className="text-sm font-bold uppercase tracking-wider">BCAS Clinic</p>
-                        <p className="text-[11px] text-white/60">{roleLabel} Portal</p>
-                    </div>
+                {/* Header: malaking logo (gaya ng login page) */}
+                <div className="relative flex items-center justify-center border-b border-white/10 px-4 pb-5 pt-6">
+                    <Link
+                        href={homeHref}
+                        onClick={() => setMenuOpen(false)}
+                        className="flex w-full min-w-0 select-none flex-col items-center gap-2 overflow-hidden px-3 text-center hover:opacity-90"
+                    >
+                        {/* Logo (public/bcas.jpg): ginupit nang bilog gamit ang clip-path para walang puting kanto
+                            o gray na gilid; ang anino ay nasa lalagyan para hindi rin magupit */}
+                        <span className="shrink-0 drop-shadow-[0_8px_14px_rgba(0,0,0,0.45)]">
+                            <Image
+                                src="/bcas.jpg"
+                                alt="BCAS"
+                                width={96}
+                                height={96}
+                                className="block h-24 w-24 rounded-full bg-white object-cover [clip-path:circle(49%)]"
+                            />
+                        </span>
+                        <span className="text-2xl font-bold tracking-tight text-white">School Clinic</span>
+                    </Link>
                     <button
                         type="button"
                         onClick={() => setMenuOpen(false)}
                         aria-label="Close menu"
-                        className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-2 hover:bg-white/10"
+                        className="absolute right-2 top-2 rounded-lg p-2 hover:bg-white/10"
                     >
                         <X className="h-5 w-5" />
                     </button>
                 </div>
 
-                <nav aria-label={`${roleLabel} navigation`} className="no-scrollbar flex-1 overflow-y-auto px-3 py-3">
-                    <p className="px-3 pb-1.5 pt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-white/45">Menu</p>
-                    {tabs.map((tab) => {
-                        const href = `${basePath}/${tab.path}`;
-                        const active = isActive(href);
-                        const Icon = tab.icon;
-                        return (
-                            <Link
-                                key={href}
-                                href={href}
-                                title={tab.label}
-                                aria-current={active ? "page" : undefined}
-                                className={`relative mb-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14.5px] transition-all ${active
-                                    ? "bg-amber-400 font-semibold text-[#14532D] shadow-md shadow-black/10"
-                                    : "text-white/85 hover:bg-white/10 hover:text-white"
-                                    }`}
-                            >
-                                {active && (
-                                    <span className="absolute -left-3 top-1/2 h-6 w-1.5 -translate-y-1/2 rounded-r-full bg-white" />
-                                )}
-                                <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.8} />
-                                <span className="truncate">{tab.label}</span>
-                            </Link>
-                        );
-                    })}
-                </nav>
+                {/* Dekorasyon sa pinakababa: green na alon, dalawang dilaw na guhit at mga dahon */}
+                <svg
+                    aria-hidden="true"
+                    viewBox="0 0 260 110"
+                    preserveAspectRatio="xMidYMax slice"
+                    className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-28 w-full"
+                >
+                    <path d="M0 110 V58 C 60 40, 130 50, 190 66 C 220 74, 244 72, 260 66 V110 Z" fill="#2f8a6d" fillOpacity="0.45" />
+                    <path d="M0 52 C 60 34, 130 44, 192 60 C 222 68, 246 66, 260 60" fill="none" stroke="#f2c94c" strokeWidth="3" />
+                    <path d="M0 62 C 62 46, 132 56, 194 72 C 224 80, 246 78, 260 72" fill="none" stroke="#f2c94c" strokeOpacity="0.55" strokeWidth="1.5" />
+                    <path d="M0 110 V78 C 70 64, 140 76, 200 90 C 228 96, 248 94, 260 90 V110 Z" fill="#0b3f2e" fillOpacity="0.9" />
+                    {/* Mga dahon sa kanan */}
+                    <path d="M196 108 C 186 84, 194 60, 222 46 C 230 74, 222 96, 196 108 Z" fill="#3fae86" fillOpacity="0.75" />
+                    <path d="M196 108 C 204 88, 212 70, 222 46" fill="none" stroke="#0b3f2e" strokeOpacity="0.45" strokeWidth="1" />
+                    <path d="M222 110 C 220 82, 236 60, 262 52 C 264 80, 250 102, 222 110 Z" fill="#2f8a6d" fillOpacity="0.9" />
+                    <path d="M222 110 C 234 90, 248 70, 262 52" fill="none" stroke="#0b3f2e" strokeOpacity="0.45" strokeWidth="1" />
+                    <path d="M176 110 C 166 96, 166 80, 178 70 C 188 82, 188 98, 176 110 Z" fill="#3fae86" fillOpacity="0.5" />
+                </svg>
 
-                {/* User card sa ibaba */}
-                <div className="border-t border-white/10 p-3">
-                    <div className="flex items-center gap-3 rounded-xl bg-white/10 p-2.5">
-                        <Avatar avatar={avatar} initials={initials} size="sm" employee={roleLabel === "Employee"} />
-                        <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-semibold" title={fullName}>
-                                {fullName}
-                            </p>
-                            <span className="mt-0.5 inline-block rounded-full bg-amber-400/90 px-2 py-0.5 text-[11px] font-semibold text-[#14532D]">
-                                {roleLabel}
-                            </span>
+                <div className="relative z-10 flex min-h-0 flex-1 flex-col">
+                    <nav aria-label={`${roleLabel} navigation`} className="no-scrollbar flex-1 overflow-y-auto px-3 py-3">
+                        <p className="px-3 pb-1 pt-1 text-sm font-medium uppercase tracking-[0.14em] text-white/40">Menu</p>
+                        {tabs.map((tab) => {
+                            const href = `${basePath}/${tab.path}`;
+                            const active = isActive(href);
+                            const Icon = tab.icon;
+                            return (
+                                <Link
+                                    key={href}
+                                    href={href}
+                                    title={tab.label}
+                                    aria-current={active ? "page" : undefined}
+                                    onClick={() => setMenuOpen(false)}
+                                    className={`group relative mb-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-base transition-all ${active
+                                        ? "bg-[#4f9a7c]/70 font-semibold text-white shadow-sm shadow-black/10 ring-1 ring-white/15"
+                                        : "text-white/85 hover:bg-white/10 hover:text-white"
+                                        }`}
+                                >
+                                    {active && (
+                                        <span className="absolute -left-3 top-1/2 h-6 w-1.5 -translate-y-1/2 rounded-r-full bg-amber-300" />
+                                    )}
+                                    <Icon className={`h-5 w-5 shrink-0 ${active ? "text-amber-300" : ""}`} strokeWidth={1.8} />
+                                    <span className="truncate">{tab.label}</span>
+                                    {tab.path !== "dashboard" && (
+                                        <ChevronRight aria-hidden="true" className="ml-auto h-4 w-4 shrink-0 text-white/50" />
+                                    )}
+                                </Link>
+                            );
+                        })}
+                    </nav>
+
+                    {/* Ibaba: user card, Log Out at tagline (kapareho ng nurse sidebar) */}
+                    <div className="relative px-3 pb-[4.5rem] pt-2">
+                        <div className="mx-2 mb-3 border-t border-white/15" />
+                        {/* User card (gaya ng dati): larawan, pangalan, role at Log Out icon sa kanan */}
+                        <div className="flex items-center gap-3 rounded-xl border border-white/15 bg-white/10 p-2.5">
+                            {avatar ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                    src={avatar}
+                                    alt=""
+                                    className={`h-10 w-10 shrink-0 rounded-full object-cover ring-2 ${roleLabel === "Employee" ? "ring-amber-300" : "ring-white/80"}`}
+                                />
+                            ) : (
+                                <div
+                                    aria-hidden="true"
+                                    // Student = green, Employee = dilaw (kapareho ng profile sa itaas na nav)
+                                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold ring-2 ring-white/80 ${roleLabel === "Employee" ? "bg-amber-300 text-gray-900" : "bg-[#15664f] text-white"
+                                        }`}
+                                >
+                                    {initials}
+                                </div>
+                            )}
+                            <div className="min-w-0 flex-1">
+                                <p className="truncate text-base font-semibold" title={fullName}>
+                                    {fullName}
+                                </p>
+                                <span
+                                    className={`mt-1 inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-sm font-semibold ring-1 ring-inset ${roleLabel === "Employee"
+                                        ? "bg-amber-50 text-amber-800 ring-amber-500/30"
+                                        : "bg-emerald-50 text-emerald-800 ring-emerald-600/25"
+                                        }`}
+                                >
+                                    <span className={`h-2 w-2 rounded-full ${roleLabel === "Employee" ? "bg-amber-500" : "bg-emerald-500"}`} />
+                                    {roleLabel}
+                                </span>
+                            </div>
+                            <form action={logoutAction} className="shrink-0" title="Sign out">
+                                <ConfirmSubmit
+                                    title="Sign out"
+                                    message="Are you sure you want to sign out?"
+                                    confirmLabel="Sign out"
+                                    className="flex h-9 w-9 items-center justify-center rounded-lg text-white/80 hover:bg-amber-400 hover:text-[#10523f]"
+                                >
+                                    <LogOut className="h-5 w-5" strokeWidth={1.8} />
+                                    <span className="sr-only">Sign out</span>
+                                </ConfirmSubmit>
+                            </form>
                         </div>
-                        <form action={logoutAction} className="shrink-0">
-                            <ConfirmSubmit
-                                title="Sign out"
-                                message="Are you sure you want to sign out?"
-                                confirmLabel="Sign out"
-                                className="flex h-9 w-9 items-center justify-center rounded-lg text-white/80 hover:bg-red-500/90 hover:text-white"
-                            >
-                                <LogOut className="h-[18px] w-[18px]" strokeWidth={1.8} />
-                                <span className="sr-only">Sign out</span>
-                            </ConfirmSubmit>
-                        </form>
+
                     </div>
                 </div>
             </aside>

@@ -75,10 +75,11 @@ export default async function ClinicStaffPage() {
         statusStyles[status] ?? { label: status, className: "bg-gray-100 text-gray-600" };
 
     const activeCount = staff.filter((s) => s.status === "active").length;
+    // Total = dark green, Active = light green, Inactive = pula
     const stats = [
-        { label: "Total Staff", value: staff.length, icon: Users, tint: "bg-[#eef6f2] text-[#15664f]" },
-        { label: "Active", value: activeCount, icon: BadgeCheck, tint: "bg-green-100 text-green-700" },
-        { label: "Inactive", value: staff.length - activeCount, icon: UserMinus, tint: "bg-red-100 text-red-700" },
+        { label: "Total Staff", value: staff.length, icon: Users, bar: "bg-[#15664f]", tile: "bg-[#15664f]/10 text-[#15664f]" },
+        { label: "Active", value: activeCount, icon: BadgeCheck, bar: "bg-[#3fae86]", tile: "bg-[#3fae86]/15 text-[#2a8a67]" },
+        { label: "Inactive", value: staff.length - activeCount, icon: UserMinus, bar: "bg-red-500", tile: "bg-red-50 text-red-600" },
     ];
 
     return (
@@ -110,17 +111,22 @@ export default async function ClinicStaffPage() {
             </div>
 
             {/* Stats */}
-            <section className="grid gap-4 sm:grid-cols-3">
+            {/* Phone: 3 maliliit na card sa iisang hilera. Mas malaking screen: icon sa kaliwa. */}
+            <section className="grid grid-cols-3 gap-2.5 sm:gap-4">
                 {stats.map((st) => {
                     const Icon = st.icon;
                     return (
-                        <div key={st.label} className={`${card} flex items-center gap-4 p-5`}>
-                            <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${st.tint}`}>
-                                <Icon className="h-5 w-5" />
-                            </div>
-                            <div>
-                                <p className="text-sm text-gray-600">{st.label}</p>
-                                <p className="text-2xl font-bold text-gray-900">{st.value}</p>
+                        <div
+                            key={st.label}
+                            className="relative flex min-w-0 flex-col items-start gap-2 overflow-hidden rounded-2xl border border-[#dcebe3] bg-white p-3 shadow-sm sm:flex-row sm:items-center sm:gap-3 sm:p-4"
+                        >
+                            <span aria-hidden className={`absolute inset-x-0 top-0 h-1 ${st.bar}`} />
+                            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl sm:h-11 sm:w-11 ${st.tile}`}>
+                                <Icon className="h-5 w-5" strokeWidth={1.9} />
+                            </span>
+                            <div className="min-w-0">
+                                <p className="text-2xl font-bold leading-tight text-gray-900 sm:text-[1.75rem]">{st.value}</p>
+                                <p className="truncate text-sm font-medium text-gray-600">{st.label}</p>
                             </div>
                         </div>
                     );
@@ -153,7 +159,7 @@ export default async function ClinicStaffPage() {
                             {staff.map((s) => {
                                 const badge = getBadge(s.status);
                                 return (
-                                    <li key={s.staff_id} className="rounded-lg border border-gray-200 p-3">
+                                    <li key={s.staff_id} className="rounded-xl border border-gray-200 p-3">
                                         <div className="flex items-start gap-3">
                                             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#eef6f2] text-sm font-semibold text-[#15664f]">
                                                 {initialsOf(s.full_name)}
@@ -162,14 +168,18 @@ export default async function ClinicStaffPage() {
                                                 <p className="break-words text-sm font-semibold text-gray-900">{s.full_name}</p>
                                                 <p className="break-words text-sm text-gray-600">{s.position}</p>
                                             </div>
-                                            <span
-                                                className={`shrink-0 whitespace-nowrap rounded-full px-2.5 py-0.5 text-sm font-semibold ${badge.className}`}
-                                            >
-                                                {badge.label}
-                                            </span>
+                                            {/* Status at ⋮ menu sa kanang itaas */}
+                                            <div className="flex shrink-0 items-center gap-1">
+                                                <span
+                                                    className={`whitespace-nowrap rounded-full px-2.5 py-0.5 text-sm font-semibold ${badge.className}`}
+                                                >
+                                                    {badge.label}
+                                                </span>
+                                                {canEdit && <StaffActions s={s} />}
+                                            </div>
                                         </div>
 
-                                        <dl className="mt-3 space-y-1.5 text-sm">
+                                        <dl className="mt-3 space-y-1.5 rounded-lg bg-[#f6faf8] p-2.5 text-sm">
                                             <div className="flex items-center gap-2">
                                                 <Mail className="h-4 w-4 shrink-0 text-gray-600" />
                                                 <dd className="min-w-0 flex-1 break-all text-gray-900">{s.email ?? "—"}</dd>
@@ -184,11 +194,6 @@ export default async function ClinicStaffPage() {
                                             </div>
                                         </dl>
 
-                                        {canEdit && (
-                                            <div className="mt-3 flex justify-end border-t border-gray-100 pt-2">
-                                                <StaffActions s={s} />
-                                            </div>
-                                        )}
                                     </li>
                                 );
                             })}

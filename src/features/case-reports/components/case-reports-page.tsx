@@ -126,7 +126,7 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
 
     // LEFT JOIN on both sides: a case report belongs to a student OR an
     // employee, and the other column is NULL. Newest date first.
-    const [reports, count, diagnosisRows] = await Promise.all([
+    const [reports, count] = await Promise.all([
         prisma.$queryRaw<CaseRow[]>`
         SELECT c.case_id, c.case_number,
                CASE WHEN c.employee_id IS NOT NULL THEN 'employee' ELSE 'student' END AS patient_type,
@@ -174,23 +174,10 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
             OR c.case_number ILIKE ${like}
             OR c.complaint ILIKE ${like})
     `,
-        // Mga pagpipilian sa Diagnosis filter: lahat ng diagnosis na nasa case reports,
-        // pinakamadalas muna (Fever, Headache, atbp.)
-        prisma.$queryRaw<{ label: string }[]>`
-        SELECT MIN(TRIM(complaint)) AS label
-        FROM health_case_reports
-        WHERE archived_at IS NULL AND TRIM(complaint) <> ''
-        GROUP BY LOWER(TRIM(complaint))
-        ORDER BY COUNT(*) DESC, 1
-        LIMIT 50
-    `,
     ]);
-    // Una ang mga diagnosis ng form (Fever, Headache, atbp.), tapos ang iba pang
-    // diagnosis na tinype sa mga case report. Walang doble kahit iba ang malaki/maliit na titik.
-    const diagnosisOptions: string[] = [];
-    for (const d of [...COMMON_DIAGNOSES, ...diagnosisRows.map((r) => r.label)]) {
-        if (!diagnosisOptions.some((o) => o.toLowerCase() === d.toLowerCase())) diagnosisOptions.push(d);
-    }
+    // Diagnosis filter: ang mga karaniwang diagnosis lang (Fever, Headache, atbp.).
+    // Hindi na isinasama ang mga tinype nang mano-mano sa case report (hal. "sakit ng ulo").
+    const diagnosisOptions: string[] = [...COMMON_DIAGNOSES];
 
     const total = count[0]?.count ?? 0;
     const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));

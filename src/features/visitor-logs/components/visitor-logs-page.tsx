@@ -66,9 +66,9 @@ export default async function VisitorRecordingPage() {
     const checkedOut = visitors.length - inside;
 
     const stats = [
-        { label: "Visitors Today", value: visitors.length, icon: Users, tint: "bg-[#eef6f2] text-[#15664f]" },
-        { label: "Still Inside", value: inside, icon: DoorOpen, tint: "bg-amber-100 text-amber-700" },
-        { label: "Checked Out", value: checkedOut, icon: UserCheck, tint: "bg-green-100 text-green-700" },
+        { label: "Visitors Today", value: visitors.length, icon: Users, bar: "bg-[#15664f]", tile: "bg-[#15664f]/10 text-[#15664f]" },
+        { label: "Still Inside", value: inside, icon: DoorOpen, bar: "bg-[#f2b705]", tile: "bg-[#f2b705]/15 text-[#a67c00]" },
+        { label: "Checked Out", value: checkedOut, icon: UserCheck, bar: "bg-[#3fae86]", tile: "bg-[#3fae86]/15 text-[#2a8a67]" },
     ];
 
     return (
@@ -93,17 +93,22 @@ export default async function VisitorRecordingPage() {
             </div>
 
             {/* Stats */}
-            <section className="grid gap-4 sm:grid-cols-3">
+            {/* Phone: 3 maliliit na card sa iisang hilera. Mas malaking screen: icon sa kaliwa. (Kapareho ng Clinic Staff) */}
+            <section className="grid grid-cols-3 gap-2.5 sm:gap-4">
                 {stats.map((s) => {
                     const Icon = s.icon;
                     return (
-                        <div key={s.label} className={`${card} flex items-center gap-4 p-5`}>
-                            <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${s.tint}`}>
-                                <Icon className="h-5 w-5" />
-                            </div>
-                            <div>
-                                <p className="text-sm text-gray-600">{s.label}</p>
-                                <p className="text-2xl font-bold text-gray-900">{s.value}</p>
+                        <div
+                            key={s.label}
+                            className="relative flex min-w-0 flex-col items-start gap-2 overflow-hidden rounded-2xl border border-[#dcebe3] bg-white p-3 shadow-sm sm:flex-row sm:items-center sm:gap-3 sm:p-4"
+                        >
+                            <span aria-hidden className={`absolute inset-x-0 top-0 h-1 ${s.bar}`} />
+                            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl sm:h-11 sm:w-11 ${s.tile}`}>
+                                <Icon className="h-5 w-5" strokeWidth={1.9} />
+                            </span>
+                            <div className="min-w-0">
+                                <p className="text-2xl font-bold leading-tight text-gray-900 sm:text-[1.75rem]">{s.value}</p>
+                                <p className="truncate text-sm font-medium text-gray-600">{s.label}</p>
                             </div>
                         </div>
                     );
