@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
+import { RETENTION_YEARS } from "@/lib/retention";
 import { canManageRecords } from "@/lib/permissions";
 
 const BASE = "/dashboard/health-case-reports";
@@ -60,6 +61,7 @@ export async function deleteCase(formData: FormData) {
   await prisma.$executeRaw`
     DELETE FROM health_case_reports
     WHERE case_id = ${caseId} AND archived_at IS NOT NULL
+      AND archived_at < NOW() - (${RETENTION_YEARS} || ' years')::interval
   `;
 
   refresh();

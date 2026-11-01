@@ -2,13 +2,9 @@
 // Data retention policy for archived records.
 //
 // An archived record is hidden from the main pages but is NOT deleted.
-// Only a PERSON's record is held for a retention period: the student or
-// employee row carries their identity and their whole clinic history, so
-// deleting it is the one action that cannot be recovered from anywhere.
-//
-// Individual entries — visits, dental records, case reports, referral
-// slips — have no retention period. A wrong entry should be removable
-// right away, and removing one does not erase the person.
+// Every archived record — students, employees, visits, dental records,
+// case reports, referral slips and clinic staff — is kept for the retention period
+// before it can be permanently deleted.
 
 export type RecordKind =
     | "student"
@@ -17,7 +13,8 @@ export type RecordKind =
     | "employee_visit"
     | "dental"
     | "case_report"
-    | "referral_slip";
+    | "referral_slip"
+    | "staff";
 
 /** Years a person's record is held before it can be deleted for good. */
 export const RETENTION_YEARS = 5;
@@ -26,11 +23,12 @@ export const RETENTION_YEARS = 5;
 export const RETENTION_BY_KIND: Record<RecordKind, number> = {
     student: RETENTION_YEARS,
     employee: RETENTION_YEARS,
-    visit: 0,
-    employee_visit: 0,
-    dental: 0,
-    case_report: 0,
-    referral_slip: 0,
+    visit: RETENTION_YEARS,
+    employee_visit: RETENTION_YEARS,
+    dental: RETENTION_YEARS,
+    case_report: RETENTION_YEARS,
+    referral_slip: RETENTION_YEARS,
+    staff: RETENTION_YEARS,
 };
 
 /** Years kept for one kind of record. Defaults to the person period. */
@@ -44,7 +42,7 @@ export function retentionText(kind: RecordKind = "student"): string {
     return `Archived records of this type can only be permanently deleted after ${years} years.`;
 }
 
-export const RETENTION_TEXT = `Archived students and employees can only be permanently deleted after ${RETENTION_YEARS} years.`;
+export const RETENTION_TEXT = `Archived records can only be permanently deleted after ${RETENTION_YEARS} years.`;
 
 /** The date a record becomes eligible for permanent deletion. */
 export function deletableOn(

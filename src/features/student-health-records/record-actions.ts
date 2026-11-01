@@ -1,9 +1,9 @@
-
 "use server";
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
+import { RETENTION_YEARS } from "@/lib/retention";
 import { canManageRecords } from "@/lib/permissions";
 
 function refresh() {
@@ -51,7 +51,8 @@ export async function deleteRecord(formData: FormData) {
   if (!recordId) return;
 
   await prisma.$executeRaw`
-    DELETE FROM health_records WHERE record_id = ${recordId}
+    DELETE FROM health_records WHERE record_id = ${recordId} AND archived_at IS NOT NULL
+      AND archived_at < NOW() - (${RETENTION_YEARS} || ' years')::interval
   `;
 
   refresh();

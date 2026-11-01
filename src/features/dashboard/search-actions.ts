@@ -18,7 +18,7 @@ export type PersonHit = {
 };
 
 // Paghahanap ng STUDENT at EMPLOYEE (pangalan o ID number) para sa search sa itaas ng dashboard.
-// Kasama ang mga naka-archive (Deactivated), pero nasa hulihan sila. Hanggang 10 resulta lang.
+// HINDI kasama ang mga naka-archive (Deactivated). Hanggang 10 resulta lang.
 export async function searchPeople(query: string): Promise<PersonHit[]> {
     const session = await getSession();
     if (!session || !canViewClinicData(String(session.role ?? ""))) return [];
@@ -37,6 +37,7 @@ export async function searchPeople(query: string): Promise<PersonHit[]> {
                    (student_number ILIKE ${starts} OR last_name ILIKE ${starts} OR first_name ILIKE ${starts}) AS starts
             FROM students
             WHERE CONCAT_WS(' ', student_number, first_name, middle_name, last_name) ILIKE ALL (${words}::text[])
+              AND archived_at IS NULL
             UNION ALL
             SELECT 'employee' AS kind, employee_number AS number, first_name, middle_name, last_name,
                    NULLIF(CONCAT_WS(' · ', NULLIF(position, ''), NULLIF(department, '')), '') AS detail,
@@ -44,8 +45,9 @@ export async function searchPeople(query: string): Promise<PersonHit[]> {
                    (employee_number ILIKE ${starts} OR last_name ILIKE ${starts} OR first_name ILIKE ${starts}) AS starts
             FROM employees
             WHERE CONCAT_WS(' ', employee_number, first_name, middle_name, last_name) ILIKE ALL (${words}::text[])
+              AND archived_at IS NULL
         ) p
-        ORDER BY archived ASC, starts DESC, last_name ASC, first_name ASC
+        ORDER BY starts DESC, last_name ASC, first_name ASC
         LIMIT 10
     `;
 }

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
+import { RETENTION_YEARS } from "@/lib/retention";
 import { canManageStaff } from "@/lib/permissions";
 
 const BASE = "/dashboard/clinic-staff";
@@ -104,9 +105,15 @@ export async function deleteStaff(formData: FormData) {
     const staffId = Number(formData.get("staffId"));
     if (!staffId) return;
 
-    await prisma.$executeRaw`DELETE FROM clinic_staff WHERE staff_id = ${staffId}`;
+    // Only an archived staff record can be deleted, and only after the retention period.
+    await prisma.$executeRaw`
+        DELETE FROM clinic_staff
+        WHERE staff_id = ${staffId} AND archived_at IS NOT NULL
+          AND archived_at < NOW() - (${RETENTION_YEARS} || ' years')::interval
+    `;
 
     revalidatePath(BASE);
+    revalidatePath("/dashboard/archive-records");
 }
 export async function archiveStaff(formData: FormData) {
     const session = await getSession();

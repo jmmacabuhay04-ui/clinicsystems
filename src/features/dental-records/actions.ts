@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
+import { RETENTION_YEARS } from "@/lib/retention";
 import { canManageDental } from "@/lib/permissions";
 import { examinerName } from "@/features/dental-health-form/chart-data";
 
@@ -224,6 +225,7 @@ export async function deleteDental(formData: FormData) {
 
     await prisma.$executeRaw`
     DELETE FROM dental_records WHERE dental_id = ${dentalId} AND archived_at IS NOT NULL
+      AND archived_at < NOW() - (${RETENTION_YEARS} || ' years')::interval
   `;
 
     revalidatePath(BASE);

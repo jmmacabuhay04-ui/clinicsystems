@@ -273,7 +273,7 @@ function DeleteForm({
 
 type Column = {
     label: string;
-    /** nowrap sa header */
+    /** (hindi na ginagamit sa table-fixed; iniwan para sa mga column definition) */
     nowrap?: boolean;
     /** Tailwind classes para sa cell (kulay, bigat ng font, nowrap) */
     td?: string;
@@ -325,8 +325,8 @@ function ArchiveSection({
                 </div>
             ) : (
                 <>
-                    {/* MOBILE: card list (walang horizontal scroll) */}
-                    <ul className="space-y-2 border-t border-gray-100 p-3 md:hidden">
+                    {/* MOBILE / TABLET: card list (walang horizontal scroll) */}
+                    <ul className="space-y-2 border-t border-gray-100 p-3 xl:hidden">
                         {items.map((item) => (
                             <li key={item.key} className="rounded-lg border border-gray-200 p-3">
                                 <p className="break-words text-sm font-semibold text-gray-900">{item.title}</p>
@@ -348,32 +348,35 @@ function ArchiveSection({
                         ))}
                     </ul>
 
-                    {/* DESKTOP: table */}
-                    <div className="hidden overflow-x-auto border-t border-gray-100 md:block">
-                        <table className="w-full text-left text-sm">
+                    {/* DESKTOP (xl pataas): table, walang scroll */}
+                    <div className="hidden border-t border-gray-100 xl:block">
+                        {/* table-fixed: pantay ang lapad ng bawat column, walang horizontal scroll;
+                            bumababa sa susunod na linya ang mahabang text */}
+                        <table className="w-full table-fixed text-left text-sm">
                             <thead className="bg-[#f6faf8] text-sm uppercase tracking-wide text-gray-600">
                                 <tr>
                                     {columns.map((c) => (
                                         <th
                                             key={c.label}
-                                            className={`px-4 py-3 font-semibold ${c.nowrap ? "whitespace-nowrap" : ""}`}
+                                            className="break-words px-4 py-3 font-semibold"
                                         >
                                             {c.label}
                                         </th>
                                     ))}
-                                    {showActions && <th className="px-4 py-3 font-semibold">Actions</th>}
+                                    {showActions && <th className="w-[22rem] px-4 py-3 font-semibold">Actions</th>}
                                 </tr>
                             </thead>
                             <tbody>
                                 {items.map((item) => (
                                     <tr key={item.key} className="border-t border-gray-100 hover:bg-[#f6faf8]">
                                         {item.cells.map((cell, i) => (
-                                            <td key={i} className={`px-4 py-3 align-middle ${columns[i]?.td ?? ""}`}>
+                                            <td key={i} className={`px-4 py-3 align-middle [overflow-wrap:anywhere] ${(columns[i]?.td ?? "").replace("whitespace-nowrap", "")}`}>
                                                 {cell}
                                             </td>
                                         ))}
                                         {showActions && (
                                             <td className="whitespace-nowrap px-4 py-3">
+                                                {/* Restore at Delete / Deletable on: magkatabi, hindi bumababa */}
                                                 <div className="flex items-center gap-2">{item.actions}</div>
                                             </td>
                                         )}
@@ -607,15 +610,15 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                 { label: "Date", value: formatDate(c.report_date) },
                 { label: "Archived On", value: formatDate(c.archived_at) },
             ],
+            // ID Number, Name, Complaint, Date (+ Actions)
             cells: [
-                c.case_number,
+                c.id_number ?? "—",
+                name,
                 <>
-                    {name}
-                    {c.id_number && <span className="block text-sm text-gray-600">{c.id_number}</span>}
+                    {c.complaint}
+                    <span className="block text-sm text-gray-600">Case {c.case_number}</span>
                 </>,
-                c.complaint,
                 formatDate(c.report_date),
-                formatDate(c.archived_at),
             ],
             actions: canEdit ? (
                 <>
@@ -628,6 +631,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                     />
                     <DeleteForm
                         action={deleteCase}
+                        kind="case_report"
                         name="caseId"
                         value={c.case_id}
                         archivedAt={c.archived_at}
@@ -647,16 +651,16 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
             title: name,
             sub: r.student_number,
             fields: [
-                { label: "Visit Date", value: formatDate(r.visit_date) },
                 { label: "Complaint", value: r.complaint },
+                { label: "Visit Date", value: formatDate(r.visit_date) },
                 { label: "Archived On", value: formatDate(r.archived_at) },
             ],
+            // ID Number, Name, Complaint, Visit Date (+ Actions)
             cells: [
                 r.student_number,
                 name,
-                formatDate(r.visit_date),
                 r.complaint,
-                formatDate(r.archived_at),
+                formatDate(r.visit_date),
             ],
             actions: canEdit ? (
                 <>
@@ -669,6 +673,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                     />
                     <DeleteForm
                         action={deleteRecord}
+                        kind="visit"
                         name="recordId"
                         value={r.record_id}
                         archivedAt={r.archived_at}
@@ -688,16 +693,16 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
             title: name,
             sub: r.employee_number,
             fields: [
-                { label: "Visit Date", value: formatDate(r.visit_date) },
                 { label: "Complaint", value: r.complaint },
+                { label: "Visit Date", value: formatDate(r.visit_date) },
                 { label: "Archived On", value: formatDate(r.archived_at) },
             ],
+            // ID Number, Name, Complaint, Visit Date (+ Actions)
             cells: [
                 r.employee_number,
                 name,
-                formatDate(r.visit_date),
                 r.complaint,
-                formatDate(r.archived_at),
+                formatDate(r.visit_date),
             ],
             actions: canEdit ? (
                 <>
@@ -710,6 +715,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                     />
                     <DeleteForm
                         action={deleteEmployeeRecord}
+                        kind="employee_visit"
                         name="recordId"
                         value={r.record_id}
                         archivedAt={r.archived_at}
@@ -734,13 +740,15 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                 { label: "Visit Date", value: formatDate(d.visit_date) },
                 { label: "Archived On", value: formatDate(d.archived_at) },
             ],
+            // ID Number, Name, Procedure (+ tooth), Visit Date (+ Actions)
             cells: [
                 d.student_number,
                 name,
-                d.procedure_name,
-                d.tooth ?? "—",
+                <>
+                    {d.procedure_name}
+                    {d.tooth && <span className="block text-sm text-gray-600">Tooth {d.tooth}</span>}
+                </>,
                 formatDate(d.visit_date),
-                formatDate(d.archived_at),
             ],
             actions: canEdit ? (
                 <>
@@ -753,6 +761,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                     />
                     <DeleteForm
                         action={deleteDental}
+                        kind="dental"
                         name="dentalId"
                         value={d.dental_id}
                         archivedAt={d.archived_at}
@@ -800,6 +809,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                     />
                     <DeleteForm
                         action={deleteSlip}
+                        kind="referral_slip"
                         name="slipId"
                         value={f.slip_id}
                         archivedAt={f.archived_at}
@@ -842,19 +852,21 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                         Restore
                     </ConfirmButton>
                 </form>
-                <form action={deleteStaff}>
-                    <input type="hidden" name="staffId" value={st.staff_id} />
-                    <ConfirmButton
-                        title="Delete staff record"
-                        confirmLabel="Delete permanently"
-                        danger
-                        message={`Permanently delete ${st.full_name} from clinic staff? This cannot be undone.`}
-                        className={DELETE_CLASS}
-                    >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        Delete
-                    </ConfirmButton>
-                </form>
+                <RetentionGate archivedAt={st.archived_at} kind="staff">
+                    <form action={deleteStaff}>
+                        <input type="hidden" name="staffId" value={st.staff_id} />
+                        <ConfirmButton
+                            title="Delete staff record"
+                            confirmLabel="Delete permanently"
+                            danger
+                            message={`Permanently delete ${st.full_name} from clinic staff? This cannot be undone.`}
+                            className={DELETE_CLASS}
+                        >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Delete
+                        </ConfirmButton>
+                    </form>
+                </RetentionGate>
             </>
         ) : undefined,
     }));
@@ -903,11 +915,10 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
             showActions: canEdit,
             items: caseItems,
             columns: [
-                { label: "Case No.", nowrap: true, td: "whitespace-nowrap font-semibold text-gray-900" },
-                { label: "Patient", td: "text-gray-900" },
+                { label: "ID Number", td: "font-medium text-gray-900" },
+                { label: "Name", td: "font-semibold text-gray-900" },
                 { label: "Complaint", td: "text-gray-900" },
-                { label: "Date", nowrap: true, td: "whitespace-nowrap text-gray-600" },
-                { label: "Archived On", nowrap: true, td: "whitespace-nowrap text-gray-600" },
+                { label: "Date", td: "text-gray-600" },
             ],
         },
         {
@@ -919,11 +930,10 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
             showActions: canEdit,
             items: recordItems,
             columns: [
-                { label: "Student Number", nowrap: true, td: "font-medium text-gray-900" },
+                { label: "ID Number", td: "font-medium text-gray-900" },
                 { label: "Name", td: "font-semibold text-gray-900" },
-                { label: "Visit Date", nowrap: true, td: "whitespace-nowrap text-gray-900" },
                 { label: "Complaint", td: "text-gray-900" },
-                { label: "Archived On", nowrap: true, td: "whitespace-nowrap text-gray-600" },
+                { label: "Visit Date", td: "text-gray-600" },
             ],
         },
         {
@@ -935,11 +945,10 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
             showActions: canEdit,
             items: employeeRecordItems,
             columns: [
-                { label: "Employee Number", nowrap: true, td: "font-medium text-gray-900" },
+                { label: "ID Number", td: "font-medium text-gray-900" },
                 { label: "Name", td: "font-semibold text-gray-900" },
-                { label: "Visit Date", nowrap: true, td: "whitespace-nowrap text-gray-900" },
                 { label: "Complaint", td: "text-gray-900" },
-                { label: "Archived On", nowrap: true, td: "whitespace-nowrap text-gray-600" },
+                { label: "Visit Date", td: "text-gray-600" },
             ],
         },
         {
@@ -951,12 +960,10 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
             showActions: canEdit,
             items: dentalItems,
             columns: [
-                { label: "ID Number", nowrap: true, td: "font-medium text-gray-900" },
+                { label: "ID Number", td: "font-medium text-gray-900" },
                 { label: "Name", td: "font-semibold text-gray-900" },
                 { label: "Procedure", td: "text-gray-900" },
-                { label: "Tooth", td: "text-gray-600" },
-                { label: "Visit Date", nowrap: true, td: "whitespace-nowrap text-gray-600" },
-                { label: "Archived On", nowrap: true, td: "whitespace-nowrap text-gray-600" },
+                { label: "Visit Date", td: "text-gray-600" },
             ],
         },
         {
@@ -1096,8 +1103,8 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                 )}
             </form>
 
-            {/* Category tabs */}
-            <nav className="flex flex-wrap gap-2">
+            {/* Category tabs: walang scroll; bumababa sa susunod na linya kapag kulang ang lapad */}
+            <nav className="flex flex-wrap gap-1.5">
                 {tabs.map((t) => {
                     const active = activeType === t.key;
                     const Icon = t.icon;
@@ -1105,15 +1112,15 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                         <Link
                             key={t.key}
                             href={tabHref(t.key)}
-                            className={`inline-flex h-10 items-center gap-2 rounded-lg border-2 px-3 text-sm font-semibold transition-colors ${active
-                                ? "border-[#15664f] bg-[#15664f] text-white shadow-sm"
-                                : "border-[#cfe5d9] bg-white text-gray-600 hover:bg-[#eef6f2] hover:text-[#15664f]"
+                            className={`inline-flex h-10 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border-2 px-2.5 text-sm font-semibold transition-colors ${active
+                                    ? "border-[#15664f] bg-[#15664f] text-white shadow-sm"
+                                    : "border-[#cfe5d9] bg-white text-gray-600 hover:bg-[#eef6f2] hover:text-[#15664f]"
                                 }`}
                         >
                             <Icon className="h-4 w-4" />
                             {t.label}
                             <span
-                                className={`rounded-full px-2 py-0.5 text-sm font-semibold ${active ? "bg-white/20 text-white" : t.count > 0 ? "bg-amber-100 text-amber-800" : "bg-gray-100 text-gray-600"
+                                className={`rounded-full px-1.5 py-0.5 text-sm font-semibold ${active ? "bg-white/20 text-white" : t.count > 0 ? "bg-amber-100 text-amber-800" : "bg-gray-100 text-gray-600"
                                     }`}
                             >
                                 {t.count}

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
+import { RETENTION_YEARS } from "@/lib/retention";
 import { canManageRecords } from "@/lib/permissions";
 
 const BASE = "/dashboard/referral-slips";
@@ -123,6 +124,7 @@ export async function deleteSlip(formData: FormData) {
     await prisma.$executeRaw`
     DELETE FROM referral_slips
     WHERE slip_id = ${slipId} AND archived_at IS NOT NULL
+      AND archived_at < NOW() - (${RETENTION_YEARS} || ' years')::interval
   `;
 
     refresh();

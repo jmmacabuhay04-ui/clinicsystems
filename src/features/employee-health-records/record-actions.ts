@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
+import { RETENTION_YEARS } from "@/lib/retention";
 import { canManageRecords } from "@/lib/permissions";
 
 
@@ -282,11 +283,11 @@ export async function deleteEmployeeRecord(formData: FormData) {
     const recordId = Number(formData.get("recordId"));
     if (!recordId) return;
 
-    // No retention period on a single visit entry. The archived_at check is
-    // what matters: only an archived record can be deleted, never a live one.
+    // Only an archived record can be deleted, and only after the retention period.
     await prisma.$executeRaw`
     DELETE FROM employee_health_records
     WHERE record_id = ${recordId} AND archived_at IS NOT NULL
+      AND archived_at < NOW() - (${RETENTION_YEARS} || ' years')::interval
   `;
 
     revalidatePath(BASE);
