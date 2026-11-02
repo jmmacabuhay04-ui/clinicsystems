@@ -20,7 +20,6 @@ import UserMenu from "@/components/shared/user-menu";
 import NotificationBell from "@/components/shared/notification-bell";
 import StudentSearch from "./student-search";
 import ReasonTabs from "./reason-tabs";
-import AutoSubmitSelect from "@/components/shared/auto-submit-select";
 import { staffDisplayName } from "@/lib/display-name";
 
 type VisitRow = {
@@ -266,7 +265,7 @@ function TodayList({ items, viewAllHref }: { items: TodayItem[]; viewAllHref: st
 
 const CLINIC_COLOR = "#15664f";
 const DENTAL_COLOR = "#f2b705";
-const REPORT_COLOR = "#3fae86";
+const REPORT_COLOR = "#2563eb"; // asul (green = clinic, dilaw = dental, asul = case reports)
 
 
 function CardShell({
@@ -304,24 +303,9 @@ function CardShell({
 
 // Makinis na kurba mula sa mga punto (para hindi matulis ang linya)
 function smoothPath(pts: [number, number][]) {
-    if (pts.length < 2) return pts.length ? `M${pts[0][0]},${pts[0][1]}` : "";
-    let d = `M${pts[0][0]},${pts[0][1]}`;
-    for (let i = 0; i < pts.length - 1; i++) {
-        const p0 = pts[i - 1] ?? pts[i];
-        const p1 = pts[i];
-        const p2 = pts[i + 1];
-        const p3 = pts[i + 2] ?? p2;
-        const t = 0.18;
-        const c1x = p1[0] + (p2[0] - p0[0]) * t;
-        // Hindi lalampas ang kurba sa pagitan ng dalawang punto (para hindi bumaba sa ilalim ng 0)
-        const lo = Math.min(p1[1], p2[1]);
-        const hi = Math.max(p1[1], p2[1]);
-        const c1y = Math.min(hi, Math.max(lo, p1[1] + (p2[1] - p0[1]) * t));
-        const c2x = p2[0] - (p3[0] - p1[0]) * t;
-        const c2y = Math.min(hi, Math.max(lo, p2[1] - (p3[1] - p1[1]) * t));
-        d += ` C${c1x},${c1y} ${c2x},${c2y} ${p2[0]},${p2[1]}`;
-    }
-    return d;
+    // Tuwid na guhit mula punto sa punto (zigzag), hindi kurba
+    if (pts.length === 0) return "";
+    return pts.map(([px, py], i) => `${i === 0 ? "M" : "L"}${px},${py}`).join(" ");
 }
 
 function VisitsOverviewChart({
@@ -371,18 +355,10 @@ function VisitsOverviewChart({
             title="Clinic Visits Overview"
             className="scroll-mt-6"
             action={
-                <form method="get" action="/dashboard#clinic-overview" className="shrink-0">
-                    {/* Panatilihin ang napili sa Visit Reasons */}
-                    {reasonRange !== "week" && <input type="hidden" name="range" value={reasonRange} />}
-                    <AutoSubmitSelect
-                        name="chart"
-                        defaultValue={range === "week" ? "" : range}
-                        options={["month"]}
-                        allLabel="This Week"
-                        labels={{ month: "This Month" }}
-                        className={rangeSelectClass}
-                    />
-                </form>
+                // This Week lang (walang pagpili ng buwan)
+                <span className="inline-flex h-8 shrink-0 items-center rounded-lg border border-[#dcebe3] bg-[#f6faf8] px-3 text-sm font-medium text-gray-600">
+                    This Week
+                </span>
             }
         >
             {data.length === 0 ? (
@@ -516,9 +492,6 @@ function rangeDates(range: ReasonRange, today: string): [string, string] {
     return [fmt(monday), fmt(saturday)];
 }
 
-const rangeSelectClass =
-    "h-8 cursor-pointer rounded-lg border border-[#dcebe3] bg-[#f6faf8] px-2 text-sm font-medium text-gray-600 outline-none hover:bg-[#eef6f2] focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20";
-
 function VisitReasons({
     reasons,
     range,
@@ -546,19 +519,10 @@ function VisitReasons({
             title="Visit Reasons"
             className="scroll-mt-6"
             action={
-                // Pagpili ng saklaw: kusang nagre-reload ang dashboard pagkapili
-                <form method="get" action="/dashboard#visit-reasons" className="shrink-0">
-                    {/* Panatilihin ang napili sa Clinic Overview */}
-                    {chartRange !== "week" && <input type="hidden" name="chart" value={chartRange} />}
-                    <AutoSubmitSelect
-                        name="range"
-                        defaultValue={range === "week" ? "" : range}
-                        options={["month"]}
-                        allLabel="This Week"
-                        labels={{ month: "This Month" }}
-                        className={rangeSelectClass}
-                    />
-                </form>
+                // This Week lang (walang pagpili ng buwan)
+                <span className="inline-flex h-8 shrink-0 items-center rounded-lg border border-[#dcebe3] bg-[#f6faf8] px-3 text-sm font-medium text-gray-600">
+                    This Week
+                </span>
             }
         >
             {/* Tabs: All | Clinic | Dental | Case Reports */}
@@ -1007,8 +971,11 @@ export default async function DashboardPage({
     searchParams: Promise<{ range?: string; chart?: string }>;
 }) {
     const { range: rangeParam, chart: chartParam } = await searchParams;
-    const reasonRange = parseRange(rangeParam);
-    const chartRange = parseChartRange(chartParam);
+    // Clinic Overview at Visit Reasons: This Week lang
+    void rangeParam;
+    void chartParam;
+    const reasonRange = parseRange(undefined);
+    const chartRange = parseChartRange(undefined);
     const session = await getSession();
     if (!session) redirect("/login");
 
@@ -1289,11 +1256,11 @@ export default async function DashboardPage({
                         "border-gray-100 bg-white hover:border-[#15664f]/30 hover:bg-[#eef6f2] hover:shadow-md hover:shadow-[#15664f]/10",
                     iconClass: TILE_ICON,
                 },
+                // Report: Dental Report lang ang makikita ng Dentist doon
                 {
-                    // Dentist: listahan ng mga dental visit (hindi maa-access ng dentist ang Illness Alerts)
                     label: "View Reports",
-                    description: "View dental visit reports",
-                    href: "/dashboard/dental-visits",
+                    description: "View dental reports",
+                    href: "/dashboard/health-case-reports",
                     icon: BarChart3,
                     cardClass:
                         "border-gray-100 bg-white hover:border-[#15664f]/30 hover:bg-[#eef6f2] hover:shadow-md hover:shadow-[#15664f]/10",
@@ -1356,8 +1323,9 @@ export default async function DashboardPage({
     ].slice(0, 6);
 
     // Search sa itaas (student at employee): dentist -> dental records, iba -> health record
-    const studentHrefBase = isDentist ? "/dashboard/dental-records?student=" : "/dashboard/student-health-records?student=";
-    const employeeHrefBase = isDentist ? "/dashboard/dental-records?employee=" : "/dashboard/employee-health-records?employee=";
+    // Search: file ng student / employee (Dentist: Dental Records tab lang ang makikita roon)
+    const studentHrefBase = "/dashboard/student-health-records?student=";
+    const employeeHrefBase = "/dashboard/employee-health-records?employee=";
     const initials = (baseName || "U").charAt(0).toUpperCase();
 
     // Top bar (desktop/tablet): search, notification bell (pending reports) at user
@@ -1446,7 +1414,7 @@ export default async function DashboardPage({
                         // Puting card, may kulay na guhit sa itaas; icon sa kaliwa, label at bilang sa kanan
                         <div
                             key={stat.label}
-                            className="relative flex min-w-0 items-start gap-3 overflow-hidden rounded-2xl border border-[#dcebe3] bg-white p-4 shadow-sm shadow-[#15664f]/5 transition hover:-translate-y-0.5 hover:shadow-md"
+                            className="relative flex min-w-0 items-start gap-3 overflow-hidden rounded-2xl border border-[#dcebe3] bg-white p-4 shadow-sm shadow-[#15664f]/5"
                         >
                             <span aria-hidden className={`absolute inset-x-0 top-0 h-1 ${tone.bar}`} />
                             <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${tone.tile}`}>

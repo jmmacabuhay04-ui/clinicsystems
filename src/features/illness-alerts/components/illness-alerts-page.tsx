@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { AlertTriangle, CalendarDays, CheckCircle2, School, ShieldAlert, Thermometer, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
+import { canViewHealthRecords } from "@/lib/permissions";
 import WeekPicker from "./week-picker";
 
 type VisitRow = {
@@ -49,8 +50,8 @@ type Props = {
 };
 
 // Number of sick PERSONS in ONE day
-const WARNING_PER_DAY = 5; // 5–9 persons in a day = Warning
-const OUTBREAK_PER_DAY = 10; // 10+ persons in a day = Outbreak
+const WARNING_PER_DAY = 10; // 10–14 persons in a day = Warning
+const OUTBREAK_PER_DAY = 15; // 15+ persons in a day = Outbreak
 
 const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -123,33 +124,20 @@ const statusStyles: Record<string, string> = {
 
 // Makinis na kurba mula sa mga punto (kapareho ng Clinic Visits Overview sa Dashboard)
 function smoothPath(pts: [number, number][]) {
-    if (pts.length < 2) return pts.length ? `M${pts[0][0]},${pts[0][1]}` : "";
-    let d = `M${pts[0][0]},${pts[0][1]}`;
-    for (let i = 0; i < pts.length - 1; i++) {
-        const p0 = pts[i - 1] ?? pts[i];
-        const p1 = pts[i];
-        const p2 = pts[i + 1];
-        const p3 = pts[i + 2] ?? p2;
-        const t = 0.18;
-        // Hindi lalampas ang kurba sa pagitan ng dalawang punto (para hindi bumaba sa ilalim ng 0)
-        const lo = Math.min(p1[1], p2[1]);
-        const hi = Math.max(p1[1], p2[1]);
-        const c1x = p1[0] + (p2[0] - p0[0]) * t;
-        const c1y = Math.min(hi, Math.max(lo, p1[1] + (p2[1] - p0[1]) * t));
-        const c2x = p2[0] - (p3[0] - p1[0]) * t;
-        const c2y = Math.min(hi, Math.max(lo, p2[1] - (p3[1] - p1[1]) * t));
-        d += ` C${c1x},${c1y} ${c2x},${c2y} ${p2[0]},${p2[1]}`;
-    }
-    return d;
+    // Tuwid na guhit mula punto sa punto (zigzag), hindi kurba
+    if (pts.length === 0) return "";
+    return pts.map(([px, py], i) => `${i === 0 ? "M" : "L"}${px},${py}`).join(" ");
 }
 
-type DayPoint = { label: string; visits: number; reports: number };
+type DayPoint = { label: string; visits: number; reports: number; dental: number };
 
 // Line chart bawat araw (Week: Mon–Sat, Month: buong buwan), may guhit ng Warning at Outbreak
 function TrendLineChart({ data }: { data: DayPoint[] }) {
     const series = [
+        // Green = clinic visits, Asul = health reports, Dilaw = dental reports
         { key: "visits" as const, label: "Clinic Visits", color: "#15664f" },
-        { key: "reports" as const, label: "Case Reports", color: "#3fae86" },
+        { key: "reports" as const, label: "Health Reports", color: "#2563eb" },
+        { key: "dental" as const, label: "Dental Reports", color: "#f2b705" },
     ];
     // Malapad at mababa para hindi lumaki ang chart at text sa malaking screen
     const W = 900;
@@ -179,7 +167,7 @@ function TrendLineChart({ data }: { data: DayPoint[] }) {
 
     return (
         <>
-            <svg viewBox={`0 0 ${W} ${H}`} className="h-auto max-h-[270px] w-full" role="img" aria-label="Clinic visits and case reports per day">
+            <svg viewBox={`0 0 ${W} ${H}`} className="h-auto max-h-[270px] w-full" role="img" aria-label="Clinic visits, health reports and dental reports per day">
                 <defs>
                     <linearGradient id="illness-area" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#15664f" stopOpacity={0.3} />
@@ -274,6 +262,8 @@ function TrendLineChart({ data }: { data: DayPoint[] }) {
 export default async function IllnessAlertsPage({ searchParams }: Props) {
     const session = await getSession();
     if (!session) redirect("/login");
+    // Health records: Admin, Nurse at Doctor lang (hindi ang Dentist)
+    if (!canViewHealthRecords(session.role)) redirect("/dashboard");
 
     const params = await searchParams;
 
@@ -312,7 +302,7 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
     });
     const currentOption = isMonth ? `m:${monthParam}` : `w:${weekStart}`;
 
-    const [studentRows, visits, employeeVisits, reports] = await Promise.all([
+    const [studentRows, visits, employeeVisits, reports, dentalDays] = await Promise.all([
         prisma.$queryRaw<{ total: bigint }[]>`
       SELECT COUNT(*) AS total FROM students WHERE archived_at IS NULL
     `,
@@ -347,6 +337,14 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
       WHERE c.archived_at IS NULL
         AND c.report_date BETWEEN CAST(${rangeStart} AS DATE) AND CAST(${rangeEnd} AS DATE)
       ORDER BY c.report_date, c.case_id
+    `,
+        // Dental reports (dental records) bawat araw, para sa line chart
+        prisma.$queryRaw<{ day: string; total: number }[]>`
+      SELECT to_char(visit_date, 'YYYY-MM-DD') AS day, COUNT(*)::int AS total
+      FROM dental_records
+      WHERE archived_at IS NULL
+        AND visit_date BETWEEN CAST(${rangeStart} AS DATE) AND CAST(${rangeEnd} AS DATE)
+      GROUP BY 1
     `,
 
     ]);
@@ -495,7 +493,12 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
     const trendDays: DayPoint[] = [];
     for (let k = rangeStart; k <= rangeEnd; k = addDays(k, 1)) {
         const d = dayStats(k);
-        trendDays.push({ label: shortDate(k), visits: d.visitCount, reports: d.reportCount });
+        trendDays.push({
+            label: shortDate(k),
+            visits: d.visitCount,
+            reports: d.reportCount,
+            dental: dentalDays.find((r) => r.day === k)?.total ?? 0,
+        });
     }
 
     // Busiest day decides the alert level
