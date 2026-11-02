@@ -59,7 +59,14 @@ export async function updateStudent(
 
     revalidatePath(BASE);
     revalidatePath(HEALTH_BASE);
-    redirect(`${BASE}?saved=${encodeURIComponent(values["studentNumber"] ?? "")}`);
+    // Ipakita muna ang "saved" nang 3 segundo (may guhit na lumiliit), tapos kusang babalik:
+    // sa Health Record kung doon galing, kung hindi ay sa Students list.
+    const returnTo = String(formData.get("returnTo") ?? "");
+    return {
+        values,
+        success: `Student ${values["studentNumber"] ?? ""} was saved.`,
+        redirectTo: returnTo.startsWith("/dashboard/") ? returnTo : BASE,
+    };
 }
 
 export async function archiveStudent(formData: FormData) {

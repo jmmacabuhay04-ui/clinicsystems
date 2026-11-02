@@ -26,7 +26,7 @@ type Row = {
 };
 
 type Props = {
-    searchParams: Promise<{ case?: string }>;
+    searchParams: Promise<{ case?: string; back?: string }>;
 };
 
 export default async function EditCasePage({ searchParams }: Props) {
@@ -41,7 +41,9 @@ export default async function EditCasePage({ searchParams }: Props) {
         .catch(() => null);
     const currentStaff = staffDisplayName(me?.full_name, String(session.username ?? ""), String(session.role ?? ""));
 
-    const { case: caseParam = "" } = await searchParams;
+    const { case: caseParam = "", back = "" } = await searchParams;
+    // Galing sa file ng pasyente (Case Reports tab): doon babalik pagka-save o Cancel
+    const backHref = back.startsWith("/dashboard/") ? back : BASE;
     const caseId = Number(caseParam);
     if (!caseId) notFound();
 
@@ -84,31 +86,40 @@ export default async function EditCasePage({ searchParams }: Props) {
     return (
         <main className="min-w-0 space-y-6 p-4 pb-8 md:p-8">
             <Link
-                href={BASE}
+                href={backHref}
                 className="inline-flex items-center gap-1 text-sm font-medium text-[#15664f] hover:underline"
             >
                 <ArrowLeft className="h-4 w-4" />
-                Back to Health Case Reports
+                {backHref === BASE ? "Back to Report" : "Back to Health Record"}
             </Link>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="min-w-0">
                     <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">Edit Case Report</h1>
-                    <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-600">
-                        <span className="font-medium text-gray-800">{row.case_number}</span>
-                        <span className="text-gray-300">|</span>
-                        <span>
-                            {row.first_name} {row.last_name}
-                        </span>
-                        <span className="text-gray-300">|</span>
-                        <span>{row.patient_number}</span>
-                        <span
-                            className={`rounded-full px-2 py-0.5 text-sm font-medium ${isEmployee ? "bg-amber-300 text-gray-900" : "bg-[#15664f] text-white"
-                                }`}
-                        >
-                            {isEmployee ? "Employee" : "Student"}
-                        </span>
-                    </p>
+                    <p className="text-sm text-gray-600">Update the details and status of case {row.case_number}.</p>
+                </div>
+                {/* Kung kaninong case report ito (kapareho ng Edit Dental Record) */}
+                <div className="flex items-center gap-3 rounded-xl border-2 border-[#cfe5d9] bg-white px-3 py-2 shadow-sm">
+                    <span
+                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${isEmployee ? "bg-amber-300 text-gray-900" : "bg-[#15664f] text-white"
+                            }`}
+                    >
+                        {`${row.first_name?.[0] ?? ""}${row.last_name?.[0] ?? ""}`.toUpperCase()}
+                    </span>
+                    <div className="min-w-0 leading-tight">
+                        <p className="truncate text-sm font-semibold text-gray-900">
+                            {row.last_name}, {row.first_name}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                            {row.patient_number} · <span className="font-semibold text-[#15664f]">Case {row.case_number}</span>
+                        </p>
+                    </div>
+                    <span
+                        className={`rounded-full px-2 py-0.5 text-sm font-semibold ${isEmployee ? "bg-amber-300 text-gray-900" : "bg-[#15664f] text-white"
+                            }`}
+                    >
+                        {isEmployee ? "Employee" : "Student"}
+                    </span>
                 </div>
             </div>
 
@@ -125,7 +136,8 @@ export default async function EditCasePage({ searchParams }: Props) {
                 status={row.status}
                 notes={row.notes ?? ""}
                 actionTaken={row.action_taken ?? ""}
-                cancelHref={BASE}
+                cancelHref={backHref}
+                returnTo={backHref}
                 students={students}
                 employees={employees}
             />

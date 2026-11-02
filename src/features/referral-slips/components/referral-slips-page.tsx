@@ -148,7 +148,8 @@ export default async function ReferralSlipsPage({ searchParams }: Props) {
             </div>
 
             {/* Tabs */}
-            <nav className="inline-flex max-w-full flex-wrap gap-1 rounded-xl border-2 border-[#cfe5d9] bg-white p-1 shadow-sm">
+            {/* Phone: 3 pantay na tab sa iisang hilera */}
+            <nav className="grid w-full grid-cols-3 gap-1 rounded-xl border-2 border-[#cfe5d9] bg-white p-1 shadow-sm sm:inline-flex sm:w-auto">
                 {tabs.map((t) => {
                     const active = tab === t.key;
                     const Icon = t.icon;
@@ -156,10 +157,10 @@ export default async function ReferralSlipsPage({ searchParams }: Props) {
                         <Link
                             key={t.key}
                             href={`${BASE}?tab=${t.key}`}
-                            className={`inline-flex h-10 items-center gap-2 rounded-lg px-4 text-sm font-semibold transition-colors ${active ? "bg-[#15664f] text-white shadow-sm" : "text-gray-600 hover:bg-[#eef6f2] hover:text-[#15664f]"
+                            className={`inline-flex min-h-10 min-w-0 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-center text-sm font-semibold leading-tight transition-colors sm:gap-2 sm:px-4 ${active ? "bg-[#15664f] text-white shadow-sm" : "text-gray-600 hover:bg-[#eef6f2] hover:text-[#15664f]"
                                 }`}
                         >
-                            <Icon className="h-4 w-4" />
+                            <Icon className="h-4 w-4 shrink-0" />
                             {t.label}
                         </Link>
                     );
@@ -249,16 +250,18 @@ export default async function ReferralSlipsPage({ searchParams }: Props) {
                                             label: s.status,
                                             className: "bg-gray-100 text-gray-600",
                                         };
+                                        // Walang ulit (hal. "BSIT Fourth Year BSIT" -> "BSIT Fourth Year")
                                         const classInfo = [s.program, s.grade_level, s.section]
-                                            .filter(Boolean)
+                                            .map((v) => (v ?? "").trim())
+                                            .filter((v, i, arr) => v && arr.findIndex((x) => x.toLowerCase() === v.toLowerCase()) === i)
                                             .join(" ");
                                         return (
                                             <tr key={s.slip_id} className={tr}>
                                                 <td data-label="Time" className={`${td} text-gray-600 md:whitespace-nowrap`}>
-                                                    <div>
+                                                    <div className="space-y-0.5">
                                                         {tab === "all" && (
                                                             <span
-                                                                className={`mb-1 inline-block rounded-full px-2 py-0.5 text-sm font-semibold uppercase ${s.slip_type === "gate"
+                                                                className={`mb-1 block w-fit rounded-full px-2.5 py-0.5 text-sm font-semibold ${s.slip_type === "gate"
                                                                     ? "bg-amber-300 text-gray-900"
                                                                     : "bg-[#15664f] text-white"
                                                                     }`}
@@ -266,7 +269,7 @@ export default async function ReferralSlipsPage({ searchParams }: Props) {
                                                                 {s.slip_type === "gate" ? "Gate Pass" : "Referral"}
                                                             </span>
                                                         )}
-                                                        {to12Hour(s.time_issued)}
+                                                        <p className="font-medium text-gray-900">{to12Hour(s.time_issued)}</p>
                                                         {tab === "all" && (
                                                             <p className="text-sm text-gray-600">{formatDate(s.slip_date)}</p>
                                                         )}
@@ -281,7 +284,9 @@ export default async function ReferralSlipsPage({ searchParams }: Props) {
                                                             <p className="break-words font-semibold text-gray-900">
                                                                 {s.first_name} {s.last_name}
                                                             </p>
-                                                            <p className="text-sm text-gray-600">{classInfo || s.student_number}</p>
+                                                            <p className="text-sm text-gray-600">
+                                                                {[s.student_number, classInfo].filter(Boolean).join(" · ")}
+                                                            </p>
                                                         </div>
                                                     </div>
                                                 </td>
@@ -289,7 +294,16 @@ export default async function ReferralSlipsPage({ searchParams }: Props) {
                                                     data-label={s.slip_type === "gate" ? "Reason" : "Teacher"}
                                                     className={`${td} break-words text-gray-600`}
                                                 >
-                                                    {s.slip_type === "gate" ? s.reason : (s.teacher_name ?? "—")}
+                                                    {s.slip_type === "gate" ? (
+                                                        <span className="text-gray-900">{s.reason || "—"}</span>
+                                                    ) : (
+                                                        <>
+                                                            <span className="block font-medium text-gray-900">
+                                                                {s.teacher_name ?? "—"}
+                                                            </span>
+                                                            {s.reason && <span className="block text-sm text-gray-600">{s.reason}</span>}
+                                                        </>
+                                                    )}
                                                 </td>
                                                 <td data-label="Status" className={td}>
                                                     <span

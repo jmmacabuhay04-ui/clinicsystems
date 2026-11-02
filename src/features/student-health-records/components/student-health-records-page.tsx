@@ -1,9 +1,8 @@
 import { redirect } from "next/navigation";
-import { Plus, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
-import { canManageRecords, canManageStudents, canManageDental } from "@/lib/permissions";
-import ConfirmLink from "@/components/shared/confirm-link";
+import { canManageRecords, canManageStudents, canViewHealthRecords, canViewDental, canManageDental } from "@/lib/permissions";
 import AutoSubmitSelect from "@/components/shared/auto-submit-select";
 import ListPagination from "@/components/shared/list-pagination";
 import { logAccess } from "@/lib/access-log";
@@ -23,7 +22,6 @@ import RowActionMenu, { type RowAction } from "@/components/shared/row-action-me
 import {
     ActiveBadge,
     PersonAvatar,
-    addButtonClass,
     formatGender,
     listCardClass,
     listSearchClass,
@@ -64,6 +62,10 @@ const BASE = "/dashboard/student-health-records";
 export default async function StudentHealthRecordsPage({ searchParams }: Props) {
     const session = await getSession();
     if (!session) redirect("/login");
+    // Health records: Admin, Nurse at Doctor.
+    // Dentist: makikita ang listahan at ang file ng pasyente, pero Dental Records at Archive Logs lang.
+    const dentalOnly = !canViewHealthRecords(session.role);
+    if (dentalOnly && !canViewDental(session.role)) redirect("/dashboard");
 
     const canEdit = canManageRecords(session.role);
     const canAddStudent = canManageStudents(session.role);
@@ -118,11 +120,18 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
 
         const [records, cases, extrasRows, archivedVisits, archivedCases, dental, archivedDental] = await Promise.all([
             prisma.$queryRaw<RecordRow[]>`
-        SELECT record_id, visit_date, complaint, action_taken, attending_staff,
-               height_cm, weight_kg, heart_rate, blood_pressure, temperature
-        FROM health_records
-        WHERE student_id = ${selected.student_id} AND archived_at IS NULL
-        ORDER BY visit_date DESC, record_id DESC
+        SELECT h.record_id, h.visit_date, h.complaint, h.action_taken, h.attending_staff,
+               h.height_cm, h.weight_kg, h.heart_rate, h.blood_pressure, h.temperature,
+               -- Status ng Health Case Report na nagawa mula sa visit na ito
+               (SELECT c.status FROM health_case_reports c
+                WHERE c.student_id = h.student_id
+                  AND c.report_date = h.visit_date
+                  AND LOWER(TRIM(c.complaint)) = LOWER(TRIM(h.complaint))
+                  AND c.archived_at IS NULL
+                ORDER BY c.case_id LIMIT 1) AS status
+        FROM health_records h
+        WHERE h.student_id = ${selected.student_id} AND h.archived_at IS NULL
+        ORDER BY h.visit_date DESC, h.record_id DESC
       `,
             prisma.$queryRaw<CaseRow[]>`
         SELECT case_id, case_number, complaint, report_date, staff_name, status, notes
@@ -131,7 +140,8 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
         ORDER BY report_date DESC, case_id DESC
       `,
             prisma.$queryRaw<StudentExtras[]>`
-        SELECT s.avatar, f.address, f.past_history
+        SELECT s.avatar, f.address, f.past_history,
+               EXISTS (SELECT 1 FROM dental_health_forms d WHERE d.student_id = s.student_id) AS has_dental_form
         FROM students s
         LEFT JOIN student_health_forms f ON f.student_id = s.student_id
         WHERE s.student_id = ${selected.student_id}
@@ -207,7 +217,8 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
                 cases={cases}
                 archived={archived}
                 dental={dental}
-                canEditDental={canManageDental(session.role)}
+                showDental={canViewDental(session.role) /* hindi para sa Doctor */}
+                canEditDental={canManageDental(session.role) /* Dentist at Nurse lang */}
                 tab={tab}
                 historyOnly={historyOnly}
                 recordId={recordId}
@@ -215,6 +226,7 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
                 canEdit={canEdit}
                 canEditStudent={canAddStudent}
                 hidePersonal={session.role === "admin"}
+                dentalOnly={dentalOnly}
             />
         );
     }
@@ -261,21 +273,6 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
                     <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">Student Health Records</h1>
                     <p className="mt-1 text-sm text-gray-600">Select a student to view their visits, case reports, and health information.</p>
                 </div>
-                {canEdit ? (
-                    <ConfirmLink
-                        href={`${BASE}/new`}
-                        title="Add visit record"
-                        message="Add a new clinic visit record?"
-                        confirmLabel="Continue"
-                        icon={<Plus className="h-5 w-5" />}
-                        className={addButtonClass}
-                    >
-                        <Plus className="h-4 w-4" />
-                        Add Record
-                    </ConfirmLink>
-                ) : (
-                    <span className="rounded-full bg-gray-200 px-3 py-1 text-sm font-medium text-gray-600">View only</span>
-                )}
             </div>
 
             <section className={listCardClass}>

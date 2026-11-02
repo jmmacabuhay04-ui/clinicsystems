@@ -120,6 +120,8 @@ function readValues(formData: FormData) {
         bloodPressure: get("bloodPressure"),
         temperature: get("temperature"),
         status: get("status") || "pending",
+        visitTime: get("visitTime"),
+        notes: get("notes"),
     };
 }
 
@@ -200,7 +202,8 @@ export async function createEmployeeRecord(
     revalidatePath("/dashboard/health-case-reports");
     revalidatePath("/dashboard/illness-alerts");
     revalidatePath("/dashboard");
-    redirect(`${BASE}?employee=${encodeURIComponent(values.employeeNumber)}`);
+    // Pagka-save: diretso sa Health Case Reports (nasa itaas ang bagong case)
+    redirect("/dashboard/health-case-reports");
 }
 
 export async function updateEmployeeRecord(
@@ -220,11 +223,32 @@ export async function updateEmployeeRecord(
     if (!values.visitDate || !values.complaint) {
         return { error: "Visit date and complaint are required.", values };
     }
+    if (values.visitTime && !/^([01]\d|2[0-3]):[0-5]\d$/.test(values.visitTime)) {
+        return { error: "Enter a valid visit time.", values };
+    }
+    if (!["pending", "referred", "resolved"].includes(values.status)) {
+        return { error: "Select a valid status.", values };
+    }
 
     try {
-        await prisma.$executeRaw`
+        await prisma.$transaction(async (tx) => {
+            // 1) Ang Health Case Report ng visit na ito ay sumasabay (status, reklamo, petsa)
+            await tx.$executeRaw`
+      UPDATE health_case_reports c
+      SET status = ${values.status}, complaint = ${values.complaint}, report_date = ${values.visitDate}::date
+      FROM employee_health_records h
+      WHERE h.record_id = ${recordId}
+        AND c.employee_id = h.employee_id
+        AND c.report_date = h.visit_date
+        AND LOWER(TRIM(c.complaint)) = LOWER(TRIM(h.complaint))
+        AND c.archived_at IS NULL
+    `;
+            // 2) Ang clinic visit mismo
+            await tx.$executeRaw`
       UPDATE employee_health_records SET
         visit_date      = ${values.visitDate}::date,
+        visit_time      = CAST(NULLIF(${values.visitTime}, '') AS TIME),
+        notes           = ${values.notes || null},
         complaint       = ${values.complaint},
         action_taken    = ${values.actionTaken || null},
         attending_staff = ${values.attendingStaff || null},
@@ -235,12 +259,15 @@ export async function updateEmployeeRecord(
         temperature     = ${num(formData, "temperature")}
       WHERE record_id = ${recordId}
     `;
+        });
     } catch (err) {
         console.error("Update employee record error:", err);
         return { error: "Could not save the changes. Please try again.", values };
     }
 
     revalidatePath(BASE);
+    revalidatePath("/dashboard/health-case-reports");
+    revalidatePath("/dashboard/illness-alerts");
     redirect(`${BASE}?employee=${encodeURIComponent(values.employeeNumber)}`);
 }
 

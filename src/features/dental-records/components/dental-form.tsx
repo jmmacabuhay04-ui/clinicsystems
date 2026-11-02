@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { useActionState, useState } from "react";
-import { ClipboardList, Save, UserRound, X } from "lucide-react";
+import { ClipboardList, Lock, Save, UserRound, X } from "lucide-react";
 import ConfirmSubmit from "@/components/shared/confirm-submit";
 import SuggestInput from "@/components/shared/suggest-input";
 import { createDental, updateDental, type DentalState } from "@/features/dental-records/actions";
-import DentalModel from "./dental-model";
+import ToothPicker from "./tooth-picker";
 
 const initialState: DentalState = {};
 
@@ -39,23 +39,6 @@ const PATIENT_TYPES = [
     { type: "employee", label: "Employee", active: "bg-amber-300 text-gray-900" },
 ] as const;
 
-function ToothIcon({ className }: { className?: string }) {
-    return (
-        <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className={className}
-            aria-hidden="true"
-        >
-            <path d="M7 3c-2.2 0-4 1.8-4 4.2 0 2 .8 3.3 1.5 4.6.6 1.2.9 2.6 1.1 4.2.3 2.4.8 5 2.4 5 1.3 0 1.6-1.8 2-3.6.3-1.4.8-2.4 2-2.4s1.7 1 2 2.4c.4 1.8.7 3.6 2 3.6 1.6 0 2.1-2.6 2.4-5 .2-1.6.5-3 1.1-4.2.7-1.3 1.5-2.6 1.5-4.6C21 4.8 19.2 3 17 3c-1.9 0-2.9 1-5 1S8.9 3 7 3z" />
-        </svg>
-    );
-}
-
 export type DentalValues = {
     dentalId?: number;
     patientType: "student" | "employee";
@@ -83,12 +66,9 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function SectionHeader({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
     return (
         <div className="flex items-start gap-3 border-b border-gray-100 px-5 py-4 md:px-6">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#eef6f2] text-[#15664f]">
-                {icon}
-            </span>
             <div className="min-w-0">
                 <h2 className="text-base font-semibold text-gray-900 md:text-lg">{title}</h2>
-                <p className="text-sm text-gray-500">{description}</p>
+                <p className="text-sm text-gray-600">{description}</p>
             </div>
         </div>
     );
@@ -124,11 +104,15 @@ export default function DentalForm({
         ...(state.values ?? {}),
     };
 
+    // Sa Edit: naka-lock ang pasyente at ang uri (Student / Employee),
+    // para hindi mailipat ang dental record sa ibang tao.
+    const locked = mode === "edit";
     const [patientType, setPatientType] = useState<"student" | "employee">(
-        v.patientType === "employee" ? "employee" : "student",
+        (locked ? record.patientType : v.patientType) === "employee" ? "employee" : "student",
     );
     const isEmployee = patientType === "employee";
     const people = isEmployee ? employees : students;
+    const lockedName = people.find((p) => p.number === record.patientNumber)?.name;
     const [notesLength, setNotesLength] = useState((v.notes ?? "").length);
 
     // The dentist is never submitted by this form, so it always comes from
@@ -147,9 +131,9 @@ export default function DentalForm({
             {returnTo && <input type="hidden" name="returnTo" value={returnTo} />}
             <input type="hidden" name="patientType" value={patientType} />
 
-            {/* Kaliwa: Patient + Procedure. Kanan: Dental Model (nakadikit habang nag-i-scroll) */}
-            <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
-                <div className="min-w-0 space-y-6">
+            {/* Patient & Visit | Procedure (ang Dental Model ay nasa dropdown ng Tooth) */}
+            <div className="grid items-start gap-6 lg:grid-cols-2">
+                <div className="contents">{/* Patient at Procedure: magkatabi */}
                     {/* Patient */}
                     <section className={`${card} min-w-0`}>
                         <SectionHeader
@@ -165,8 +149,14 @@ export default function DentalForm({
                                         <button
                                             key={p.type}
                                             type="button"
+                                            disabled={locked}
+                                            title={locked ? "The patient type of a saved record cannot be changed." : undefined}
                                             onClick={() => setPatientType(p.type)}
-                                            className={`rounded-md px-5 py-2 text-sm font-semibold transition-colors ${patientType === p.type ? p.active : "text-gray-700 hover:bg-gray-100"
+                                            className={`rounded-md px-5 py-2 text-sm font-semibold transition-colors ${patientType === p.type
+                                                ? p.active
+                                                : locked
+                                                    ? "cursor-not-allowed text-gray-400"
+                                                    : "text-gray-600 hover:bg-gray-100"
                                                 }`}
                                         >
                                             {p.label}
@@ -175,8 +165,25 @@ export default function DentalForm({
                                 </div>
                             </div>
 
-                            <Field label={isEmployee ? "Employee *" : "Student *"}>
-                                {people.length > 0 ? (
+                            <Field label={locked ? (isEmployee ? "Employee" : "Student") : isEmployee ? "Employee *" : "Student *"}>
+                                {locked ? (
+                                    <>
+                                        {/* Naka-lock: hindi mailipat ang record sa ibang pasyente */}
+                                        <input type="hidden" name="patientNumber" value={record.patientNumber} />
+                                        <div className="relative">
+                                            <input
+                                                value={lockedName ? `${record.patientNumber} · ${lockedName}` : record.patientNumber}
+                                                readOnly
+                                                aria-readonly="true"
+                                                className={`${inputClass} cursor-not-allowed bg-gray-50 pr-11 text-gray-700`}
+                                            />
+                                            <Lock className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+                                        </div>
+                                        <span className="block text-sm text-gray-600">
+                                            The patient cannot be changed. To record for another patient, add a new dental record.
+                                        </span>
+                                    </>
+                                ) : people.length > 0 ? (
                                     <SuggestInput
                                         key={patientType}
                                         name="patientNumber"
@@ -219,9 +226,9 @@ export default function DentalForm({
                                         readOnly
                                         placeholder="Not recorded"
                                         suppressHydrationWarning
-                                        className={`${inputClass} bg-[#f6faf8] text-gray-700`}
+                                        className={`${inputClass} bg-[#f6faf8] text-gray-600`}
                                     />
-                                    <span className={`block text-xs ${dentist ? "text-gray-500" : "text-amber-700"}`}>
+                                    <span className={`block text-sm ${dentist ? "text-gray-600" : "text-amber-700"}`}>
                                         {dentist
                                             ? mode === "create"
                                                 ? "Automatic: the account currently logged in."
@@ -254,14 +261,8 @@ export default function DentalForm({
                             </Field>
 
                             <Field label="Tooth">
-                                <input
-                                    name="tooth"
-                                    defaultValue={v.tooth}
-                                    placeholder="e.g. #16 or Full mouth (or pick on the model below)"
-                                    maxLength={50}
-                                    suppressHydrationWarning
-                                    className={inputClass}
-                                />
+                                {/* Dropdown: lalabas ang Dental Model pagka-click */}
+                                <ToothPicker defaultValue={v.tooth} maxLength={50} className={inputClass} />
                             </Field>
 
                             <div className="space-y-1.5">
@@ -297,29 +298,18 @@ export default function DentalForm({
                                     suppressHydrationWarning
                                     className="w-full resize-none rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 hover:border-[#15664f]/50 focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20"
                                 />
-                                <span className="block text-right text-xs text-gray-400">{notesLength}/1000</span>
+                                <span className="block text-right text-sm text-gray-600">{notesLength}/1000</span>
                             </Field>
                         </div>
                     </section>
                 </div>
 
-                {/* Dental model */}
-                <section className={`${card} min-w-0 xl:sticky xl:top-6`}>
-                    <SectionHeader
-                        icon={<ToothIcon className="h-5 w-5" />}
-                        title="Dental Model"
-                        description="Click a tooth, then add it to the Tooth field. Teeth outlined in green are already listed there."
-                    />
-                    <div className="p-5 md:p-6">
-                        <DentalModel initialValue={v.tooth} />
-                    </div>
-                </section>
             </div>
 
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                 <Link
                     href={cancelHref}
-                    className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                    className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-5 text-sm font-semibold text-gray-600 hover:bg-gray-50"
                 >
                     <X className="h-4 w-4" />
                     Cancel

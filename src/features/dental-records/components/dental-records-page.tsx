@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { ArrowLeft, Plus, Search } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
-import { canManageDental } from "@/lib/permissions";
+import { canViewDental } from "@/lib/permissions";
 import ConfirmLink from "@/components/shared/confirm-link";
 import AutoSubmitSelect from "@/components/shared/auto-submit-select";
 import ListPagination from "@/components/shared/list-pagination";
@@ -13,6 +13,17 @@ import RowActionMenu, { type RowAction } from "@/components/shared/row-action-me
 import { PersonAvatar, addButtonClass, listCardClass, listSearchClass, listSelectClass } from "@/components/shared/list-ui";
 
 const BASE = "/dashboard/dental-records";
+
+/**
+ * Dentist at Nurse LANG ang puwedeng gumawa, mag-edit, mag-archive o magbura
+ * ng dental record. Hindi kasama ang Doctor. Sinusuri dito mismo (hindi lang
+ * sa permissions) para siguradong hindi makakalusot.
+ */
+function isDentalEditor(role: unknown) {
+    const r = String(role ?? "").trim().toLowerCase();
+    return r === "dentist" || r === "nurse";
+}
+
 const PAGE_SIZE = 10;
 
 type DentalRow = {
@@ -41,6 +52,11 @@ type Props = {
         record?: string;
         from?: string;
     }>;
+    /**
+     * "student" / "employee": Student Dental Health Records o Employee Dental Health Records
+     * (sariling link sa sidebar). Wala = lahat (Dental Records).
+     */
+    kind?: "student" | "employee";
 };
 
 // Mga status sa database at ang label na ipinapakita.
@@ -81,11 +97,20 @@ function StatusBadge({ status }: { status: string }) {
     );
 }
 
-export default async function DentalRecordsPage({ searchParams }: Props) {
+export default async function DentalRecordsPage({ searchParams, kind }: Props) {
+    // Listahan na ito: /dashboard/student-dental-records, /dashboard/employee-dental-records o /dashboard/dental-records
+    const LIST = kind ? `/dashboard/${kind}-dental-records` : BASE;
+    const pageTitle =
+        kind === "student" ? "Student Dental Health Records" : kind === "employee" ? "Employee Dental Health Records" : "Dental Records";
     const session = await getSession();
     if (!session) redirect("/login");
+    // Dental records: Admin, Nurse at Dentist lang (hindi ang Doctor)
+    if (!canViewDental(session.role)) redirect("/dashboard");
 
-    const canEdit = canManageDental(session.role);
+    // Doctor: walang access sa dental records
+    if (String(session.role ?? "").trim().toLowerCase() === "doctor") redirect("/dashboard");
+
+    const canEdit = isDentalEditor(session.role);
     const isDentist = String(session.role ?? "").toLowerCase() === "dentist";
 
     const params = await searchParams;
@@ -97,7 +122,7 @@ export default async function DentalRecordsPage({ searchParams }: Props) {
     const fromNumber = (params.student || params.employee || "").trim();
     const recordBackHref =
         params.from === "list"
-            ? BASE
+            ? LIST
             : params.from === "patient" && fromKind && fromNumber
                 ? `/dashboard/${fromKind}-health-records?${fromKind}=${encodeURIComponent(fromNumber)}&tab=dental`
                 : "/dashboard";
@@ -124,19 +149,26 @@ export default async function DentalRecordsPage({ searchParams }: Props) {
     const historyOnly = (params.view ?? "") === "history" && patientNumber !== "";
 
     // Filters ng listahan
-    const type = patientNumber ? historyKind : params.type === "student" || params.type === "employee" ? params.type : "";
+    const type = patientNumber
+        ? historyKind
+        : kind ?? (params.type === "student" || params.type === "employee" ? params.type : "");
     const status = LABEL_TO_STATUS[params.status ?? ""] ?? (STATUS_LABELS[params.status ?? ""] ? params.status! : "");
 
     const hrefWith = (changes: Record<string, string>) => {
-        const current: Record<string, string> = { q, type, status: status ? STATUS_LABELS[status] : "", ...changes };
+        const current: Record<string, string> = {
+            q,
+            type: kind ? "" : type, // naka-type na sa link mismo
+            status: status ? STATUS_LABELS[status] : "",
+            ...changes,
+        };
         const sp = new URLSearchParams();
         for (const [k, v] of Object.entries(current)) if (v) sp.set(k, v);
         const qs = sp.toString();
-        return qs ? `${BASE}?${qs}` : BASE;
+        return qs ? `${LIST}?${qs}` : LIST;
     };
     const hrefFor = (p: number) =>
         historyOnly
-            ? `${BASE}?${historyKind}=${encodeURIComponent(patientNumber)}&view=history${p > 1 ? `&page=${p}` : ""}`
+            ? `${LIST}?${historyKind}=${encodeURIComponent(patientNumber)}&view=history${p > 1 ? `&page=${p}` : ""}`
             : hrefWith({ page: p > 1 ? String(p) : "" });
 
     const [records, counts] = await Promise.all([
@@ -215,6 +247,7 @@ export default async function DentalRecordsPage({ searchParams }: Props) {
         },
         ...(canEdit
             ? [
+                // Hal. galing sa Notification Bell (Dental Follow-ups): i-update agad ang record
                 {
                     label: "Edit Record",
                     href: `${BASE}/edit?record=${d.dental_id}&back=${encodeURIComponent(hrefFor(page))}`,
@@ -232,9 +265,13 @@ export default async function DentalRecordsPage({ searchParams }: Props) {
             {/* Header */}
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="min-w-0">
-                    <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">Dental Records</h1>
+                    <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">{pageTitle}</h1>
                     <p className="mt-1 text-sm text-gray-600">
-                        {historyOnly ? `Dental history of ${patientName}.` : "Manage and view dental procedures of students and employees."}
+                        {historyOnly
+                            ? `Dental history of ${patientName}.`
+                            : kind
+                                ? `Manage and view dental procedures of ${kind === "student" ? "students" : "employees"}.`
+                                : "Manage and view dental procedures of students and employees."}
                     </p>
                 </div>
 
@@ -270,17 +307,21 @@ export default async function DentalRecordsPage({ searchParams }: Props) {
                     // Filters sa kaliwa, search sa kanan
                     <form
                         method="get"
-                        action={BASE}
-                        className="grid gap-3 p-4 sm:grid-cols-2 md:p-5 lg:grid-cols-[12rem_12rem_minmax(0,1fr)]"
+                        action={LIST}
+                        className={`grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 md:p-5 ${kind ? "lg:grid-cols-[12rem_minmax(0,1fr)]" : "lg:grid-cols-[12rem_12rem_minmax(0,1fr)]"
+                            }`}
                     >
-                        <AutoSubmitSelect
-                            name="type"
-                            defaultValue={type}
-                            options={["student", "employee"]}
-                            labels={TYPE_OPTIONS}
-                            allLabel={`All Types (${allCount})`}
-                            className={listSelectClass}
-                        />
+                        {/* Walang Type filter sa Student / Employee Dental Health Records */}
+                        {!kind && (
+                            <AutoSubmitSelect
+                                name="type"
+                                defaultValue={type}
+                                options={["student", "employee"]}
+                                labels={TYPE_OPTIONS}
+                                allLabel={`All Types (${allCount})`}
+                                className={listSelectClass}
+                            />
+                        )}
                         <AutoSubmitSelect
                             name="status"
                             defaultValue={status ? STATUS_LABELS[status] : ""}

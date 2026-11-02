@@ -907,21 +907,6 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
             ],
         },
         {
-            key: "cases",
-            label: "Case Reports",
-            title: "Archived Case Reports",
-            icon: ClipboardList as IconType,
-            empty: "No archived case reports.",
-            showActions: canEdit,
-            items: caseItems,
-            columns: [
-                { label: "ID Number", td: "font-medium text-gray-900" },
-                { label: "Name", td: "font-semibold text-gray-900" },
-                { label: "Complaint", td: "text-gray-900" },
-                { label: "Date", td: "text-gray-600" },
-            ],
-        },
-        {
             key: "student-visits",
             label: "Student Visits",
             title: "Archived Visit Records — Students",
@@ -952,9 +937,24 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
             ],
         },
         {
+            key: "cases",
+            label: "Health Report",
+            title: "Archived Health Reports",
+            icon: ClipboardList as IconType,
+            empty: "No archived case reports.",
+            showActions: canEdit,
+            items: caseItems,
+            columns: [
+                { label: "ID Number", td: "font-medium text-gray-900" },
+                { label: "Name", td: "font-semibold text-gray-900" },
+                { label: "Complaint", td: "text-gray-900" },
+                { label: "Date", td: "text-gray-600" },
+            ],
+        },
+        {
             key: "dental",
-            label: "Dental",
-            title: "Archived Dental Records",
+            label: "Dental Report",
+            title: "Archived Dental Reports",
             icon: ToothIcon as IconType,
             empty: "No archived dental records.",
             showActions: canEdit,
@@ -1104,7 +1104,8 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
             </form>
 
             {/* Category tabs: walang scroll; bumababa sa susunod na linya kapag kulang ang lapad */}
-            <nav className="flex flex-wrap gap-1.5">
+            {/* Phone: 2 pantay na column; mas malaking screen: magkakatabi */}
+            <nav className="grid grid-cols-2 gap-1.5 sm:flex sm:flex-wrap">
                 {tabs.map((t) => {
                     const active = activeType === t.key;
                     const Icon = t.icon;
@@ -1112,15 +1113,15 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                         <Link
                             key={t.key}
                             href={tabHref(t.key)}
-                            className={`inline-flex h-10 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border-2 px-2.5 text-sm font-semibold transition-colors ${active
-                                    ? "border-[#15664f] bg-[#15664f] text-white shadow-sm"
-                                    : "border-[#cfe5d9] bg-white text-gray-600 hover:bg-[#eef6f2] hover:text-[#15664f]"
+                            className={`inline-flex h-10 min-w-0 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border-2 px-2.5 text-sm font-semibold transition-colors ${active
+                                ? "border-[#15664f] bg-[#15664f] text-white shadow-sm"
+                                : "border-[#cfe5d9] bg-white text-gray-600 hover:bg-[#eef6f2] hover:text-[#15664f]"
                                 }`}
                         >
-                            <Icon className="h-4 w-4" />
-                            {t.label}
+                            <Icon className="h-4 w-4 shrink-0" />
+                            <span className="min-w-0 flex-1 truncate sm:flex-none">{t.label}</span>
                             <span
-                                className={`rounded-full px-1.5 py-0.5 text-sm font-semibold ${active ? "bg-white/20 text-white" : t.count > 0 ? "bg-amber-100 text-amber-800" : "bg-gray-100 text-gray-600"
+                                className={`shrink-0 rounded-full px-1.5 py-0.5 text-sm font-semibold ${active ? "bg-white/20 text-white" : t.count > 0 ? "bg-amber-100 text-amber-800" : "bg-gray-100 text-gray-600"
                                     }`}
                             >
                                 {t.count}

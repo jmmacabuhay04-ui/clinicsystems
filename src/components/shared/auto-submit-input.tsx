@@ -1,7 +1,9 @@
 "use client";
 
+import type { InputHTMLAttributes } from "react";
+
 // Input (hal. date) na kusang nagse-submit ng form kapag nagbago ang value.
-type Props = React.InputHTMLAttributes<HTMLInputElement>;
+type Props = InputHTMLAttributes<HTMLInputElement>;
 
 export default function AutoSubmitInput(props: Props) {
     return (

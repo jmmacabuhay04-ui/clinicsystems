@@ -4,7 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { canManageRecords } from "@/lib/permissions";
-import EditForm, { type RecordValues } from "./edit-form";
+import VisitEditForm, { type VisitEditValues } from "./visit-edit-form";
 
 type Row = {
     record_id: number;
@@ -20,6 +20,9 @@ type Row = {
     heart_rate: number | null;
     blood_pressure: string | null;
     temperature: number | null;
+    visit_time: string | null;
+    notes: string | null;
+    status: string | null;
 };
 
 type Props = {
@@ -40,7 +43,12 @@ export default async function EditRecordPage({ searchParams }: Props) {
     const rows = await prisma.$queryRaw<Row[]>`
     SELECT r.record_id, s.student_number, s.last_name, s.first_name,
            r.visit_date, r.complaint, r.action_taken, r.attending_staff,
-           r.height_cm, r.weight_kg, r.heart_rate, r.blood_pressure, r.temperature
+           r.height_cm, r.weight_kg, r.heart_rate, r.blood_pressure, r.temperature,
+           to_char(r.visit_time, 'HH24:MI') AS visit_time, r.notes,
+           (SELECT c.status FROM health_case_reports c
+            WHERE c.student_id = r.student_id AND c.report_date = r.visit_date
+              AND LOWER(TRIM(c.complaint)) = LOWER(TRIM(r.complaint)) AND c.archived_at IS NULL
+            ORDER BY c.case_id LIMIT 1) AS status
     FROM health_records r
     JOIN students s ON s.student_id = r.student_id
     WHERE r.record_id = ${recordId}
@@ -49,9 +57,14 @@ export default async function EditRecordPage({ searchParams }: Props) {
     const row = rows[0];
     if (!row) notFound();
 
-    const values: RecordValues = {
+    const values: VisitEditValues = {
         recordId: row.record_id,
-        studentNumber: row.student_number,
+        kind: "student",
+        patientNumber: row.student_number,
+        patientName: `${row.last_name}, ${row.first_name}`,
+        visitTime: row.visit_time ?? "",
+        notes: row.notes ?? "",
+        status: row.status ?? "pending",
         visitDate: new Date(row.visit_date).toISOString().slice(0, 10),
         complaint: row.complaint,
         actionTaken: text(row.action_taken),
@@ -94,7 +107,7 @@ export default async function EditRecordPage({ searchParams }: Props) {
                 </div>
             </div>
 
-            <EditForm record={values} cancelHref={backHref} />
+            <VisitEditForm record={values} cancelHref={backHref} />
         </main>
     );
 }

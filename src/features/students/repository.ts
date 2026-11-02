@@ -12,8 +12,8 @@ export const studentRepository = {
              grade_level, program, gender, avatar
       FROM students
       WHERE archived_at IS NULL
-        AND (${f.grade}::text = '' OR grade_level = ${f.grade})
-        AND (${f.program}::text = '' OR program = ${f.program})
+        AND (${f.grade}::text = '' OR LOWER(TRIM(grade_level)) = LOWER(TRIM(${f.grade})))
+        AND (${f.program}::text = '' OR LOWER(TRIM(program)) = LOWER(TRIM(${f.program})))
         AND (
           ${f.q}::text = ''
           OR student_number ILIKE ${like}
@@ -35,8 +35,8 @@ export const studentRepository = {
       SELECT COUNT(*)::int AS count
       FROM students
       WHERE archived_at IS NULL
-        AND (${f.grade}::text = '' OR grade_level = ${f.grade})
-        AND (${f.program}::text = '' OR program = ${f.program})
+        AND (${f.grade}::text = '' OR LOWER(TRIM(grade_level)) = LOWER(TRIM(${f.grade})))
+        AND (${f.program}::text = '' OR LOWER(TRIM(program)) = LOWER(TRIM(${f.program})))
         AND (
           ${f.q}::text = ''
           OR student_number ILIKE ${like}
@@ -54,17 +54,27 @@ export const studentRepository = {
   async filterOptions() {
     const [grades, programs] = await Promise.all([
       prisma.$queryRaw<{ value: string }[]>`
-        SELECT DISTINCT grade_level AS value FROM students
-        WHERE archived_at IS NULL AND grade_level IS NOT NULL AND grade_level <> ''
+        -- Walang ulit kahit iba ang laki ng letra (hal. "Bsit" at "BSIT" -> isa lang)
+        SELECT UPPER(MIN(TRIM(grade_level))) AS value FROM students
+        WHERE archived_at IS NULL AND grade_level IS NOT NULL AND TRIM(grade_level) <> ''
+        GROUP BY LOWER(TRIM(grade_level))
         ORDER BY value
       `,
       prisma.$queryRaw<{ value: string }[]>`
-        SELECT DISTINCT program AS value FROM students
-        WHERE archived_at IS NULL AND program IS NOT NULL AND program <> ''
+        SELECT UPPER(MIN(TRIM(program))) AS value FROM students
+        WHERE archived_at IS NULL AND program IS NOT NULL AND TRIM(program) <> ''
+        GROUP BY LOWER(TRIM(program))
         ORDER BY value
       `,
     ]);
-    return { grades: grades.map((r) => r.value), programs: programs.map((r) => r.value) };
+    // Grade level ayon sa pagkakasunod (FIRST, SECOND, THIRD, FOURTH YEAR), hindi alpabeto
+    const ORDER = ["FIRST", "SECOND", "THIRD", "FOURTH", "FIFTH"];
+    const rank = (v: string) => {
+      const i = ORDER.findIndex((w) => v.toUpperCase().startsWith(w));
+      return i === -1 ? ORDER.length : i;
+    };
+    const sortedGrades = grades.map((r) => r.value).sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
+    return { grades: sortedGrades, programs: programs.map((r) => r.value) };
   },
 
   /** Active student ayon sa student number. */

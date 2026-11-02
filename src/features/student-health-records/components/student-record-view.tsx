@@ -10,7 +10,6 @@ import {
     ClipboardCheck,
     HeartPulse,
     Pencil,
-    Plus,
     Ruler,
     Thermometer,
     UserRound,
@@ -28,7 +27,6 @@ import { formatDate, show } from "../format";
 const BASE = "/dashboard/student-health-records";
 const CASES = "/dashboard/health-case-reports";
 const ARCHIVE = "/dashboard/archive-records";
-const GREEN = "#15664f";
 
 const STATUS_STYLES: Record<string, string> = {
     pending: "bg-yellow-100 text-yellow-800",
@@ -54,6 +52,8 @@ export type StudentExtras = {
     avatar: string | null;
     address: string | null;
     past_history: Record<string, string> | null;
+    /** May Dental Health Form na ba ang student */
+    has_dental_form?: boolean;
 };
 
 export type RecordRow = {
@@ -67,6 +67,8 @@ export type RecordRow = {
     heart_rate: number | null;
     blood_pressure: string | null;
     temperature: number | null;
+    /** Status ng kaugnay na Health Case Report (pending / referred / resolved) */
+    status?: string | null;
 };
 
 export type CaseRow = {
@@ -123,8 +125,10 @@ type Props = {
     cases: CaseRow[];
     archived: ArchivedItem[];
     dental?: DentalRow[];
-    /** Puwedeng mag-edit/archive ng dental record (dentist, nurse, admin) */
+    /** Puwedeng mag-edit/archive ng dental record (dentist, nurse) */
     canEditDental?: boolean;
+    /** false = walang Dental Records tab (hal. Doctor: walang access sa dental) */
+    showDental?: boolean;
     tab: RecordTab;
     historyOnly: boolean;
     /** Galing sa dashboard: ang record na ipapakita lang */
@@ -134,6 +138,8 @@ type Props = {
     canEditStudent: boolean;
     /** Admin: pangalan lang ang ipapakita (walang personal na detalye) */
     hidePersonal?: boolean;
+    /** Dentist: Dental Records tab lang ang makikita (walang health history / case reports) */
+    dentalOnly?: boolean;
 };
 
 // ------------------------------------------------------------------ small parts
@@ -202,13 +208,13 @@ function VisitActions({ v, padded }: { v: VisitItem; padded?: boolean }) {
     return (
         <ConfirmLink
             href={`${CASES}/edit?case=${v.id}`}
-            title="Open case report"
-            message={`Open case ${v.caseNumber} (${v.complaint})? You will be taken to Health Case Reports.`}
-            confirmLabel="Open"
+            title="Edit case report"
+            message={`Edit case ${v.caseNumber} (${v.complaint})?`}
+            confirmLabel="Edit"
             className={`inline-flex items-center gap-1 ${py}font-medium text-[#15664f] hover:underline`}
         >
             <Pencil className="h-3.5 w-3.5" />
-            Open case
+            Edit
         </ConfirmLink>
     );
 }
@@ -261,6 +267,10 @@ function VisitTable({ visits, canEdit }: { visits: VisitItem[]; canEdit: boolean
                                 <dt className="w-20 shrink-0 text-gray-600">Staff</dt>
                                 <dd className="min-w-0 flex-1 break-words text-gray-900">{v.staff || "—"}</dd>
                             </div>
+                            <div className="flex items-center gap-2 text-sm">
+                                <dt className="w-20 shrink-0 text-gray-600">Status</dt>
+                                <dd>{v.status ? <StatusBadge status={v.status} /> : "—"}</dd>
+                            </div>
                         </dl>
                         {canEdit && (
                             <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-gray-100 pt-2 text-sm">
@@ -281,6 +291,7 @@ function VisitTable({ visits, canEdit }: { visits: VisitItem[]; canEdit: boolean
                             <th className="px-4 py-3 font-medium">Complaint</th>
                             <th className="px-4 py-3 font-medium">Action Taken</th>
                             <th className="px-4 py-3 font-medium">Attending Staff</th>
+                            <th className="px-4 py-3 font-medium">Status</th>
                             {canEdit && <th className="px-4 py-3 font-medium">Actions</th>}
                         </tr>
                     </thead>
@@ -294,6 +305,9 @@ function VisitTable({ visits, canEdit }: { visits: VisitItem[]; canEdit: boolean
                                 <td className="px-4 py-3 text-gray-900">{v.complaint}</td>
                                 <td className="px-4 py-3 text-gray-900">{v.detail || "—"}</td>
                                 <td className="px-4 py-3 text-gray-900">{v.staff || "—"}</td>
+                                <td className="px-4 py-3">
+                                    {v.status ? <StatusBadge status={v.status} /> : <span className="text-gray-600">—</span>}
+                                </td>
                                 {canEdit && (
                                     <td className="whitespace-nowrap px-4 py-3">
                                         <div className="flex items-center gap-3">
@@ -313,20 +327,20 @@ function VisitTable({ visits, canEdit }: { visits: VisitItem[]; canEdit: boolean
 function CaseTable({ cases, canEdit, archiveReturnTo }: { cases: CaseRow[]; canEdit: boolean; archiveReturnTo: string }) {
     if (cases.length === 0) return <Empty>No health case reports for this student.</Empty>;
 
-    // Open case + Archive (pagka-archive, diretso sa Archive Logs tab).
+    // Edit + Archive (pagka-archive, diretso sa Archive Logs tab).
     // Walang action kapag view-only (hal. admin).
     const actions = (c: CaseRow) => (
         <>
             {canEdit && (
                 <ConfirmLink
-                    href={`${CASES}/edit?case=${c.case_id}`}
-                    title="Open case report"
-                    message={`Open case ${c.case_number} (${c.complaint})? You will be taken to Health Case Reports.`}
-                    confirmLabel="Open"
+                    href={`${CASES}/edit?case=${c.case_id}&back=${encodeURIComponent(archiveReturnTo.replace("tab=archive", "tab=cases"))}`}
+                    title="Edit case report"
+                    message={`Edit case ${c.case_number} (${c.complaint})?`}
+                    confirmLabel="Edit"
                     className="inline-flex items-center gap-1 font-medium text-[#15664f] hover:underline"
                 >
                     <Pencil className="h-3.5 w-3.5" />
-                    Open case
+                    Edit
                 </ConfirmLink>
             )}
             {canEdit && (
@@ -379,8 +393,8 @@ function CaseTable({ cases, canEdit, archiveReturnTo }: { cases: CaseRow[]; canE
                         <tr>
                             <th className="whitespace-nowrap px-4 py-3 font-medium">Date</th>
                             <th className="px-4 py-3 font-medium">Complaint</th>
-                            <th className="px-4 py-3 font-medium">Status</th>
                             <th className="px-4 py-3 font-medium">Staff</th>
+                            <th className="px-4 py-3 font-medium">Status</th>
                             {canEdit && <th className="px-4 py-3 font-medium">Actions</th>}
                         </tr>
                     </thead>
@@ -389,10 +403,10 @@ function CaseTable({ cases, canEdit, archiveReturnTo }: { cases: CaseRow[]; canE
                             <tr key={c.case_id} className="border-t border-gray-100">
                                 <td className="whitespace-nowrap px-4 py-3 text-gray-900">{formatDate(c.report_date)}</td>
                                 <td className="px-4 py-3 text-gray-900">{c.complaint}</td>
+                                <td className="px-4 py-3 text-gray-900">{c.staff_name || "—"}</td>
                                 <td className="px-4 py-3">
                                     <StatusBadge status={c.status} />
                                 </td>
-                                <td className="px-4 py-3 text-gray-900">{c.staff_name || "—"}</td>
                                 {canEdit && (
                                     <td className="whitespace-nowrap px-4 py-3">
                                         <div className="flex items-center gap-3">{actions(c)}</div>
@@ -594,16 +608,27 @@ export default function StudentRecordView({
     archived,
     dental = [],
     canEditDental = false,
-    tab: requestedTab,
+    showDental = true,
+    tab: rawTab,
     historyOnly,
     recordId = 0,
     backHref,
     canEdit,
     canEditStudent,
     hidePersonal = false,
+    dentalOnly = false,
 }: Props) {
+    // Walang dental access (hal. Doctor): huwag ipakita ang Dental Records tab
+    const requestedTab: RecordTab = !showDental && rawTab === "dental" ? "history" : rawTab;
     // Admin: walang Archive Logs tab (kapag binuksan pa rin, Health History ang ipapakita)
-    const tab: RecordTab = hidePersonal && requestedTab === "archive" ? "history" : requestedTab;
+    // Dentist: Dental Records at Archive Logs lang
+    const tab: RecordTab = dentalOnly
+        ? requestedTab === "archive"
+            ? "archive"
+            : "dental"
+        : hidePersonal && requestedTab === "archive"
+            ? "history"
+            : requestedTab;
     // Clinic visits and case reports shown as one timeline, newest first.
     const visits: VisitItem[] = [
         ...records.map((r) => ({
@@ -615,7 +640,7 @@ export default function StudentRecordView({
             detail: r.action_taken,
             staff: r.attending_staff,
             caseNumber: null,
-            status: null,
+            status: r.status ?? null,
         })),
         ...cases.map((c) => ({
             key: `case-${c.case_id}`,
@@ -675,33 +700,6 @@ export default function StudentRecordView({
             : (latest?.status ?? null);
     // Temperature ay nasa clinic visit lang
     const latestRecord = latest?.kind === "visit" ? records.find((r) => r.record_id === latest.id) : undefined;
-
-    const editStudentLink = canEditStudent && (
-        <ConfirmLink
-            href={`/dashboard/students/edit?student=${encodeURIComponent(student.student_number)}`}
-            title="Edit student details"
-            message={`Edit the details of ${student.first_name} ${student.last_name} (${student.student_number})? Changes will replace the current information.`}
-            confirmLabel="Edit"
-            className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#15664f] px-4 text-sm font-semibold text-white hover:bg-[#10523f]"
-        >
-            <Pencil className="h-4 w-4" />
-            Edit Record
-        </ConfirmLink>
-    );
-
-    const addRecordLink = canEdit && (
-        <ConfirmLink
-            href={`${BASE}/new?student=${encodeURIComponent(student.student_number)}`}
-            title="Add visit record"
-            message={`Add a new visit record for ${student.first_name} ${student.last_name} (${student.student_number})?`}
-            confirmLabel="Continue"
-            icon={<Plus className="h-5 w-5" />}
-            className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#15664f] px-4 text-sm font-semibold text-white shadow-sm hover:bg-[#10523f]"
-        >
-            <Plus className="h-4 w-4" />
-            Add Record
-        </ConfirmLink>
-    );
 
     // Galing sa dashboard "View": Visit History lang ang ipapakita.
     if (historyOnly) {
@@ -846,25 +844,32 @@ export default function StudentRecordView({
     // Visit History: clinic visits lang (nasa Case Reports tab ang mga case)
     const clinicVisits = visits.filter((v) => v.kind === "visit");
 
-    const tabs: { key: RecordTab; label: string; count: number }[] = [
-        { key: "history", label: "Health History", count: clinicVisits.length },
+    // Dentist: naka-archive na dental records lang ang makikita sa Archive Logs
+    const archivedShown = dentalOnly ? archived.filter((a) => a.kind === "dental") : archived;
+
+    const allTabs: { key: RecordTab; label: string; count: number }[] = [
+        { key: "history", label: "Clinic Visit", count: clinicVisits.length },
         { key: "cases", label: "Case Reports", count: cases.length },
-        { key: "dental", label: "Dental Records", count: dental.length },
-        ...(hidePersonal ? [] : [{ key: "archive" as const, label: "Archive Logs", count: archived.length }]),
+        ...(showDental ? [{ key: "dental" as const, label: "Dental Records", count: dental.length }] : []),
+        ...(hidePersonal ? [] : [{ key: "archive" as const, label: "Archive Logs", count: archivedShown.length }]),
     ];
+    // Dentist: Dental Records lang
+    const tabs = dentalOnly ? allTabs.filter((t) => t.key === "dental" || t.key === "archive") : allTabs;
 
     return (
         <main className="min-w-0 space-y-5 p-4 md:p-8">
             {/* Header */}
             <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
-                    <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">Student Health Record</h1>
-                    <p className="mt-1 text-sm text-gray-600">View and manage the health records of a student.</p>
+                    <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">
+                        {dentalOnly ? "Student Dental Record" : "Student Health Record"}
+                    </h1>
+                    <p className="mt-1 text-sm text-gray-600">
+                        {dentalOnly ? "View the dental records of a student." : "View and manage the health records of a student."}
+                    </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
-                    {addRecordLink}
-                    {editStudentLink}
-                    {!canEdit && !canEditStudent && (
+                    {!canEdit && !canEditStudent && !dentalOnly && (
                         <span className="rounded-full bg-gray-200 px-3 py-1 text-sm font-medium text-gray-600">
                             View only
                         </span>
@@ -918,7 +923,18 @@ export default function StudentRecordView({
                 )}
 
                 {canEditStudent && (
-                    <div className="mt-4 flex justify-end border-t border-gray-100 pt-4">
+                    <div className="mt-4 flex flex-wrap items-center justify-end gap-x-5 gap-y-2 border-t border-gray-100 pt-4">
+                        {/* I-edit ang detalye ng student (pangalan, kurso, atbp.) */}
+                        <ConfirmLink
+                            href={`/dashboard/students/edit?student=${encodeURIComponent(student.student_number)}&back=${encodeURIComponent(`/dashboard/student-health-records?student=${encodeURIComponent(student.student_number)}`)}`}
+                            title="Edit student"
+                            message={`Edit the details of ${student.first_name} ${student.last_name} (${student.student_number})? Changes will replace the current information.`}
+                            confirmLabel="Edit"
+                            className="inline-flex items-center gap-1.5 text-sm font-medium text-[#15664f] hover:underline"
+                        >
+                            <Pencil className="h-4 w-4" />
+                            Edit this student
+                        </ConfirmLink>
                         <form action={archiveStudent}>
                             <input type="hidden" name="studentId" value={student.student_id} />
                             <ConfirmButton
@@ -1055,7 +1071,6 @@ export default function StudentRecordView({
                         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                             <div>
                                 <h2 className="text-lg font-semibold text-[#15664f]">Case History</h2>
-                                <p className="text-sm text-gray-600">All health case reports, newest first.</p>
                             </div>
                         </div>
                         <div className="overflow-hidden rounded-xl border-2 border-[#cfe5d9] bg-white shadow-md shadow-[#15664f]/10">
@@ -1082,6 +1097,18 @@ export default function StudentRecordView({
                                 />
                                 <InfoRow label="Last Dental Visit" value={dental[0] ? formatDate(dental[0].visit_date) : "—"} />
                             </dl>
+                            {/* Kapareho ng Student Health Form: lalabas lang kapag wala pang Dental Health Form */}
+                            {!extras.has_dental_form && (
+                                <p className="mt-2 text-sm text-gray-600">
+                                    No Dental Health Form on file yet.{" "}
+                                    <Link
+                                        href={`/dashboard/dental-health-form?student=${encodeURIComponent(student.student_number)}`}
+                                        className="font-medium text-[#15664f] hover:underline"
+                                    >
+                                        Open form
+                                    </Link>
+                                </p>
+                            )}
                         </Card>
 
                         <Card title="Latest Dental Record">
@@ -1113,7 +1140,7 @@ export default function StudentRecordView({
 
             {tab === "archive" && (
                 <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                    <ArchiveTable items={archived} showRestoreLink={!hidePersonal} />
+                    <ArchiveTable items={archivedShown} showRestoreLink={!hidePersonal && !dentalOnly} />
                 </div>
             )}
         </main>

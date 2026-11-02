@@ -68,8 +68,10 @@ export function toStudentInput(values: Record<string, string>): StudentInput {
         lastName: get("lastName"),
         firstName: get("firstName"),
         middleName: get("middleName") || null,
-        gradeLevel: get("gradeLevel") || null,
-        program: get("program") || null,
+        // Laging capital letter ang grade level (hal. "first year" -> "FIRST YEAR")
+        gradeLevel: get("gradeLevel").toUpperCase() || null,
+        // Laging capital letter ang program (hal. "bsba" -> "BSBA")
+        program: get("program").toUpperCase() || null,
         dateOfBirth: get("dateOfBirth") || null,
         gender: get("gender") || null,
         contactNumber: contact || null,

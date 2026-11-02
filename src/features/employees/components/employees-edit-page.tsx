@@ -24,7 +24,7 @@ type EmployeeRow = {
 };
 
 type Props = {
-    searchParams: Promise<{ employee?: string }>;
+    searchParams: Promise<{ employee?: string; back?: string }>;
 };
 
 export default async function EditEmployeePage({ searchParams }: Props) {
@@ -32,7 +32,9 @@ export default async function EditEmployeePage({ searchParams }: Props) {
     if (!session) redirect("/login");
     if (!canManageStudents(session.role)) redirect(BACK);
 
-    const { employee } = await searchParams;
+    const { employee, back = "" } = await searchParams;
+    // Galing sa file ng employee (Health Record): doon babalik pagka-save o Cancel
+    const backHref = back.startsWith("/dashboard/") ? back : BACK;
     const employeeNumber = (employee ?? "").trim();
     if (!employeeNumber) redirect(BACK);
 
@@ -65,11 +67,11 @@ export default async function EditEmployeePage({ searchParams }: Props) {
     return (
         <main className="min-w-0 space-y-6 p-4 pb-0 md:p-8 md:pb-0">
             <Link
-                href={BACK}
+                href={backHref}
                 className="inline-flex items-center gap-1 py-1 text-sm font-medium text-[#15664f] hover:underline"
             >
                 <ArrowLeft className="h-4 w-4" />
-                Back to employees
+                {backHref === BACK ? "Back to employees" : "Back to Health Record"}
             </Link>
 
             <div className="flex flex-wrap items-center justify-between gap-4">
@@ -99,7 +101,8 @@ export default async function EditEmployeePage({ searchParams }: Props) {
             <EmployeeForm
                 mode="edit"
                 employee={values}
-                cancelHref={BACK}
+                cancelHref={backHref}
+                returnTo={backHref === BACK ? undefined : backHref}
                 avatar={e.avatar}
             />
         </main>

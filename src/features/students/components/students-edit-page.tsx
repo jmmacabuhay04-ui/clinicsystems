@@ -10,7 +10,7 @@ import StudentForm, { type StudentValues } from "./student-form";
 const BASE = "/dashboard/students";
 
 type Props = {
-    searchParams: Promise<{ student?: string }>;
+    searchParams: Promise<{ student?: string; back?: string }>;
 };
 
 export default async function EditStudentPage({ searchParams }: Props) {
@@ -18,7 +18,9 @@ export default async function EditStudentPage({ searchParams }: Props) {
     if (!session) redirect("/login");
     if (!canManageStudents(session.role)) redirect(BASE);
 
-    const { student: studentNumber = "" } = await searchParams;
+    const { student: studentNumber = "", back = "" } = await searchParams;
+    // Galing sa file ng student (Health Record): doon babalik pagka-save o Cancel
+    const backHref = back.startsWith("/dashboard/") ? back : BASE;
     if (!studentNumber) notFound();
 
     const row = await getActiveStudent(studentNumber);
@@ -49,11 +51,11 @@ export default async function EditStudentPage({ searchParams }: Props) {
     return (
         <main className="min-w-0 space-y-6 p-4 pb-0 md:p-8 md:pb-0">
             <Link
-                href={BASE}
+                href={backHref}
                 className="inline-flex items-center gap-1 text-sm font-medium text-[#15664f] hover:underline"
             >
                 <ArrowLeft className="h-4 w-4" />
-                Back to students
+                {backHref === BASE ? "Back to students" : "Back to Health Record"}
             </Link>
 
             <div className="flex flex-wrap items-center justify-between gap-4">
@@ -82,7 +84,7 @@ export default async function EditStudentPage({ searchParams }: Props) {
                 </div>
             </div>
 
-            <StudentForm mode="edit" student={values} cancelHref={BASE} avatar={avatar} />
+            <StudentForm mode="edit" student={values} cancelHref={backHref} returnTo={backHref === BASE ? undefined : backHref} avatar={avatar} />
         </main>
     );
 }

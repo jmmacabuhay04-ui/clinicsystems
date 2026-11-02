@@ -100,8 +100,8 @@ export default async function EmployeesPage({ searchParams }: Props) {
              department, position, contact_number, email, gender, avatar
       FROM employees
       WHERE archived_at IS NULL
-        AND (${department}::text = '' OR department = ${department})
-        AND (${position}::text = '' OR position = ${position})
+        AND (${department}::text = '' OR LOWER(TRIM(department)) = LOWER(TRIM(${department})))
+        AND (${position}::text = '' OR LOWER(TRIM(position)) = LOWER(TRIM(${position})))
         AND (
           ${q}::text = ''
           OR employee_number ILIKE ${like}
@@ -116,8 +116,8 @@ export default async function EmployeesPage({ searchParams }: Props) {
       SELECT COUNT(*)::int AS count
       FROM employees
       WHERE archived_at IS NULL
-        AND (${department}::text = '' OR department = ${department})
-        AND (${position}::text = '' OR position = ${position})
+        AND (${department}::text = '' OR LOWER(TRIM(department)) = LOWER(TRIM(${department})))
+        AND (${position}::text = '' OR LOWER(TRIM(position)) = LOWER(TRIM(${position})))
         AND (
           ${q}::text = ''
           OR employee_number ILIKE ${like}
@@ -127,13 +127,15 @@ export default async function EmployeesPage({ searchParams }: Props) {
         )
     `,
         prisma.$queryRaw<{ value: string }[]>`
-      SELECT DISTINCT department AS value FROM employees
-      WHERE archived_at IS NULL AND department IS NOT NULL AND department <> ''
+      SELECT UPPER(MIN(TRIM(department))) AS value FROM employees
+      WHERE archived_at IS NULL AND department IS NOT NULL AND TRIM(department) <> ''
+      GROUP BY LOWER(TRIM(department))
       ORDER BY value
     `,
         prisma.$queryRaw<{ value: string }[]>`
-      SELECT DISTINCT position AS value FROM employees
-      WHERE archived_at IS NULL AND position IS NOT NULL AND position <> ''
+      SELECT UPPER(MIN(TRIM(position))) AS value FROM employees
+      WHERE archived_at IS NULL AND position IS NOT NULL AND TRIM(position) <> ''
+      GROUP BY LOWER(TRIM(position))
       ORDER BY value
     `,
     ]);
@@ -185,7 +187,7 @@ export default async function EmployeesPage({ searchParams }: Props) {
                         title="Add a new employee?"
                         message="You will be taken to the form to create a new employee account."
                         confirmLabel="Continue"
-                        className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#15664f] px-5 text-sm font-semibold text-white shadow-md shadow-[#15664f]/20 hover:bg-[#10523f]"
+                        className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#15664f] px-5 text-sm font-semibold text-white shadow-md shadow-[#15664f]/20 hover:bg-[#10523f] sm:w-auto"
                     >
                         <Plus className="h-4 w-4" />
                         Add Employee
@@ -206,7 +208,7 @@ export default async function EmployeesPage({ searchParams }: Props) {
                 <form
                     method="get"
                     action={BASE}
-                    className="grid gap-3 p-4 sm:grid-cols-2 md:p-5 lg:grid-cols-[12rem_12rem_minmax(0,1fr)]"
+                    className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 md:p-5 lg:grid-cols-[12rem_12rem_minmax(0,1fr)]"
                 >
                     <AutoSubmitSelect
                         name="department"

@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
-import { CalendarDays, Clock, DoorOpen, LogOut, UserCheck, Users } from "lucide-react";
+import { CalendarDays, ClipboardList, DoorOpen, LogIn, LogOut, UserCheck, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
-import { canManageRecords } from "@/lib/permissions";
+import { canManageVisitors } from "@/lib/permissions";
 import VisitorForm from "./visitor-form";
 import { setTimeOut } from "@/features/visitor-logs/actions";
 
@@ -36,7 +36,7 @@ export default async function VisitorRecordingPage() {
     const session = await getSession();
     if (!session) redirect("/login");
 
-    const canEdit = canManageRecords(session.role);
+    const canEdit = canManageVisitors(session.role);
 
     const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date());
 
@@ -144,58 +144,94 @@ export default async function VisitorRecordingPage() {
                             </p>
                         </div>
                     ) : (
-                        <ul className="divide-y divide-gray-100 border-t border-gray-100">
-                            {visitors.map((v) => {
-                                const isInside = !v.time_out;
-                                return (
-                                    <li key={v.visitor_id} className="flex flex-wrap items-center gap-4 px-5 py-4 hover:bg-[#f6faf8] md:px-6">
-                                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#eef6f2] text-sm font-semibold text-[#15664f]">
-                                            {initialsOf(v.visitor_name)}
-                                        </span>
+                        <>
+                            {/* Header ng mga column (desktop) */}
+                            <div className="hidden grid-cols-[minmax(0,1fr)_minmax(0,1fr)_6.5rem_6.5rem_8.5rem] gap-x-4 border-t border-gray-100 bg-[#f6faf8] px-5 py-3 text-sm font-semibold text-gray-600 sm:grid md:px-6">
+                                <span>Name</span>
+                                <span>Purpose</span>
+                                <span>Time In</span>
+                                <span>Time Out</span>
+                                <span className="text-right">Status</span>
+                            </div>
+                            <ul className="divide-y divide-gray-100 border-t border-gray-100">
+                                {visitors.map((v) => {
+                                    const isInside = !v.time_out;
+                                    return (
+                                        <li
+                                            key={v.visitor_id}
+                                            className="grid grid-cols-2 items-center gap-x-4 gap-y-3 px-5 py-4 hover:bg-[#f6faf8] sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_6.5rem_6.5rem_8.5rem] md:px-6"
+                                        >
+                                            {/* Bisita: avatar + pangalan + relation + layunin */}
+                                            <div className="col-span-2 flex min-w-0 items-center gap-3 sm:col-span-1">
+                                                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#15664f] text-sm font-semibold uppercase text-white">
+                                                    {initialsOf(v.visitor_name)}
+                                                </span>
+                                                <div className="min-w-0">
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        <p className="break-words font-semibold capitalize text-gray-900">{v.visitor_name}</p>
+                                                        {v.relation && (
+                                                            <span className="rounded-full bg-[#eef6f2] px-2.5 py-0.5 text-sm font-medium leading-5 text-[#15664f]">
+                                                                {v.relation}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
 
-                                        <div className="min-w-0 flex-1">
-                                            <div className="flex flex-wrap items-center gap-2">
-                                                <p className="break-words font-semibold text-gray-900">{v.visitor_name}</p>
-                                                {v.relation && (
-                                                    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-sm font-medium text-gray-600">
-                                                        {v.relation}
+                                            {/* Purpose: sariling column, kapantay ng Time In / Time Out */}
+                                            <div className="col-span-2 min-w-0 sm:col-span-1">
+                                                <p className="flex items-center gap-1 text-sm text-gray-600 sm:hidden">
+                                                    <ClipboardList className="h-3.5 w-3.5" />
+                                                    Purpose
+                                                </p>
+                                                <p className="break-words text-sm text-gray-900">{v.purpose}</p>
+                                            </div>
+
+                                            {/* Time In / Time Out: pantay na column */}
+                                            <div>
+                                                <p className="flex items-center gap-1 text-sm text-gray-600 sm:hidden">
+                                                    <LogIn className="h-3.5 w-3.5" />
+                                                    Time In
+                                                </p>
+                                                <p className="whitespace-nowrap text-sm text-gray-900">{to12Hour(v.time_in)}</p>
+                                            </div>
+                                            <div>
+                                                <p className="flex items-center gap-1 text-sm text-gray-600 sm:hidden">
+                                                    <LogOut className="h-3.5 w-3.5" />
+                                                    Time Out
+                                                </p>
+                                                <p className="whitespace-nowrap text-sm text-gray-900">{v.time_out ? to12Hour(v.time_out) : "—"}</p>
+                                            </div>
+
+                                            {/* Status o Time Out button: nasa dulo, naka-align sa kanan */}
+                                            <div className="col-span-2 flex justify-end sm:col-span-1">
+                                                {isInside && canEdit ? (
+                                                    <form action={setTimeOut}>
+                                                        <input type="hidden" name="visitorId" value={v.visitor_id} />
+                                                        <input type="hidden" name="timeOut" value={timeNow} />
+                                                        <button
+                                                            type="submit"
+                                                            className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#15664f] px-3 text-sm font-semibold text-white hover:bg-[#10523f]"
+                                                        >
+                                                            <LogOut className="h-3.5 w-3.5" />
+                                                            Time Out
+                                                        </button>
+                                                    </form>
+                                                ) : (
+                                                    <span
+                                                        className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1 text-sm font-semibold ${isInside ? "bg-amber-100 text-amber-800" : "bg-green-100 text-green-700"
+                                                            }`}
+                                                    >
+                                                        <span className={`h-1.5 w-1.5 rounded-full ${isInside ? "bg-amber-500" : "bg-green-500"}`} />
+                                                        {isInside ? "Inside" : "Checked out"}
                                                     </span>
                                                 )}
                                             </div>
-                                            <p className="break-words text-sm text-gray-600">{v.purpose}</p>
-                                            <p className="mt-1 inline-flex items-center gap-1.5 text-sm text-gray-600">
-                                                <Clock className="h-3.5 w-3.5" />
-                                                {to12Hour(v.time_in)}
-                                                <span className="text-gray-300">→</span>
-                                                {to12Hour(v.time_out)}
-                                            </p>
-                                        </div>
-
-                                        <div className="flex shrink-0 items-center gap-2">
-                                            <span
-                                                className={`rounded-full px-3 py-1 text-sm font-semibold ${isInside ? "bg-amber-100 text-amber-800" : "bg-green-100 text-green-700"
-                                                    }`}
-                                            >
-                                                {isInside ? "Inside" : "Checked out"}
-                                            </span>
-                                            {isInside && canEdit && (
-                                                <form action={setTimeOut}>
-                                                    <input type="hidden" name="visitorId" value={v.visitor_id} />
-                                                    <input type="hidden" name="timeOut" value={timeNow} />
-                                                    <button
-                                                        type="submit"
-                                                        className="inline-flex h-8 items-center gap-1.5 rounded-md border border-[#15664f] bg-white px-3 text-sm font-semibold text-[#15664f] hover:bg-[#eef6f2]"
-                                                    >
-                                                        <LogOut className="h-3.5 w-3.5" />
-                                                        Time Out
-                                                    </button>
-                                                </form>
-                                            )}
-                                        </div>
-                                    </li>
-                                );
-                            })}
-                        </ul>
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+                        </>
                     )}
                 </section>
             </div>

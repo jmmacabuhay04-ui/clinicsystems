@@ -41,6 +41,10 @@ export type StudentInput = {
 export type StudentState = {
     error?: string;
     values?: Record<string, string>;
+    /** Mensahe pagka-save (hal. "Student 2023-003 was saved.") */
+    success?: string;
+    /** Saan babalik pagkatapos ipakita ang success message */
+    redirectTo?: string;
 };
 
 /** Ang naka-login na staff, ayon sa kailangan ng service. */

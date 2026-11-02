@@ -109,11 +109,8 @@ export async function createCaseReport(
     revalidatePath(BASE);
     revalidatePath("/dashboard/illness-alerts");
     revalidatePath("/dashboard");
-    // Pagka-save, diretso sa health record ng pasyente (makikita agad ang bagong case)
-    if (patientType === "employee") {
-        revalidatePath("/dashboard/employee-health-records");
-        redirect(`/dashboard/employee-health-records?employee=${encodeURIComponent(patientNumber)}`);
-    }
     revalidatePath("/dashboard/student-health-records");
-    redirect(`/dashboard/student-health-records?student=${encodeURIComponent(patientNumber)}`);
+    revalidatePath("/dashboard/employee-health-records");
+    // Pagka-save: diretso sa Health Case Reports (nasa itaas ang bagong case)
+    redirect(BASE);
 }

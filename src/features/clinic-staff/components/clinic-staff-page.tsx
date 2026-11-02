@@ -100,7 +100,7 @@ export default async function ClinicStaffPage() {
                         message="You will be taken to the form to add a new clinic staff member."
                         confirmLabel="Continue"
                         icon={<Plus className="h-5 w-5" />}
-                        className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#15664f] px-5 text-sm font-semibold text-white shadow-sm hover:bg-[#10523f] sm:w-auto"
+                        className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#15664f] px-5 text-sm font-semibold text-white shadow-md shadow-[#15664f]/20 hover:bg-[#10523f] sm:w-auto"
                     >
                         <Plus className="h-4 w-4" />
                         Add Staff

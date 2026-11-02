@@ -98,7 +98,7 @@ export async function createStudent(
          grade_level, program, date_of_birth, gender, must_change_password)
       VALUES
         (${studentNumber}, ${hashed}, ${get("lastName")}, ${get("firstName")},
-         ${get("middleName") || null}, ${get("gradeLevel") || null}, ${get("program") || null},
+         ${get("middleName") || null}, ${get("gradeLevel").toUpperCase() || null}, ${get("program").toUpperCase() || null},
          CAST(${get("dateOfBirth") || null} AS DATE), ${get("gender") || null}, TRUE)
     `;
     } catch (err) {
@@ -145,8 +145,8 @@ export async function updateStudent(
           last_name      = ${get("lastName")},
           first_name     = ${get("firstName")},
           middle_name    = ${get("middleName") || null},
-          grade_level    = ${get("gradeLevel") || null},
-          program        = ${get("program") || null},
+          grade_level    = ${get("gradeLevel").toUpperCase() || null},
+          program        = ${get("program").toUpperCase() || null},
           date_of_birth  = CAST(${get("dateOfBirth") || null} AS DATE),
           gender         = ${get("gender") || null}
       WHERE student_id = ${studentId}

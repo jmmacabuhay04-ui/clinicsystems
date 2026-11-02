@@ -125,7 +125,7 @@ export default async function StudentsPage({ searchParams }: Props) {
                         title="Add a new student?"
                         message="You will be taken to the form to create a new student account."
                         confirmLabel="Continue"
-                        className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#15664f] px-5 text-sm font-semibold text-white shadow-md shadow-[#15664f]/20 hover:bg-[#10523f]"
+                        className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#15664f] px-5 text-sm font-semibold text-white shadow-md shadow-[#15664f]/20 hover:bg-[#10523f] sm:w-auto"
                     >
                         <Plus className="h-4 w-4" />
                         Add Student
@@ -146,7 +146,7 @@ export default async function StudentsPage({ searchParams }: Props) {
                 <form
                     method="get"
                     action={BASE}
-                    className="grid gap-3 p-4 sm:grid-cols-2 md:p-5 lg:grid-cols-[12rem_12rem_minmax(0,1fr)]"
+                    className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 md:p-5 lg:grid-cols-[12rem_12rem_minmax(0,1fr)]"
                 >
                     <AutoSubmitSelect
                         name="grade"

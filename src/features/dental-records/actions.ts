@@ -5,10 +5,20 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { RETENTION_YEARS } from "@/lib/retention";
-import { canManageDental } from "@/lib/permissions";
 import { examinerName } from "@/features/dental-health-form/chart-data";
 
 const BASE = "/dashboard/dental-records";
+
+/**
+ * Dentist at Nurse LANG ang puwedeng gumawa, mag-edit, mag-archive o magbura
+ * ng dental record. Hindi kasama ang Doctor. Sinusuri dito mismo (hindi lang
+ * sa permissions) para siguradong hindi makakalusot.
+ */
+function isDentalEditor(role: unknown) {
+    const r = String(role ?? "").trim().toLowerCase();
+    return r === "dentist" || r === "nurse";
+}
+
 
 export type DentalState = { error?: string; values?: Record<string, string> };
 
@@ -87,7 +97,7 @@ export async function createDental(
 ): Promise<DentalState> {
     const session = await getSession();
     if (!session) return { error: "Session expired. Please sign in again." };
-    if (!canManageDental(session.role)) {
+    if (!isDentalEditor(session.role)) {
         return { error: "You do not have permission to add dental records." };
     }
 
@@ -121,7 +131,13 @@ export async function createDental(
     }
 
     revalidatePath(BASE);
-    redirect(BASE);
+    revalidatePath("/dashboard/student-health-records");
+    revalidatePath("/dashboard/employee-health-records");
+    revalidatePath("/dashboard");
+
+    // Pagka-save: diretso sa file ng pasyente, sa Dental Records tab
+    const kind = values.patientType === "employee" ? "employee" : "student";
+    redirect(`/dashboard/${kind}-health-records?${kind}=${encodeURIComponent(values.patientNumber)}&tab=dental`);
 }
 
 export async function updateDental(
@@ -130,7 +146,7 @@ export async function updateDental(
 ): Promise<DentalState> {
     const session = await getSession();
     if (!session) return { error: "Session expired. Please sign in again." };
-    if (!canManageDental(session.role)) {
+    if (!isDentalEditor(session.role)) {
         return { error: "You do not have permission to edit dental records." };
     }
 
@@ -142,13 +158,9 @@ export async function updateDental(
     if (problem) return { error: problem, values };
 
     try {
-        const patient = await findPatient(values);
-        if (!patient) {
-            return {
-                error: `No active ${values.patientType} found with number ${values.patientNumber}.`,
-                values,
-            };
-        }
+        // The patient (student_id / employee_id) is NEVER changed on edit: a
+        // dental record cannot be moved to another person or from student to
+        // employee. Whatever patientType / patientNumber the form sends is ignored.
 
         // dentist_name is deliberately NOT updated. The field is read-only in
         // the form and is never submitted, so writing it here would overwrite
@@ -156,14 +168,12 @@ export async function updateDental(
         // performed the procedure stays as recorded on creation.
         await prisma.$executeRaw`
       UPDATE dental_records SET
-        student_id     = ${patient.studentId},
-        employee_id    = ${patient.employeeId},
         visit_date     = ${values.visitDate}::date,
         procedure_name = ${values.procedure},
         tooth          = ${values.tooth || null},
         status         = ${values.status},
         notes          = ${values.notes || null}
-      WHERE dental_id = ${dentalId}
+      WHERE dental_id = ${dentalId} AND archived_at IS NULL
     `;
     } catch (err) {
         console.error("Update dental record error:", err);
@@ -181,7 +191,7 @@ export async function updateDental(
 
 export async function archiveDental(formData: FormData) {
     const session = await getSession();
-    if (!session || !canManageDental(session.role)) return;
+    if (!session || !isDentalEditor(session.role)) return;
 
     const dentalId = Number(formData.get("dentalId"));
     if (!dentalId) return;
@@ -202,7 +212,7 @@ export async function archiveDental(formData: FormData) {
 
 export async function restoreDental(formData: FormData) {
     const session = await getSession();
-    if (!session || !canManageDental(session.role)) return;
+    if (!session || !isDentalEditor(session.role)) return;
 
     const dentalId = Number(formData.get("dentalId"));
     if (!dentalId) return;
@@ -218,7 +228,7 @@ export async function restoreDental(formData: FormData) {
 
 export async function deleteDental(formData: FormData) {
     const session = await getSession();
-    if (!session || !canManageDental(session.role)) return;
+    if (!session || !isDentalEditor(session.role)) return;
 
     const dentalId = Number(formData.get("dentalId"));
     if (!dentalId) return;

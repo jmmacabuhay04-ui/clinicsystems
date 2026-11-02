@@ -1,9 +1,8 @@
 import { redirect } from "next/navigation";
-import { Plus, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
-import { canManageRecords, canManageStudents, canManageDental } from "@/lib/permissions";
-import ConfirmLink from "@/components/shared/confirm-link";
+import { canManageRecords, canManageStudents, canViewHealthRecords, canViewDental, canManageDental } from "@/lib/permissions";
 import AutoSubmitSelect from "@/components/shared/auto-submit-select";
 import ListPagination from "@/components/shared/list-pagination";
 import { logAccess } from "@/lib/access-log";
@@ -21,7 +20,6 @@ import RowActionMenu, { type RowAction } from "@/components/shared/row-action-me
 import {
     ActiveBadge,
     PersonAvatar,
-    addButtonClass,
     formatGender,
     listCardClass,
     listSearchClass,
@@ -62,6 +60,10 @@ type Props = {
 export default async function EmployeeHealthRecordsPage({ searchParams }: Props) {
     const session = await getSession();
     if (!session) redirect("/login");
+    // Health records: Admin, Nurse at Doctor.
+    // Dentist: makikita ang listahan at ang file ng pasyente, pero Dental Records at Archive Logs lang.
+    const dentalOnly = !canViewHealthRecords(session.role);
+    if (dentalOnly && !canViewDental(session.role)) redirect("/dashboard");
 
     const params = await searchParams;
     const q = (params.q ?? "").trim();
@@ -115,11 +117,18 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
 
         const [records, cases, extrasRows, archivedVisits, archivedCases, dental, archivedDental] = await Promise.all([
             prisma.$queryRaw<RecordRow[]>`
-        SELECT record_id, visit_date, complaint, action_taken, attending_staff,
-               height_cm, weight_kg, heart_rate, blood_pressure, temperature
-        FROM employee_health_records
-        WHERE employee_id = ${selected.employee_id} AND archived_at IS NULL
-        ORDER BY visit_date DESC, record_id DESC
+        SELECT h.record_id, h.visit_date, h.complaint, h.action_taken, h.attending_staff,
+               h.height_cm, h.weight_kg, h.heart_rate, h.blood_pressure, h.temperature,
+               -- Status ng Health Case Report na nagawa mula sa visit na ito
+               (SELECT c.status FROM health_case_reports c
+                WHERE c.employee_id = h.employee_id
+                  AND c.report_date = h.visit_date
+                  AND LOWER(TRIM(c.complaint)) = LOWER(TRIM(h.complaint))
+                  AND c.archived_at IS NULL
+                ORDER BY c.case_id LIMIT 1) AS status
+        FROM employee_health_records h
+        WHERE h.employee_id = ${selected.employee_id} AND h.archived_at IS NULL
+        ORDER BY h.visit_date DESC, h.record_id DESC
       `,
             prisma.$queryRaw<CaseRow[]>`
         SELECT case_id, case_number, complaint, report_date, staff_name, status, notes
@@ -203,7 +212,8 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
                 cases={cases}
                 archived={archived}
                 dental={dental}
-                canEditDental={canManageDental(session.role)}
+                showDental={canViewDental(session.role) /* hindi para sa Doctor */}
+                canEditDental={canManageDental(session.role) /* Dentist at Nurse lang */}
                 tab={tab}
                 historyOnly={historyOnly}
                 recordId={recordId}
@@ -211,6 +221,7 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
                 canEdit={canEditRecords}
                 canEditEmployee={canEditEmployees}
                 hidePersonal={session.role === "admin"}
+                dentalOnly={dentalOnly}
             />
         );
     }
@@ -248,13 +259,13 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
         )
     `,
         prisma.$queryRaw<{ value: string }[]>`
-      SELECT MIN(TRIM(department)) AS value FROM employees
+      SELECT UPPER(MIN(TRIM(department))) AS value FROM employees
       WHERE archived_at IS NULL AND department IS NOT NULL AND TRIM(department) <> ''
       GROUP BY LOWER(TRIM(department))
       ORDER BY value
     `,
         prisma.$queryRaw<{ value: string }[]>`
-      SELECT MIN(TRIM(position)) AS value FROM employees
+      SELECT UPPER(MIN(TRIM(position))) AS value FROM employees
       WHERE archived_at IS NULL AND position IS NOT NULL AND TRIM(position) <> ''
       GROUP BY LOWER(TRIM(position))
       ORDER BY value
@@ -300,21 +311,6 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
                     <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">Employee Health Records</h1>
                     <p className="mt-1 text-sm text-gray-600">Select an employee to view their visits, case reports, and health information.</p>
                 </div>
-                {canEditRecords ? (
-                    <ConfirmLink
-                        href={`${BASE}/new`}
-                        icon={<Plus className="h-5 w-5" />}
-                        title="Add a new visit record?"
-                        message="You will be taken to the form to add a new employee health record."
-                        confirmLabel="Continue"
-                        className={addButtonClass}
-                    >
-                        <Plus className="h-4 w-4" />
-                        Add Record
-                    </ConfirmLink>
-                ) : (
-                    <span className="rounded-full bg-gray-200 px-3 py-1 text-sm font-medium text-gray-600">View only</span>
-                )}
             </div>
 
             <section className={listCardClass}>

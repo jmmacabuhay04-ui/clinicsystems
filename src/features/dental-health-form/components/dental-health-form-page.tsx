@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { ClipboardList, Pencil } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
-import { canManageDentalForm } from "@/lib/permissions";
+import { canManageDentalForm, canViewDental } from "@/lib/permissions";
 import { LEGEND, OCCLUSION, PERIODONTAL, TREATMENT } from "@/features/dental-health-form/chart-data";
 import ToothGrid, { type ChartMap } from "./tooth-grid";
 import PrintButton from "./print-button";
@@ -95,6 +95,8 @@ function CheckList({
 export default async function DentalHealthFormPage({ searchParams }: Props) {
     const session = await getSession();
     if (!session) redirect("/login");
+    // Dental records: Admin, Nurse at Dentist lang (hindi ang Doctor)
+    if (!canViewDental(session.role)) redirect("/dashboard");
 
     const { q = "", student: studentNumber = "", saved } = await searchParams;
     const canEdit = canManageDentalForm(session.role);

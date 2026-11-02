@@ -4,6 +4,7 @@ import { Camera, GraduationCap, KeyRound, Phone, Save, ShieldCheck, UserRound, X
 import { createStudent, updateStudent } from "@/features/students/actions";
 import type { StudentState } from "@/features/students/types";
 import ConfirmSubmit from "@/components/shared/confirm-submit";
+import RedirectNotice from "@/components/shared/redirect-notice";
 import ConfirmLink from "@/components/shared/confirm-link";
 import BirthdateField from "@/components/shared/birthdate-field";
 import PasswordInput from "@/components/shared/password-input";
@@ -66,11 +67,13 @@ type Props = {
     mode: "create" | "edit";
     student: StudentValues;
     cancelHref: string;
+    /** Saan babalik pagka-save (hal. Health Record ng student) */
+    returnTo?: string;
     /** Kasalukuyang profile picture (edit lang) */
     avatar?: string | null;
 };
 
-export default function StudentForm({ mode, student, cancelHref, avatar = null }: Props) {
+export default function StudentForm({ mode, student, cancelHref, returnTo, avatar = null }: Props) {
     const action = mode === "create" ? createStudent : updateStudent;
     const [state, formAction, pending] = useActionState(action, initialState);
 
@@ -82,8 +85,18 @@ export default function StudentForm({ mode, student, cancelHref, avatar = null }
             {state.error && (
                 <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{state.error}</p>
             )}
+            {/* Na-save: ipakita nang 3 segundo, tapos kusang babalik */}
+            {(state as { success?: string }).success && (state as { redirectTo?: string }).redirectTo && (
+                <RedirectNotice
+                    tone="success"
+                    message={(state as { success?: string }).success ?? ""}
+                    href={(state as { redirectTo?: string }).redirectTo ?? "/dashboard"}
+                    backLabel={returnTo ? "the health record" : "the list"}
+                />
+            )}
 
             {mode === "edit" && <input type="hidden" name="studentId" value={studentId} />}
+            {returnTo && <input type="hidden" name="returnTo" value={returnTo} />}
 
             <div className="grid gap-6 xl:grid-cols-3">
                 {/* School information */}

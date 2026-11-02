@@ -7,7 +7,6 @@ import { usePathname } from "next/navigation";
 import {
     Activity,
     ChevronDown,
-    ChevronRight,
     ClipboardList,
     FileText,
     LayoutDashboard,
@@ -369,9 +368,6 @@ export default function PortalNav({ basePath, roleLabel, fullName, initials, ava
                                     )}
                                     <Icon className={`h-5 w-5 shrink-0 ${active ? "text-amber-300" : ""}`} strokeWidth={1.8} />
                                     <span className="truncate">{tab.label}</span>
-                                    {tab.path !== "dashboard" && (
-                                        <ChevronRight aria-hidden="true" className="ml-auto h-4 w-4 shrink-0 text-white/50" />
-                                    )}
                                 </Link>
                             );
                         })}

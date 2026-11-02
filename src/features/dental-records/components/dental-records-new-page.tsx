@@ -2,17 +2,36 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { getSession } from "@/lib/auth/session";
-import { canManageDental } from "@/lib/permissions";
 import DentalForm, { type DentalValues, type PersonOption } from "./dental-form";
 import { prisma } from "@/lib/prisma";
 import { examinerName } from "@/features/dental-health-form/chart-data";
 
 const BASE = "/dashboard/dental-records";
 
-export default async function NewDentalRecordPage() {
+/**
+ * Dentist at Nurse LANG ang puwedeng gumawa, mag-edit, mag-archive o magbura
+ * ng dental record. Hindi kasama ang Doctor. Sinusuri dito mismo (hindi lang
+ * sa permissions) para siguradong hindi makakalusot.
+ */
+function isDentalEditor(role: unknown) {
+    const r = String(role ?? "").trim().toLowerCase();
+    return r === "dentist" || r === "nurse";
+}
+
+
+type Props = {
+    /** Galing sa ⋮ ng Dental Records: naka-pili na ang pasyente (?student= o ?employee=) */
+    searchParams: Promise<{ student?: string; employee?: string }>;
+};
+
+export default async function NewDentalRecordPage({ searchParams }: Props) {
     const session = await getSession();
     if (!session) redirect("/login");
-    if (!canManageDental(session.role)) redirect(BASE);
+    if (!isDentalEditor(session.role)) redirect(BASE);
+
+    const params = await searchParams;
+    const presetEmployee = (params.employee ?? "").trim().slice(0, 20);
+    const presetStudent = (params.student ?? "").trim().slice(0, 20);
 
     const me = await prisma.$queryRaw<{ full_name: string | null; username: string }[]>`
     SELECT full_name, username FROM users WHERE user_id = ${session.userId} LIMIT 1
@@ -26,8 +45,8 @@ export default async function NewDentalRecordPage() {
         String(session.username ?? "");
 
     const empty: DentalValues = {
-        patientType: "student",
-        patientNumber: "",
+        patientType: presetEmployee ? "employee" : "student",
+        patientNumber: presetEmployee || presetStudent,
         visitDate: new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date()),
         procedure: "",
         tooth: "",

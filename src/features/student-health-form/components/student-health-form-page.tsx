@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { ClipboardList, FileHeart, Pencil, Search } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
-import { canManageRecords } from "@/lib/permissions";
+import { canManageRecords, canViewHealthRecords } from "@/lib/permissions";
 import {
     FAMILY_HISTORY,
     PAST_HISTORY,
@@ -116,6 +116,8 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
 export default async function StudentHealthFormPage({ searchParams }: Props) {
     const session = await getSession();
     if (!session) redirect("/login");
+    // Health records: Admin, Nurse at Doctor lang (hindi ang Dentist)
+    if (!canViewHealthRecords(session.role)) redirect("/dashboard");
 
     const { q = "", student: studentNumber = "", saved } = await searchParams;
     const canEdit = canManageRecords(session.role);

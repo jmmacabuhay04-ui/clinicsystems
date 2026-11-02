@@ -7,14 +7,47 @@ export const ROLE_LABELS: Record<string, string> = {
     nurse: "Nurse",
 };
 
-/** Nurses and doctors maintain clinic records: create, edit, archive. */
-export function canManageRecords(role: string) {
-    return role === "nurse" || role === "doctor" || role === "dentist";
+/** "Doctor " / "DOCTOR" -> "doctor", para hindi makalusot dahil sa laki ng letra o espasyo. */
+function norm(role: unknown) {
+    return String(role ?? "").trim().toLowerCase();
 }
 
-/** Dentists and nurses maintain dental records. */
+/**
+ * HEALTH RECORDS (clinic visits, case reports, health forms, illness alerts):
+ * Nurse at Doctor lang ang puwedeng gumawa / mag-edit / mag-archive.
+ * Hindi kasama ang Dentist.
+ */
+export function canManageRecords(role: string) {
+    const r = norm(role);
+    return r === "nurse" || r === "doctor";
+}
+
+/** Sino ang makakakita ng health records: Admin (view only), Nurse, Doctor. Hindi ang Dentist. */
+export function canViewHealthRecords(role: string) {
+    const r = norm(role);
+    return r === "admin" || r === "nurse" || r === "doctor";
+}
+
+/**
+ * DENTAL RECORDS (dental visits, dental health form):
+ * Dentist at Nurse lang ang puwedeng gumawa / mag-edit / mag-archive.
+ * Hindi kasama ang Doctor.
+ */
 export function canManageDental(role: string) {
-    return role === "dentist" || role === "nurse";
+    const r = norm(role);
+    return r === "dentist" || r === "nurse";
+}
+
+/** Sino ang makakakita ng dental records: Admin (view only), Nurse, Dentist. Hindi ang Doctor. */
+export function canViewDental(role: string) {
+    const r = norm(role);
+    return r === "admin" || r === "nurse" || r === "dentist";
+}
+
+/** Visitor log: Nurse, Doctor at Dentist (pare-parehong nasa clinic). */
+export function canManageVisitors(role: string) {
+    const r = norm(role);
+    return r === "nurse" || r === "doctor" || r === "dentist";
 }
 
 /** Only nurses create and edit student accounts. */
@@ -34,7 +67,7 @@ export function isViewOnly(role: string) {
 export const canManageStaff = (role: string) => role === "nurse";
 
 export function canManageDentalForm(role: string) {
-    return role === "dentist" || role === "nurse";
+    return canManageDental(role);
 }
 export function canViewClinicData(role: string) {
     return role !== "ittech";
@@ -50,5 +83,6 @@ export const canViewStaff = (role: string) => role === "admin" || role === "nurs
  * visit records and health case reports.
  */
 export function canManageReferrals(role: string) {
-    return role === "nurse" || role === "doctor" || role === "dentist";
+    const r = norm(role);
+    return r === "nurse" || r === "doctor" || r === "dentist";
 }

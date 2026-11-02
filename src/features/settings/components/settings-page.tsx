@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { History, Monitor, Settings } from "lucide-react";
+import { History, Monitor } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { canManageAccounts } from "@/lib/permissions";
@@ -57,13 +57,17 @@ export default async function SettingsPage() {
 
     const logs = isAdmin
         ? await prisma.$queryRaw<LogRow[]>`
-        SELECT log_id, username, status, device, created_at
+        SELECT log_id, username, status, device,
+               -- Oras ng database (hal. Asia/Manila sa PC, UTC sa Supabase) -> totoong oras
+               (created_at AT TIME ZONE current_setting('TimeZone')) AS created_at
         FROM login_logs
         ORDER BY created_at DESC
         LIMIT 15
       `
         : await prisma.$queryRaw<LogRow[]>`
-        SELECT log_id, username, status, device, created_at
+        SELECT log_id, username, status, device,
+               -- Oras ng database (hal. Asia/Manila sa PC, UTC sa Supabase) -> totoong oras
+               (created_at AT TIME ZONE current_setting('TimeZone')) AS created_at
         FROM login_logs
         WHERE username = ${session.username}
         ORDER BY created_at DESC

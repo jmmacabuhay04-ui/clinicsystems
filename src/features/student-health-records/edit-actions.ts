@@ -42,10 +42,15 @@ export async function updateHealthRecord(_prev: EditState, formData: FormData): 
     const actionTaken = get("actionTaken");
     const attendingStaff = get("attendingStaff");
     const bloodPressure = get("bloodPressure");
+    const visitTime = get("visitTime");
+    const notes = get("notes");
+    const status = get("status") || "pending";
 
     if (!recordId) return fail("Invalid record.");
     if (!visitDate || !complaint) return fail("Visit date and complaint are required.");
     if (!/^\d{4}-\d{2}-\d{2}$/.test(visitDate)) return fail("Enter a valid visit date.");
+    if (visitTime && !/^([01]\d|2[0-3]):[0-5]\d$/.test(visitTime)) return fail("Enter a valid visit time.");
+    if (!["pending", "referred", "resolved"].includes(status)) return fail("Select a valid status.");
     if (bloodPressure && !/^\d{2,3}\/\d{2,3}$/.test(bloodPressure)) {
         return fail("Blood pressure must look like 110/70.");
     }
@@ -68,9 +73,25 @@ export async function updateHealthRecord(_prev: EditState, formData: FormData): 
     if (heartRate !== null) heartRate = Math.round(heartRate);
 
     try {
-        await prisma.$executeRaw`
+        await prisma.$transaction(async (tx) => {
+            // 1) Ang Health Case Report ng visit na ito (parehong student, petsa at reklamo
+            //    BAGO i-edit) ay sumasabay: status, reklamo at petsa.
+            await tx.$executeRaw`
+      UPDATE health_case_reports c
+      SET status = ${status}, complaint = ${complaint}, report_date = CAST(${visitDate} AS DATE)
+      FROM health_records h
+      WHERE h.record_id = ${recordId}
+        AND c.student_id = h.student_id
+        AND c.report_date = h.visit_date
+        AND LOWER(TRIM(c.complaint)) = LOWER(TRIM(h.complaint))
+        AND c.archived_at IS NULL
+    `;
+            // 2) Ang clinic visit mismo
+            await tx.$executeRaw`
       UPDATE health_records
       SET visit_date      = CAST(${visitDate} AS DATE),
+          visit_time      = CAST(NULLIF(${visitTime}, '') AS TIME),
+          notes           = ${notes || null},
           complaint       = ${complaint},
           action_taken    = ${actionTaken || null},
           attending_staff = ${attendingStaff || null},
@@ -81,11 +102,14 @@ export async function updateHealthRecord(_prev: EditState, formData: FormData): 
           temperature     = ${temperature}
       WHERE record_id = ${recordId}
     `;
+        });
     } catch (err) {
         console.error("Update health record error:", err);
         return fail("Could not save the changes. Please try again.");
     }
 
     revalidatePath("/dashboard/student-health-records");
+    revalidatePath("/dashboard/health-case-reports");
+    revalidatePath("/dashboard/illness-alerts");
     redirect(`/dashboard/student-health-records?student=${encodeURIComponent(studentNumber)}`);
 }

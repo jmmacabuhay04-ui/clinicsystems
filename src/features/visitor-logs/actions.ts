@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
-import { canManageRecords } from "@/lib/permissions";
+import { canManageVisitors } from "@/lib/permissions";
 
 const BASE = "/dashboard/visitor-recording";
 
@@ -23,7 +23,7 @@ export async function logVisitor(
 ): Promise<VisitorState> {
     const session = await getSession();
     if (!session) return { error: "Your session has expired. Please sign in again." };
-    if (!canManageRecords(session.role)) return { error: "Only nurses can log visitors." };
+    if (!canManageVisitors(session.role)) return { error: "Only nurses can log visitors." };
 
     const name = String(formData.get("visitorName") ?? "").trim();
     const purpose = String(formData.get("purpose") ?? "").trim();
@@ -56,7 +56,7 @@ export async function logVisitor(
 
 export async function setTimeOut(formData: FormData) {
     const session = await getSession();
-    if (!session || !canManageRecords(session.role)) return;
+    if (!session || !canManageVisitors(session.role)) return;
 
     const visitorId = Number(formData.get("visitorId"));
     const timeOut = String(formData.get("timeOut") ?? "");
@@ -73,7 +73,7 @@ export async function setTimeOut(formData: FormData) {
 
 export async function archiveVisitor(formData: FormData) {
     const session = await getSession();
-    if (!session || !canManageRecords(session.role)) return;
+    if (!session || !canManageVisitors(session.role)) return;
 
     const visitorId = Number(formData.get("visitorId"));
     if (!visitorId) return;

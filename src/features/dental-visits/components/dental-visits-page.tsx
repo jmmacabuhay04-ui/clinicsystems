@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowLeft, Search } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
+import { canViewDental } from "@/lib/permissions";
 import SearchInput from "@/components/shared/search-input";
 import AutoSubmitSelect from "@/components/shared/auto-submit-select";
 import ListPagination from "@/components/shared/list-pagination";
@@ -55,6 +56,8 @@ export default async function DentalVisitsPage({
 }) {
     const session = await getSession();
     if (!session) redirect("/login");
+    // Dental records: Admin, Nurse at Dentist lang (hindi ang Doctor)
+    if (!canViewDental(session.role)) redirect("/dashboard");
 
     // Doctors do not handle dental records (same rule as the dashboard).
     const role = String(session.role ?? "").toLowerCase();

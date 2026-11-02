@@ -33,8 +33,6 @@ export async function updateCaseReport(
     const caseId = Number(get("caseId"));
     if (!caseId) return fail("Missing case report.");
 
-    const patientType = get("patientType") === "employee" ? "employee" : "student";
-    const patientNumber = get("patientNumber");
     const complaint = get("complaint");
     const reportDate = get("reportDate");
     // Oras ng report (HH:MM). Opsyonal.
@@ -44,44 +42,31 @@ export async function updateCaseReport(
     const notes = get("notes");
     const actionTaken = get("actionTaken").trim();
 
-    const label = patientType === "student" ? "Student number" : "Employee number";
-
-    if (!patientNumber || !complaint || !reportDate) {
-        return fail(`${label}, complaint, and date are required.`);
+    if (!complaint || !reportDate) {
+        return fail("Complaint and date are required.");
     }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(reportDate)) return fail("Enter a valid date.");
     if (reportTime && !/^([01]\d|2[0-3]):[0-5]\d$/.test(reportTime)) return fail("Enter a valid time.");
     if (!["pending", "referred", "resolved"].includes(status)) return fail("Select a valid status.");
 
     try {
-        // The patient may have been switched between student and employee,
-        // so both columns are rewritten: one gets the id, the other NULL.
-        let studentId: number | null = null;
-        let employeeId: number | null = null;
-
-        if (patientType === "student") {
-            const rows = await prisma.$queryRaw<{ student_id: number }[]>`
-                SELECT student_id FROM students
-                WHERE student_number = ${patientNumber} AND archived_at IS NULL
-                LIMIT 1
-            `;
-            studentId = rows[0]?.student_id ?? null;
-            if (!studentId) return fail(`No active student found with number ${patientNumber}.`);
-        } else {
-            const rows = await prisma.$queryRaw<{ employee_id: number }[]>`
-                SELECT employee_id FROM employees
-                WHERE employee_number = ${patientNumber} AND archived_at IS NULL
-                LIMIT 1
-            `;
-            employeeId = rows[0]?.employee_id ?? null;
-            if (!employeeId) return fail(`No active employee found with number ${patientNumber}.`);
-        }
+        // The patient (student_id / employee_id) is NEVER changed here: a case
+        // report cannot be moved to another person or from student to employee.
+        // Whatever patientType / patientNumber the form sends is ignored.
+        const owner = await prisma.$queryRaw<{ patient_number: string | null }[]>`
+            SELECT COALESCE(s.student_number, e.employee_number) AS patient_number
+            FROM health_case_reports c
+            LEFT JOIN students  s ON s.student_id  = c.student_id
+            LEFT JOIN employees e ON e.employee_id = c.employee_id
+            WHERE c.case_id = ${caseId} AND c.archived_at IS NULL
+            LIMIT 1
+        `;
+        if (owner.length === 0) return fail("This case report no longer exists or has been archived.");
+        const patientNumber = owner[0].patient_number ?? "";
 
         const done = await prisma.$executeRaw`
             UPDATE health_case_reports
-            SET student_id  = ${studentId},
-                employee_id = ${employeeId},
-                complaint   = ${complaint},
+            SET complaint   = ${complaint},
                 report_date = CAST(${reportDate} AS DATE),
                 report_time = CAST(NULLIF(${reportTime}, '') AS TIME),
                 staff_name  = ${staffName || null},
@@ -112,5 +97,7 @@ export async function updateCaseReport(
     revalidatePath(BASE);
     revalidatePath("/dashboard/illness-alerts");
     revalidatePath("/dashboard/student-health-records");
-    redirect(BASE);
+    // Bumalik kung saan nanggaling (hal. Case Reports tab ng file ng pasyente)
+    const returnTo = get("returnTo");
+    redirect(returnTo.startsWith("/dashboard/") ? returnTo : BASE);
 }

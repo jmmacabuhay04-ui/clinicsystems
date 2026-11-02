@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useActionState, useEffect, useRef, useState } from "react";
-import { ClipboardCheck, Save, UserRound, X } from "lucide-react";
+import { ClipboardCheck, Lock, Save, UserRound, X } from "lucide-react";
 import { updateCaseReport, type EditCaseState } from "@/features/case-reports/edit-actions";
 import ConfirmButton from "@/components/shared/confirm-button";
 import SuggestInput from "@/components/shared/suggest-input";
@@ -76,6 +76,8 @@ type Props = {
     notes: string;
     actionTaken?: string;
     cancelHref: string;
+    /** Saan babalik pagka-save */
+    returnTo?: string;
     students?: PersonOption[];
     employees?: PersonOption[];
 };
@@ -84,12 +86,12 @@ export default function EditCaseForm(props: Props) {
     const [state, formAction, pending] = useActionState(updateCaseReport, initialState);
     const v = state.values ?? {};
 
-    // Keep the choice after a failed submit so the nurse does not lose it.
-    const [patientType, setPatientType] = useState<"student" | "employee">(
-        (v.patientType as "student" | "employee") ?? props.patientType,
-    );
+    // Hindi na mababago ang pasyente at uri (Student / Employee) ng case report,
+    // para hindi mailipat ang record sa ibang tao.
+    const patientType = props.patientType;
     const isStudent = patientType === "student";
     const people = (isStudent ? props.students : props.employees) ?? [];
+    const patientName = people.find((p) => p.number === props.patientNumber)?.name;
 
     const currentStatus = v.status ?? props.status;
     const [notesLength, setNotesLength] = useState((v.notes ?? props.notes).length);
@@ -107,10 +109,6 @@ export default function EditCaseForm(props: Props) {
         }).format(new Date());
     }, []);
 
-    // Kapag pinalitan ang uri, huwag dalhin ang number ng ibang uri.
-    const numberDefault =
-        patientType === props.patientType ? (v.patientNumber ?? props.patientNumber) : (v.patientNumber ?? "");
-
     return (
         <form action={formAction} className="space-y-5">
             {state.error && (
@@ -118,7 +116,9 @@ export default function EditCaseForm(props: Props) {
             )}
 
             <input type="hidden" name="caseId" value={props.caseId} />
+            {props.returnTo && <input type="hidden" name="returnTo" value={props.returnTo} />}
             <input type="hidden" name="patientType" value={patientType} />
+            <input type="hidden" name="patientNumber" value={props.patientNumber} />
 
             <div className="grid gap-5 lg:grid-cols-[1.35fr_1fr]">
                 {/* LEFT: patient + case */}
@@ -140,8 +140,9 @@ export default function EditCaseForm(props: Props) {
                                 <button
                                     key={p.type}
                                     type="button"
-                                    onClick={() => setPatientType(p.type)}
-                                    className={`rounded-md px-5 py-2 text-sm font-medium transition-colors ${patientType === p.type ? p.active : "text-gray-600 hover:bg-gray-100"
+                                    disabled
+                                    title="The patient type of a saved case report cannot be changed."
+                                    className={`rounded-md px-5 py-2 text-sm font-medium ${patientType === p.type ? p.active : "cursor-not-allowed text-gray-400"
                                         }`}
                                 >
                                     {p.label}
@@ -150,16 +151,20 @@ export default function EditCaseForm(props: Props) {
                         </div>
                     </div>
 
-                    <Field label={isStudent ? "Student *" : "Employee *"}>
-                        <SuggestInput
-                            key={patientType}
-                            name="patientNumber"
-                            defaultValue={numberDefault}
-                            suggestions={people.map((p) => ({ value: p.number, label: p.name }))}
-                            placeholder={isStudent ? "Search student by name or number..." : "Search employee by name or number..."}
-                            required
-                            className={inputClass}
-                        />
+                    <Field label={isStudent ? "Student" : "Employee"}>
+                        {/* Naka-lock: hindi mailipat ang case report sa ibang pasyente */}
+                        <div className="relative">
+                            <input
+                                value={patientName ? `${props.patientNumber} · ${patientName}` : props.patientNumber}
+                                readOnly
+                                aria-readonly="true"
+                                className={`${inputClass} cursor-not-allowed bg-gray-50 pr-11 text-gray-700`}
+                            />
+                            <Lock className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+                        </div>
+                        <span className="block text-sm text-gray-600">
+                            The patient cannot be changed. To record for another patient, create a new case report.
+                        </span>
                     </Field>
 
                     {/* Petsa at oras: magkatabi, gaya ng Log Clinic Visit */}

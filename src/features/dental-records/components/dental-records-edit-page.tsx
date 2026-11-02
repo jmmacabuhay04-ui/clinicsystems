@@ -3,10 +3,20 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
-import { canManageDental } from "@/lib/permissions";
 import DentalForm, { type DentalValues, type PersonOption } from "./dental-form";
 
 const BASE = "/dashboard/dental-records";
+
+/**
+ * Dentist at Nurse LANG ang puwedeng gumawa, mag-edit, mag-archive o magbura
+ * ng dental record. Hindi kasama ang Doctor. Sinusuri dito mismo (hindi lang
+ * sa permissions) para siguradong hindi makakalusot.
+ */
+function isDentalEditor(role: unknown) {
+    const r = String(role ?? "").trim().toLowerCase();
+    return r === "dentist" || r === "nurse";
+}
+
 
 type Row = {
     dental_id: number;
@@ -29,7 +39,7 @@ type Props = {
 export default async function EditDentalRecordPage({ searchParams }: Props) {
     const session = await getSession();
     if (!session) redirect("/login");
-    if (!canManageDental(session.role)) redirect(BASE);
+    if (!isDentalEditor(session.role)) redirect(BASE);
 
     const { record: recordParam = "", back = "" } = await searchParams;
     // Galing sa Dental Records tab ng health record: doon babalik
@@ -93,6 +103,8 @@ export default async function EditDentalRecordPage({ searchParams }: Props) {
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="min-w-0">
                     <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">Edit Dental Record</h1>
+                    {/* Record number sa ilalim ng title */}
+                    <p className="mt-0.5 text-sm font-semibold text-[#15664f]">Record #{row.dental_id}</p>
                     <p className="text-sm text-gray-600">Update the procedure, tooth, and status of this dental visit.</p>
                 </div>
                 {/* Kung kaninong record ito */}
@@ -107,7 +119,10 @@ export default async function EditDentalRecordPage({ searchParams }: Props) {
                         <p className="truncate text-sm font-semibold text-gray-900">
                             {row.last_name}, {row.first_name}
                         </p>
-                        <p className="text-sm text-gray-600">{row.patient_number}</p>
+                        <p className="text-sm text-gray-600">
+                            {row.patient_number} ·{" "}
+                            <span className="font-semibold text-[#15664f]">Record #{row.dental_id}</span>
+                        </p>
                     </div>
                     <span
                         className={`rounded-full px-2 py-0.5 text-sm font-semibold ${row.patient_type === "employee" ? "bg-amber-300 text-gray-900" : "bg-[#15664f] text-white"

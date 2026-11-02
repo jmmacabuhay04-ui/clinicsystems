@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowLeft, Search } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
+import { canViewHealthRecords } from "@/lib/permissions";
 import SearchInput from "@/components/shared/search-input";
 import AutoSubmitSelect from "@/components/shared/auto-submit-select";
 import ListPagination from "@/components/shared/list-pagination";
@@ -55,6 +56,8 @@ export default async function ClinicVisitsPage({
 }) {
     const session = await getSession();
     if (!session) redirect("/login");
+    // Health records: Admin, Nurse at Doctor lang (hindi ang Dentist)
+    if (!canViewHealthRecords(session.role)) redirect("/dashboard");
 
 
     // Dentists do not see clinic records (same rule as the dashboard).

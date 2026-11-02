@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { RETENTION_YEARS } from "@/lib/retention";
-import { canManageRecords } from "@/lib/permissions";
+import { canManageReferrals } from "@/lib/permissions";
 
 const BASE = "/dashboard/referral-slips";
 
@@ -20,7 +20,7 @@ function refresh() {
 export async function issueSlip(_prev: SlipState, formData: FormData): Promise<SlipState> {
     const session = await getSession();
     if (!session) return { error: "Your session has expired. Please sign in again." };
-    if (!canManageRecords(session.role)) return { error: "You cannot issue referral slips." };
+    if (!canManageReferrals(session.role)) return { error: "You cannot issue referral slips." };
 
     const get = (key: string) => String(formData.get(key) ?? "").trim();
 
@@ -69,7 +69,7 @@ export async function issueSlip(_prev: SlipState, formData: FormData): Promise<S
 
 export async function markReceived(formData: FormData) {
     const session = await getSession();
-    if (!session || !canManageRecords(session.role)) return;
+    if (!session || !canManageReferrals(session.role)) return;
 
     const slipId = Number(formData.get("slipId"));
     if (!slipId) return;
@@ -84,7 +84,7 @@ export async function markReceived(formData: FormData) {
 
 export async function archiveSlip(formData: FormData) {
     const session = await getSession();
-    if (!session || !canManageRecords(session.role)) return;
+    if (!session || !canManageReferrals(session.role)) return;
 
     const slipId = Number(formData.get("slipId"));
     if (!slipId) return;
@@ -99,7 +99,7 @@ export async function archiveSlip(formData: FormData) {
 }
 export async function restoreSlip(formData: FormData) {
     const session = await getSession();
-    if (!session || !canManageRecords(session.role)) return;
+    if (!session || !canManageReferrals(session.role)) return;
 
     const slipId = Number(formData.get("slipId"));
     if (!slipId) return;
@@ -116,7 +116,7 @@ export async function restoreSlip(formData: FormData) {
 
 export async function deleteSlip(formData: FormData) {
     const session = await getSession();
-    if (!session || !canManageRecords(session.role)) return;
+    if (!session || !canManageReferrals(session.role)) return;
 
     const slipId = Number(formData.get("slipId"));
     if (!slipId) return;

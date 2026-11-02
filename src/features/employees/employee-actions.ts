@@ -23,7 +23,14 @@ function actorOf(session: { userId: unknown; role: string; username?: unknown })
     };
 }
 
-export type EmployeeState = { error?: string; values?: Record<string, string> };
+export type EmployeeState = {
+    error?: string;
+    values?: Record<string, string>;
+    /** Success message na ipapakita sa form bago lumipat ng page. */
+    success?: string;
+    /** Saan pupunta pagkatapos ipakita ang success message. */
+    redirectTo?: string;
+};
 
 function readValues(formData: FormData) {
     const get = (key: string) => String(formData.get(key) ?? "").trim();
@@ -32,8 +39,9 @@ function readValues(formData: FormData) {
         lastName: get("lastName"),
         firstName: get("firstName"),
         middleName: get("middleName"),
-        department: get("department"),
-        position: get("position"),
+        // Laging capital letter (hal. "college department" -> "COLLEGE DEPARTMENT")
+        department: get("department").toUpperCase(),
+        position: get("position").toUpperCase(),
         dateOfBirth: get("dateOfBirth"),
         gender: get("gender"),
         contactNumber: get("contactNumber").replace(/[\s-]/g, ""),
@@ -258,7 +266,17 @@ export async function updateEmployee(
 
     revalidatePath(BASE);
     revalidatePath(EMPLOYEES);
-    redirect(`${EMPLOYEES}?saved=${encodeURIComponent(values.employeeNumber)}`);
+
+    // Hindi agad nagre-redirect: ipapakita muna ng form ang message nang 3 segundo,
+    // tapos ang form na mismo ang lilipat sa Employees list.
+    return {
+        values,
+        success: `Employee ${values.employeeNumber} was saved.`,
+        // Galing sa Health Record ng employee: doon babalik (gaya ng Archive)
+        redirectTo: String(formData.get("returnTo") ?? "").startsWith("/dashboard/")
+            ? String(formData.get("returnTo"))
+            : EMPLOYEES,
+    };
 }
 
 export async function archiveEmployee(formData: FormData) {

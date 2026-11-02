@@ -7,7 +7,6 @@ import {
     Archive,
     Briefcase,
     ChevronDown,
-    ChevronRight,
     ClipboardList,
     FileCheck,
     FileText,
@@ -82,9 +81,9 @@ const navItems: NavEntry[] = [
         icon: ClipboardCheck,
         section: "Health Records",
         children: [
-            { href: "/dashboard/student-health-records", label: "Student Health Records", icon: Stethoscope, roles: ["admin", "doctor", "nurse"] },
-            { href: "/dashboard/employee-health-records", label: "Employee Health Records", icon: Stethoscope, roles: ["admin", "doctor", "nurse"] },
-            { href: "/dashboard/dental-records", label: "Dental Records", icon: ToothIcon, roles: ["admin", "dentist", "nurse"] },
+            { href: "/dashboard/student-health-records", label: "Student Health Records", icon: Stethoscope, roles: ["admin", "doctor", "nurse", "dentist"] },
+            { href: "/dashboard/employee-health-records", label: "Employee Health Records", icon: Stethoscope, roles: ["admin", "doctor", "nurse", "dentist"] },
+            // Dental records: makikita sa Dental Records tab ng health record ng pasyente at sa Dental Case Reports
         ],
     },
     // ALL FORMS -> isang dropdown
@@ -100,7 +99,15 @@ const navItems: NavEntry[] = [
         ],
     },
 
-    { href: "/dashboard/health-case-reports", label: "Health Case Reports", icon: ClipboardList, roles: ["admin", "nurse", "doctor"], section: "Health Records" },
+    // Case Reports -> isang dropdown (Doctor: Health lang; Dentist: Dental lang -> normal na link)
+    {
+        label: "Reports",
+        icon: ClipboardList,
+        section: "Health Records",
+        children: [
+            { href: "/dashboard/health-case-reports", label: "Report", icon: ClipboardList, roles: ["admin", "nurse", "doctor", "dentist"] }, // Dentist: Dental tab lang
+        ],
+    },
     { href: "/dashboard/illness-alerts", label: "Illness Alerts", icon: BarChart3, roles: ["admin", "nurse", "doctor"], section: "Health Records" },
     { href: "/dashboard/visitor-recording", label: "Visitor Recording", icon: Users, roles: ["admin", "nurse", "doctor", "dentist"], section: "Clinic" },
     { href: "/dashboard/referral-slips", label: "Referral Slips", icon: FileCheck, roles: ["admin", "nurse", "dentist", "doctor"], section: "Clinic" },
@@ -468,12 +475,6 @@ export default function AdminSidebar({ username, displayName: savedName, role, a
                                             strokeWidth={1.8}
                                         />
                                         <span className={`truncate ${collapsed ? "md:hidden" : ""}`}>{item.label}</span>
-                                        {item.href !== "/dashboard" && (
-                                            <ChevronRight
-                                                aria-hidden="true"
-                                                className={`ml-auto h-4 w-4 shrink-0 text-white/50 ${collapsed ? "md:hidden" : ""}`}
-                                            />
-                                        )}
                                     </Link>
                                 </div>
                             );

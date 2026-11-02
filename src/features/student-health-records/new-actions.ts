@@ -212,5 +212,6 @@ export async function addHealthRecord(_prev: RecordState, formData: FormData): P
     revalidatePath("/dashboard/health-case-reports");
     revalidatePath("/dashboard/illness-alerts");
     revalidatePath("/dashboard");
-    redirect(`/dashboard/student-health-records?student=${encodeURIComponent(studentNumber)}`);
+    // Pagka-save: diretso sa Health Case Reports (nasa itaas ang bagong case)
+    redirect("/dashboard/health-case-reports");
 }
