@@ -57,7 +57,7 @@ const COMMON_PROCEDURES = [
 ];
 
 const BASE = "/dashboard/health-case-reports";
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 20;
 const STATUSES = ["pending", "referred", "resolved"];
 // Mga diagnosis na pagpipilian sa New/Edit Case Report form. Lagi itong nasa Diagnosis filter,
 // kahit wala pang case report na may ganitong diagnosis.

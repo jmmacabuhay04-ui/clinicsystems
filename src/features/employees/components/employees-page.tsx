@@ -14,7 +14,7 @@ import UnauthorizedAccess from "@/components/shared/unauthorized-access";
 
 const BASE = "/dashboard/employees";
 const RECORDS = "/dashboard/employee-health-records";
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 20;
 
 type EmployeeRow = {
     employee_id: number;

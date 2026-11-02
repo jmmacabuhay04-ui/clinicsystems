@@ -8,7 +8,7 @@ import { studentRepository } from "./repository";
 import { toStudentInput, validateStudent } from "./schema";
 import type { Actor, StudentFilters } from "./types";
 
-export const STUDENTS_PAGE_SIZE = 10;
+export const STUDENTS_PAGE_SIZE = 20;
 
 /** Re-authentication: the staff member must type their own password. */
 async function verifyStaffPassword(userId: number, input: string) {

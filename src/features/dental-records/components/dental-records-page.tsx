@@ -24,7 +24,7 @@ function isDentalEditor(role: unknown) {
     return r === "dentist" || r === "nurse";
 }
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 20;
 
 type DentalRow = {
     dental_id: number;
