@@ -161,7 +161,8 @@ const TREND_SERIES = [
 function TrendLineChart({ data }: { data: DayPoint[] }) {
     return (
         <>
-            <TrendSvg data={data} W={900} H={250} gradientId="illness-area-lg" className="hidden h-auto max-h-[270px] w-full sm:block" />
+            {/* Mas mataas na chart para may luwag ang mga numero sa gilid (0, 2, 4, ...) */}
+            <TrendSvg data={data} W={900} H={360} gradientId="illness-area-lg" className="hidden h-auto w-full sm:block" />
             <TrendSvg data={data} W={340} H={330} gradientId="illness-area-sm" className="h-auto w-full sm:hidden" />
 
             {/* Legend sa ibaba */}

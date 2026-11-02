@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { Check, Printer, Search, Send, X } from "lucide-react";
 import { issueSlip, type SlipState } from "@/features/referral-slips/actions";
@@ -70,13 +70,17 @@ export default function ReferralForm({ slipType, students, today, timeNow }: Pro
     const [teacherName, setTeacherName] = useState("");
     const [subject, setSubject] = useState("");
     const [reason, setReason] = useState("");
-    const [mounted, setMounted] = useState(false);
     const [selected, setSelected] = useState<StudentOption | null>(null);
     const [open, setOpen] = useState(false);
     const [submitKey, setSubmitKey] = useState(0);
     const boxRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => setMounted(true), []);
+    // true lang sa browser (para sa createPortal); walang setState sa loob ng useEffect
+    const mounted = useSyncExternalStore(
+        () => () => { },
+        () => true,
+        () => false,
+    );
 
     // Isara ang dropdown kapag nag-click sa labas
     useEffect(() => {
@@ -134,6 +138,8 @@ export default function ReferralForm({ slipType, students, today, timeNow }: Pro
                     setSubmitKey((k) => k + 1);
                     formAction(formData);
                 }}
+                // Huwag magmungkahi ang browser ng mga dating na-type (autofill bubble)
+                autoComplete="off"
                 className="space-y-5"
             >
                 {state.error && (
@@ -151,7 +157,7 @@ export default function ReferralForm({ slipType, students, today, timeNow }: Pro
                 <div ref={boxRef} className="relative space-y-1.5">
                     <span className="block text-sm font-semibold text-gray-800">Student *</span>
                     <div className="relative">
-                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-600" />
                         <input
                             value={query}
                             onChange={(e) => {
@@ -170,7 +176,7 @@ export default function ReferralForm({ slipType, students, today, timeNow }: Pro
                                 type="button"
                                 onClick={clearStudent}
                                 aria-label="Clear student"
-                                className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                                className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-600"
                             >
                                 <X className="h-4 w-4" />
                             </button>
@@ -180,7 +186,7 @@ export default function ReferralForm({ slipType, students, today, timeNow }: Pro
                     {open && !selected && (
                         <ul className="absolute left-0 right-0 top-full z-20 mt-1 max-h-72 overflow-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
                             {results.length === 0 && (
-                                <li className="px-3 py-3 text-center text-sm text-gray-500">No students found.</li>
+                                <li className="px-3 py-3 text-center text-sm text-gray-600">No students found.</li>
                             )}
                             {results.map((s) => (
                                 <li key={s.student_number}>
@@ -189,14 +195,14 @@ export default function ReferralForm({ slipType, students, today, timeNow }: Pro
                                         onClick={() => pick(s)}
                                         className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-[#eef6f2]"
                                     >
-                                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#eef6f2] text-xs font-bold text-[#15664f]">
+                                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#eef6f2] text-sm font-semibold text-[#15664f]">
                                             {`${s.first_name[0] ?? ""}${s.last_name[0] ?? ""}`.toUpperCase()}
                                         </span>
                                         <span className="min-w-0 flex-1">
                                             <span className="block truncate text-sm font-semibold text-gray-900">
                                                 {s.first_name} {s.last_name}
                                             </span>
-                                            <span className="block truncate text-xs text-gray-500">
+                                            <span className="block truncate text-sm text-gray-600">
                                                 {s.student_number}
                                                 {s.program || s.grade_level
                                                     ? ` · ${[s.program, s.grade_level].filter(Boolean).join(" ")}`
@@ -210,7 +216,7 @@ export default function ReferralForm({ slipType, students, today, timeNow }: Pro
                     )}
 
                     {selected && (
-                        <p className="inline-flex items-center gap-1 text-xs font-medium text-[#15664f]">
+                        <p className="inline-flex items-center gap-1 text-sm font-medium text-[#15664f]">
                             <Check className="h-3.5 w-3.5" /> Student selected
                         </p>
                     )}
@@ -229,6 +235,7 @@ export default function ReferralForm({ slipType, students, today, timeNow }: Pro
                     <Field label="Section">
                         <input
                             name="section"
+                            autoComplete="off"
                             value={section}
                             onChange={(e) => setSection(e.target.value)}
                             placeholder="e.g. 2A"
@@ -243,6 +250,7 @@ export default function ReferralForm({ slipType, students, today, timeNow }: Pro
                         <Field label="Teacher Name">
                             <input
                                 name="teacherName"
+                                autoComplete="off"
                                 value={teacherName}
                                 onChange={(e) => setTeacherName(e.target.value)}
                                 placeholder="Enter teacher name"
@@ -253,6 +261,7 @@ export default function ReferralForm({ slipType, students, today, timeNow }: Pro
                         <Field label="Subject/Class">
                             <input
                                 name="subject"
+                                autoComplete="off"
                                 value={subject}
                                 onChange={(e) => setSubject(e.target.value)}
                                 placeholder="Enter subject or class"
@@ -270,6 +279,7 @@ export default function ReferralForm({ slipType, students, today, timeNow }: Pro
                 >
                     <textarea
                         name="reason"
+                        autoComplete="off"
                         value={reason}
                         onChange={(e) => setReason(e.target.value)}
                         rows={4}
@@ -283,7 +293,7 @@ export default function ReferralForm({ slipType, students, today, timeNow }: Pro
                         suppressHydrationWarning
                         className="w-full rounded-lg border border-gray-300 bg-white p-3 text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20"
                     />
-                    <span className="block text-right text-xs text-gray-400">{reason.length}/500</span>
+                    <span className="block text-right text-sm text-gray-600">{reason.length}/500</span>
                 </Field>
 
                 <div className="flex flex-wrap gap-3">
@@ -308,7 +318,7 @@ export default function ReferralForm({ slipType, students, today, timeNow }: Pro
                 </div>
 
                 {!match && (
-                    <p className="text-xs text-gray-500">Select a student from the list to enable issuing and printing.</p>
+                    <p className="text-sm text-gray-600">Select a student from the list to enable issuing and printing.</p>
                 )}
             </form>
 
@@ -317,6 +327,8 @@ export default function ReferralForm({ slipType, students, today, timeNow }: Pro
                 createPortal(
                     <div id="printable-slip" className="hidden text-black">
                         <div className="text-center">
+                            {/* Simpleng <img> sa naka-print na slip (hindi kailangan ng next/image dito) */}
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                                 src="/bcas.jpg"
                                 alt="BCAS"
