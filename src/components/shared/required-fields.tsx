@@ -54,15 +54,21 @@ function eligible(el: Field) {
 /** Lalagyan ng field (kasama ang mga icon), para sa ilalim nito ilalagay ang error */
 function fieldBox(el: Field): HTMLElement {
     if (el instanceof HTMLInputElement && el.type === "radio") return radioGroup(el);
-    const parent = el.parentElement;
-    if (
+    // Umakyat sa lahat ng "relative" na lalagyan na iisa lang ang field (hal. may icon sa
+    // kaliwa at mata sa kanan). Sa labas nila ilalagay ang error, para hindi gumalaw ang
+    // mga icon na naka-gitna (top-1/2) sa lalagyan.
+    let box: HTMLElement = el;
+    let parent = el.parentElement;
+    while (
         parent &&
+        parent !== el.form &&
         parent.classList.contains("relative") &&
         parent.querySelectorAll("input:not([type=hidden]), textarea, select").length === 1
     ) {
-        return parent;
+        box = parent;
+        parent = parent.parentElement;
     }
-    return el;
+    return box;
 }
 
 /** Ang pinakamaliit na lalagyan na may lahat ng radio na kapareho ng pangalan */

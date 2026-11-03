@@ -13,12 +13,20 @@ export type CaseState = {
     values?: Record<string, string>;
 };
 
-async function nextCaseNumber(year: number) {
+type Tx = {
+    $queryRaw: <T = unknown>(query: TemplateStringsArray, ...values: unknown[]) => PromiseLike<T>;
+    $executeRaw: (query: TemplateStringsArray, ...values: unknown[]) => PromiseLike<number>;
+};
+
+async function nextCaseNumber(tx: Tx, year: number) {
     const prefix = `${year}-`;
-    const rows = await prisma.$queryRaw<{ case_number: string }[]>`
+    // Isa-isa ang pagkuha ng numero (walang dobleng case number kahit sabay mag-save ang dalawang nurse)
+    await tx.$queryRaw`SELECT pg_advisory_xact_lock(424242)::text`;
+    const rows = await tx.$queryRaw<{ case_number: string }[]>`
     SELECT case_number FROM health_case_reports
     WHERE case_number LIKE ${prefix + "%"}
-    ORDER BY case_number DESC
+    -- Numero ang ayos (para tama pa rin pagdating sa 2026-1000)
+    ORDER BY LENGTH(case_number) DESC, case_number DESC
     LIMIT 1
   `;
 
@@ -63,7 +71,6 @@ export async function createCaseReport(
     if (reportTime && !/^([01]\d|2[0-3]):[0-5]\d$/.test(reportTime)) return fail("Enter a valid time.");
     if (!["pending", "referred", "resolved"].includes(status)) return fail("Select a valid status.");
 
-    let caseNumber = "";
 
     try {
         // Look the patient up in the table that matches the chosen type.
@@ -88,19 +95,22 @@ export async function createCaseReport(
             if (!employeeId) return fail(`No active employee found with number ${patientNumber}.`);
         }
 
-        caseNumber = await nextCaseNumber(Number(reportDate.slice(0, 4)));
+        // Kunin ang numero at i-save sa iisang transaction (kasama ang lock)
+        await prisma.$transaction(async (tx) => {
+            const num = await nextCaseNumber(tx, Number(reportDate.slice(0, 4)));
 
-        // Exactly one of student_id / employee_id is set; the other stays NULL.
-        await prisma.$executeRaw`
+            // Exactly one of student_id / employee_id is set; the other stays NULL.
+            await tx.$executeRaw`
       INSERT INTO health_case_reports
         (case_number, student_id, employee_id, complaint, report_date, report_time,
          staff_name, status, notes, action_taken, recorded_by)
       VALUES
-        (${caseNumber}, ${studentId}, ${employeeId}, ${complaint},
+        (${num}, ${studentId}, ${employeeId}, ${complaint},
          CAST(${reportDate} AS DATE), CAST(NULLIF(${reportTime}, '') AS TIME),
          ${staffName || null}, ${status},
          ${notes || null}, ${actionTaken || null}, ${session.userId})
     `;
+        });
     } catch (err) {
         console.error("Create case report error:", err);
         return fail("Could not save the case report. Please try again.");

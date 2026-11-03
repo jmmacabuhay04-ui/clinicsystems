@@ -20,9 +20,9 @@ async function requireManager() {
     if (!session) redirect("/login");
     if (session.role !== "admin" && session.role !== "ittech") redirect("/dashboard");
 
-    const s = session as any;
-    const id = Number(s.userId ?? s.user_id ?? s.id ?? 0);
-    const name = String(s.username ?? s.email ?? "").trim().toLowerCase();
+    // Walang `any`: SessionPayload ay may userId at username
+    const id = Number(session.userId ?? 0);
+    const name = String(session.username ?? "").trim().toLowerCase();
 
     const actor = id
         ? await prisma.user.findUnique({ where: { user_id: id } })
@@ -154,9 +154,10 @@ export async function confirmDeleteOtp(formData: FormData) {
     let result = "deleted";
     try {
         await prisma.user.delete({ where: { user_id: userId } });
-    } catch (e: any) {
+    } catch (e) {
         // P2003 = may linked records (foreign key)
-        result = e?.code === "P2003" ? "linked" : "deletefailed";
+        const code = (e as { code?: string } | null)?.code;
+        result = code === "P2003" ? "linked" : "deletefailed";
     }
 
     revalidatePath(BACK);

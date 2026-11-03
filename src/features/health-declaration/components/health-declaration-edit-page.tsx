@@ -72,7 +72,7 @@ export default async function EditHealthDeclarationPage({ searchParams }: Props)
         symptomNotes: text(form?.symptom_notes),
         medicines: text(form?.medicines),
         certifiedBy: text(form?.certified_by),
-        declarationDate: dateStr(form?.declaration_date) || new Date().toISOString().slice(0, 10),
+        declarationDate: dateStr(form?.declaration_date) || new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date()) /* petsa ngayon sa Manila (UTC ang Vercel) */,
     };
 
     const middle = student.middle_name ? ` ${student.middle_name}` : "";

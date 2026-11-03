@@ -233,11 +233,6 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
                     <FlashMessage clearParam="saved">Health record saved.</FlashMessage>
                 </div>
             )}
-            {!canEdit && (
-                <p className="no-print rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-                    View only. You can view this form but cannot edit or print it.
-                </p>
-            )}
 
             <div className="grid gap-4 lg:grid-cols-[340px_minmax(0,1fr)] lg:gap-6">
                 <PersonPicker
@@ -574,7 +569,7 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
                                                     <span className="text-sm font-medium text-gray-600">
                                                         Physician&apos;s Signature
                                                     </span>
-                                                    <input
+                                                    <input required
                                                         name="physicianSignature"
                                                         maxLength={100}
                                                         suppressHydrationWarning
@@ -589,7 +584,7 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
                                                         <span className="text-sm font-medium text-gray-600">
                                                             {item.label}
                                                         </span>
-                                                        <input
+                                                        <input required
                                                             name={`pe_${item.key}`}
                                                             suppressHydrationWarning
                                                             className={inputClass}
@@ -739,7 +734,7 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
                                                     <span className="text-sm font-medium text-gray-600">
                                                         Physician&apos;s Signature
                                                     </span>
-                                                    <input
+                                                    <input required
                                                         name="physicianSignature"
                                                         maxLength={100}
                                                         suppressHydrationWarning
@@ -751,7 +746,7 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
                                                 <span className="text-sm font-medium text-gray-600">
                                                     Findings / Conclusions
                                                 </span>
-                                                <textarea
+                                                <textarea required
                                                     name="findings"
                                                     rows={3}
                                                     suppressHydrationWarning
@@ -760,7 +755,7 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
                                             </label>
                                             <label className="block space-y-1.5">
                                                 <span className="text-sm font-medium text-gray-600">Recommendations</span>
-                                                <textarea
+                                                <textarea required
                                                     name="recommendations"
                                                     rows={3}
                                                     suppressHydrationWarning

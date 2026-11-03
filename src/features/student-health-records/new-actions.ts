@@ -36,10 +36,13 @@ type VisitCase = {
 
 async function nextCaseNumber(tx: Tx, year: number) {
     const prefix = `${year}-`;
+    // Isa-isa ang pagkuha ng numero (walang dobleng case number kahit sabay mag-save ang dalawang nurse)
+    await tx.$queryRaw`SELECT pg_advisory_xact_lock(424242)::text`;
     const rows = await tx.$queryRaw<{ case_number: string }[]>`
     SELECT case_number FROM health_case_reports
     WHERE case_number LIKE ${prefix + "%"}
-    ORDER BY case_number DESC
+    -- Numero ang ayos (para tama pa rin pagdating sa 2026-1000)
+    ORDER BY LENGTH(case_number) DESC, case_number DESC
     LIMIT 1
   `;
 

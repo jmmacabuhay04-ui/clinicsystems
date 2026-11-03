@@ -141,9 +141,6 @@ export default async function ReferralSlipsPage({ searchParams }: Props) {
                         <CalendarDays className="h-4 w-4 text-[#15664f]" />
                         {longToday}
                     </span>
-                    {!canEdit && (
-                        <span className="rounded-full bg-gray-200 px-3 py-1 text-sm font-medium text-gray-600">View only</span>
-                    )}
                 </div>
             </div>
 

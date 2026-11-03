@@ -200,11 +200,6 @@ export default async function StudentHealthFormPage({ searchParams }: Props) {
                     <FlashMessage clearParam="saved">Health form saved.</FlashMessage>
                 </div>
             )}
-            {!canEdit && (
-                <p className="no-print rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-                    View only. You can view this form but cannot edit or print it.
-                </p>
-            )}
 
             <div className="grid gap-4 lg:grid-cols-[340px_minmax(0,1fr)] lg:gap-6">
                 <aside className="no-print min-w-0 self-start rounded-xl border-2 border-[#cfe5d9] bg-white p-4 shadow-md shadow-[#15664f]/10">

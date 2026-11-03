@@ -86,9 +86,6 @@ export default async function VisitorRecordingPage() {
                         <CalendarDays className="h-4 w-4 text-[#15664f]" />
                         {longDate}
                     </span>
-                    {!canEdit && (
-                        <span className="rounded-full bg-gray-200 px-3 py-1 text-sm font-medium text-gray-600">View only</span>
-                    )}
                 </div>
             </div>
 

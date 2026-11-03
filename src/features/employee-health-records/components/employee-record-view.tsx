@@ -866,13 +866,6 @@ export default function EmployeeRecordView({
                         {dentalOnly ? "View the dental records of an employee." : "View and manage the health records of an employee."}
                     </p>
                 </div>
-                <div className="flex flex-wrap items-center gap-3">
-                    {!canEdit && !canEditEmployee && !dentalOnly && (
-                        <span className="rounded-full bg-gray-200 px-3 py-1 text-sm font-medium text-gray-600">
-                            View only
-                        </span>
-                    )}
-                </div>
             </div>
 
             <Link

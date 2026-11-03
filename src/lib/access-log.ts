@@ -87,7 +87,9 @@ export type AccessLogRow = {
 export async function getAccessLogs(limit = 200): Promise<AccessLogRow[]> {
     return prisma.$queryRaw<AccessLogRow[]>`
         SELECT l.id, l.actor_id, l.actor_role, l.actor_name, l.record_type,
-               l.record_id, l.action, l.detail, l.ip, l.created_at,
+               l.record_id, l.action, l.detail, l.ip,
+               -- Tamang oras kahit UTC (Supabase) o Manila (local PC) ang database
+               (l.created_at AT TIME ZONE current_setting('TimeZone')) AS created_at,
                COALESCE(s.student_number, e.employee_number) AS subject_number,
                CASE
                    WHEN s.student_id IS NOT NULL

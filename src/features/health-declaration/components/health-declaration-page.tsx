@@ -180,11 +180,6 @@ export default async function HealthDeclarationPage({ searchParams }: Props) {
                     <FlashMessage clearParam="saved">Declaration saved.</FlashMessage>
                 </div>
             )}
-            {!canEdit && (
-                <p className="no-print rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-                    View only. You can view this form but cannot edit or print it.
-                </p>
-            )}
 
             <div className="grid gap-4 lg:grid-cols-[340px_minmax(0,1fr)] lg:gap-6">
                 <PersonPicker

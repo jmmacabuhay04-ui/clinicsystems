@@ -868,13 +868,6 @@ export default function StudentRecordView({
                         {dentalOnly ? "View the dental records of a student." : "View and manage the health records of a student."}
                     </p>
                 </div>
-                <div className="flex flex-wrap items-center gap-3">
-                    {!canEdit && !canEditStudent && !dentalOnly && (
-                        <span className="rounded-full bg-gray-200 px-3 py-1 text-sm font-medium text-gray-600">
-                            View only
-                        </span>
-                    )}
-                </div>
             </div>
 
             <Link

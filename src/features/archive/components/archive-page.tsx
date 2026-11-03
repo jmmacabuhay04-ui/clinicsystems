@@ -397,7 +397,6 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
 
     const { q = "", notice, type = "all" } = await searchParams;
     const like = `%${q}%`;
-    const canEdit = canManageRecords(session.role) || canManageDental(session.role);
     const canEditStaff = canManageStaff(session.role);
     // Bawat seksyon ay may sariling pahintulot (kapareho ng server action nito),
     // para walang Restore/Delete button na lumalabas pero hindi gumagana.
@@ -1041,9 +1040,6 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                         </p>
                     </div>
                 </div>
-                {!canEdit && (
-                    <span className="rounded-full bg-gray-200 px-3 py-1 text-sm font-medium text-gray-600">View only</span>
-                )}
             </div>
 
             {notice === "deleted" && (

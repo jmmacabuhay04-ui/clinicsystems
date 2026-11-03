@@ -30,7 +30,7 @@ function fmt(date: Date) {
         year: "numeric",
         hour: "numeric",
         minute: "2-digit",
-        timeZone: "UTC",
+        timeZone: "Asia/Manila",
     });
 }
 
@@ -47,7 +47,9 @@ export default async function PasswordRequestsPage({ searchParams }: Props) {
     const { done, error } = await searchParams;
 
     const requests = await prisma.$queryRaw<RequestRow[]>`
-        SELECT r.request_id, r.note, r.created_at,
+        SELECT r.request_id, r.note,
+               -- Tamang oras kahit UTC (Supabase) o Manila (local PC) ang database
+               (r.created_at AT TIME ZONE current_setting('TimeZone')) AS created_at,
                CASE WHEN r.student_id IS NOT NULL THEN 'Student' ELSE 'Employee' END AS patient_type,
                COALESCE(s.student_number, e.employee_number) AS id_number,
                COALESCE(s.last_name, e.last_name) AS last_name,

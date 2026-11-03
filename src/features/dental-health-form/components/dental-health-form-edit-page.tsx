@@ -106,7 +106,7 @@ export default async function EditDentalHealthFormPage({ searchParams }: Props) 
         remarks: form?.remarks ?? "",
         examDate: form?.exam_date
             ? new Date(form.exam_date).toISOString().slice(0, 10)
-            : new Date().toISOString().slice(0, 10),
+            : new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date()) /* petsa ngayon sa Manila (UTC ang Vercel) */,
         examinedBy: onDuty,
     };
 

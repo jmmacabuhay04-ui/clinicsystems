@@ -398,9 +398,7 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
                         <Plus className="h-4 w-4" />
                         New Case Report
                     </ConfirmLink>
-                ) : (
-                    <span className="rounded-full bg-gray-200 px-3 py-1 text-sm font-medium text-gray-600">View only</span>
-                )}
+                ) : null}
             </div>
 
             {/* Tabs: Health | Dental (lalabas lang kapag may access sa dalawa, hal. Nurse at Admin) */}

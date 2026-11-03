@@ -159,15 +159,14 @@ export async function deleteUser(formData: FormData) {
     if (!userId) redirect(`${BACK}?reset=invalid`);
 
     // Block deleting your own account (checks the common session field names)
-    const s = session as any;
-    const myId = Number(s.userId ?? s.user_id ?? s.id ?? 0);
+    const myId = Number(session.userId ?? 0);
     if (myId && userId === myId) redirect(`${BACK}?reset=self`);
 
     const target = await prisma.user.findUnique({ where: { user_id: userId } });
     if (!target) redirect(`${BACK}?reset=notfound`);
 
     // Fallback self-check by email, in case the session has no id field
-    const myName = String(s.username ?? s.email ?? "").toLowerCase();
+    const myName = String(session.username ?? "").toLowerCase();
     if (myName && target.username.toLowerCase() === myName) redirect(`${BACK}?reset=self`);
 
     // Security: Administrator lang ang puwedeng magbura ng Administrator account
@@ -181,9 +180,10 @@ export async function deleteUser(formData: FormData) {
     let result = "deleted";
     try {
         await prisma.user.delete({ where: { user_id: userId } });
-    } catch (e: any) {
+    } catch (e) {
         // P2003 = linked records (foreign key)
-        result = e?.code === "P2003" ? "linked" : "deletefailed";
+        const code = (e as { code?: string } | null)?.code;
+        result = code === "P2003" ? "linked" : "deletefailed";
     }
 
     revalidatePath(BACK);
