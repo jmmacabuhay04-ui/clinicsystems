@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
-import { canManageAccounts, canCreateAccounts } from "@/lib/permissions";
+import { canCreateAccounts } from "@/lib/permissions";
 import { validatePasswordStrength } from "@/lib/auth/password-policy";
 
 export type CreateUserState = {
@@ -46,6 +46,11 @@ export async function createUser(
     if (!email || !password || !role) return { error: "All fields are required." };
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "Enter a valid email address." };
     if (!ROLES.includes(role)) return { error: "Invalid role." };
+    // Security: Administrator lang ang puwedeng gumawa ng Administrator account
+    // (para hindi makagawa ang IT Tech ng account na may access sa lahat ng records)
+    if (role === "admin" && session.role !== "admin") {
+        return { error: "Only an Administrator can create Administrator accounts." };
+    }
 
     // Staff accounts can read every health record, so the policy matters most here.
     const passwordError = checkPassword(formData, password);
@@ -107,7 +112,7 @@ async function requireManager() {
 }
 
 export async function updateUser(formData: FormData) {
-    await requireManager();
+    const session = await requireManager();
 
     const userId = Number(formData.get("userId"));
     const username = String(formData.get("username") ?? "").trim().toLowerCase();
@@ -124,6 +129,13 @@ export async function updateUser(formData: FormData) {
         where: { username, NOT: { user_id: userId } },
     });
     if (taken) redirect(`${BACK}?reset=exists`);
+
+    // Security: hindi puwedeng palitan ang sariling role (hal. gawing Administrator ang sarili)
+    if (target.user_id === session.userId && role !== target.role) redirect(`${BACK}?reset=selfrole`);
+    // Security: Administrator lang ang puwedeng gumawa/magbago ng Administrator account
+    if ((role === "admin" || target.role === "admin") && session.role !== "admin") {
+        redirect(`${BACK}?reset=adminonly`);
+    }
 
     // Don't demote the last admin
     if (target.role === "admin" && role !== "admin") {
@@ -157,6 +169,9 @@ export async function deleteUser(formData: FormData) {
     // Fallback self-check by email, in case the session has no id field
     const myName = String(s.username ?? s.email ?? "").toLowerCase();
     if (myName && target.username.toLowerCase() === myName) redirect(`${BACK}?reset=self`);
+
+    // Security: Administrator lang ang puwedeng magbura ng Administrator account
+    if (target.role === "admin" && session.role !== "admin") redirect(`${BACK}?reset=adminonly`);
 
     if (target.role === "admin") {
         const admins = await prisma.user.count({ where: { role: "admin" } });

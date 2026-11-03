@@ -39,6 +39,8 @@ const notices: Record<string, { tone: "green" | "red"; text: string }> = {
     exists: { tone: "red", text: "That email is already used by another account." },
     self: { tone: "red", text: "You can't delete your own account." },
     lastadmin: { tone: "red", text: "You can't delete or demote the last Administrator." },
+    selfrole: { tone: "red", text: "You can't change your own role." },
+    adminonly: { tone: "red", text: "Only an Administrator can create, change or delete Administrator accounts." },
     linked: { tone: "red", text: "This account has linked records and can't be deleted." },
     deletefailed: { tone: "red", text: "Could not delete the account." },
     delsavefailed: { tone: "red", text: "Could not create the deletion request. Check the server terminal; the delete_account_requests table may be missing." },
@@ -162,7 +164,7 @@ export default async function UsersPage({ searchParams }: Props) {
                             <p className="text-sm text-gray-600">Add a clinic staff login.</p>
                         </div>
                     </div>
-                    <UserForm />
+                    <UserForm allowAdmin={session.role === "admin"} />
                 </section>
 
                 {/* All accounts */}
@@ -385,8 +387,10 @@ export default async function UsersPage({ searchParams }: Props) {
                                                                     suppressHydrationWarning
                                                                     className={`${smallInput} w-full sm:w-72`}
                                                                 />
-                                                                <select name="role" defaultValue={u.role} className={smallInput}>
-                                                                    <option value="admin">Administrator</option>
+                                                                <select required name="role" defaultValue={u.role} className={smallInput}>
+                                                                    {(session.role === "admin" || u.role === "admin") && (
+                                                                        <option value="admin">Administrator</option>
+                                                                    )}
                                                                     <option value="ittech">IT Technician</option>
                                                                     <option value="doctor">Doctor</option>
                                                                     <option value="nurse">Nurse</option>

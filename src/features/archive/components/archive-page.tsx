@@ -19,7 +19,7 @@ import {
 import { prisma } from "@/lib/prisma";
 import { InactiveBadge } from "@/components/shared/list-ui";
 import { getSession } from "@/lib/auth/session";
-import { canManageDental, canManageRecords, canManageStaff } from "@/lib/permissions";
+import { canManageDental, canManageRecords, canManageReferrals, canManageStaff, canManageStudents } from "@/lib/permissions";
 
 import ConfirmButton from "@/components/shared/confirm-button";
 import FlashMessage from "@/components/shared/flash-message";
@@ -399,6 +399,12 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
     const like = `%${q}%`;
     const canEdit = canManageRecords(session.role) || canManageDental(session.role);
     const canEditStaff = canManageStaff(session.role);
+    // Bawat seksyon ay may sariling pahintulot (kapareho ng server action nito),
+    // para walang Restore/Delete button na lumalabas pero hindi gumagana.
+    const canEditRecords = canManageRecords(session.role); // students, visits, health reports
+    const canEditEmployees = canManageStudents(session.role); // nurse lang
+    const canEditDental = canManageDental(session.role); // nurse, dentist
+    const canEditSlips = canManageReferrals(session.role); // nurse, doctor, dentist
 
     const [students, employees, records, employeeRecords, cases, dental, slips, staff] =
         await Promise.all([
@@ -531,7 +537,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                 <InactiveBadge key="status" />,
                 formatDate(s.archived_at),
             ],
-            actions: canEdit ? (
+            actions: canEditRecords ? (
                 <>
                     <RestoreForm
                         action={restoreStudent}
@@ -575,7 +581,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                 <InactiveBadge key="status" />,
                 formatDate(e.archived_at),
             ],
-            actions: canEdit ? (
+            actions: canEditEmployees ? (
                 <>
                     <RestoreForm
                         action={restoreEmployee}
@@ -620,7 +626,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                 </>,
                 formatDate(c.report_date),
             ],
-            actions: canEdit ? (
+            actions: canEditRecords ? (
                 <>
                     <RestoreForm
                         action={restoreCase}
@@ -662,7 +668,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                 r.complaint,
                 formatDate(r.visit_date),
             ],
-            actions: canEdit ? (
+            actions: canEditRecords ? (
                 <>
                     <RestoreForm
                         action={restoreRecord}
@@ -704,7 +710,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                 r.complaint,
                 formatDate(r.visit_date),
             ],
-            actions: canEdit ? (
+            actions: canEditRecords ? (
                 <>
                     <RestoreForm
                         action={restoreEmployeeRecord}
@@ -750,7 +756,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                 </>,
                 formatDate(d.visit_date),
             ],
-            actions: canEdit ? (
+            actions: canEditDental ? (
                 <>
                     <RestoreForm
                         action={restoreDental}
@@ -798,7 +804,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                 f.status,
                 formatDate(f.archived_at),
             ],
-            actions: canEdit ? (
+            actions: canEditSlips ? (
                 <>
                     <RestoreForm
                         action={restoreSlip}
@@ -878,7 +884,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
             title: "Archived Students",
             icon: GraduationCap as IconType,
             empty: "No archived students.",
-            showActions: canEdit,
+            showActions: canEditRecords,
             items: studentItems,
             columns: [
                 { label: "Student Number", nowrap: true, td: "font-medium text-gray-900" },
@@ -895,7 +901,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
             title: "Archived Employees",
             icon: Briefcase as IconType,
             empty: "No archived employees.",
-            showActions: canEdit,
+            showActions: canEditEmployees,
             items: employeeItems,
             columns: [
                 { label: "Employee Number", nowrap: true, td: "font-medium text-gray-900" },
@@ -912,7 +918,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
             title: "Archived Visit Records — Students",
             icon: Stethoscope as IconType,
             empty: "No archived visit records.",
-            showActions: canEdit,
+            showActions: canEditRecords,
             items: recordItems,
             columns: [
                 { label: "ID Number", td: "font-medium text-gray-900" },
@@ -927,7 +933,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
             title: "Archived Visit Records — Employees",
             icon: Stethoscope as IconType,
             empty: "No archived employee visit records.",
-            showActions: canEdit,
+            showActions: canEditRecords,
             items: employeeRecordItems,
             columns: [
                 { label: "ID Number", td: "font-medium text-gray-900" },
@@ -942,7 +948,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
             title: "Archived Health Reports",
             icon: ClipboardList as IconType,
             empty: "No archived case reports.",
-            showActions: canEdit,
+            showActions: canEditRecords,
             items: caseItems,
             columns: [
                 { label: "ID Number", td: "font-medium text-gray-900" },
@@ -957,7 +963,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
             title: "Archived Dental Reports",
             icon: ToothIcon as IconType,
             empty: "No archived dental records.",
-            showActions: canEdit,
+            showActions: canEditDental,
             items: dentalItems,
             columns: [
                 { label: "ID Number", td: "font-medium text-gray-900" },
@@ -972,7 +978,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
             title: "Archived Referral Slips",
             icon: FileText as IconType,
             empty: "No archived referral slips.",
-            showActions: canEdit,
+            showActions: canEditSlips,
             items: slipItems,
             columns: [
                 { label: "Student Number", nowrap: true, td: "font-medium text-gray-900" },

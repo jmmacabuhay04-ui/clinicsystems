@@ -47,13 +47,11 @@ next-env.d.ts
 .vercel
 .env*
 backup.sql
+
+# Patient data / database dumps: HUWAG i-commit
+*.sql.gz
 bcas-backup.sql
-*.sql.backup
-local-data.sql
-supabase-backup.sql
-local-data.sql
-supabase-backup.sql
-bcas-backup.sql
-supabase-backup.sql
-backup.sql
 data.sql
+local-data.sql
+supabase-backup.sql
+prisma/dumps/data.sql

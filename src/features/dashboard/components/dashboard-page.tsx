@@ -21,6 +21,7 @@ import NotificationBell from "@/components/shared/notification-bell";
 import StudentSearch from "./student-search";
 import ReasonTabs from "./reason-tabs";
 import { staffDisplayName } from "@/lib/display-name";
+import { canManageRecords } from "@/lib/permissions";
 
 type VisitRow = {
     record_id: number;
@@ -1209,7 +1210,9 @@ export default async function DashboardPage({
                 },
             ]
             : []),
-        ...(isDentist
+        // Admin ay view only: walang Log Clinic Visit / Add Dental / New Case Report
+        // (dati lumalabas ang mga ito pero ibinabalik lang si Admin sa listahan)
+        ...(isDentist || !canManageRecords(role)
             ? []
             : [
                 {
@@ -1227,7 +1230,6 @@ export default async function DashboardPage({
                         {
                             label: "Add Dental",
                             description: "Record a new dental visit",
-                            // TODO: i-check kung tama ang route na ito
                             href: "/dashboard/dental-records/new",
                             icon: ToothIcon,
                             cardClass: "border-gray-100 bg-white hover:border-[#15664f]/30 hover:bg-[#eef6f2] hover:shadow-md hover:shadow-[#15664f]/10",

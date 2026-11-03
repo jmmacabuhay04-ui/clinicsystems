@@ -11,7 +11,7 @@ const initialState: CreateUserState = {};
 const fieldClass =
     "h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20";
 
-export default function UserForm() {
+export default function UserForm({ allowAdmin = false }: { allowAdmin?: boolean }) {
     const [state, formAction, pending] = useActionState(createUser, initialState);
     // Nadadagdagan bawat submit para lumabas ulit ang 3-second message.
     const [submitKey, setSubmitKey] = useState(0);
@@ -71,7 +71,8 @@ export default function UserForm() {
                     suppressHydrationWarning
                     className={fieldClass}
                 >
-                    <option value="admin">Administrator</option>
+                    {/* Administrator lang ang puwedeng gumawa ng Administrator */}
+                    {allowAdmin && <option value="admin">Administrator</option>}
                     <option value="doctor">Doctor</option>
                     <option value="dentist">Dentist</option>
                     <option value="nurse">Nurse</option>

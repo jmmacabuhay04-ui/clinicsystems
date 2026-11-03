@@ -2,6 +2,7 @@
 
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
+import { checkLoginAllowed, clearLoginFailures, getClientIp, recordLoginFailure } from "@/lib/auth/login-guard";
 import { prisma } from "@/lib/prisma";
 
 export type VerifyState = { error?: string; success?: string };
@@ -25,9 +26,19 @@ export async function verifyAndReset(
     if (password.length < 8) return { error: "Password must be at least 8 characters." };
     if (password !== confirm) return { error: "Passwords do not match." };
 
+    // Security: limitado ang hula sa 6-digit code (5 mali = 15 minutong lock),
+    // para hindi ma-brute force ang 1,000,000 posibleng code.
+    const ip = await getClientIp();
+    const guardKey = `otp:${email}`;
+    const guard = await checkLoginAllowed(guardKey, ip);
+    if (guard.blocked) return { error: guard.message };
+
     try {
         const user = await prisma.user.findUnique({ where: { username: email } });
-        if (!user) return { error: "Invalid code. Please request a new one." };
+        if (!user) {
+            await recordLoginFailure(guardKey, ip);
+            return { error: "Invalid code. Please request a new one." };
+        }
 
         const codeHash = crypto.createHash("sha256").update(code).digest("hex");
 
@@ -40,7 +51,15 @@ export async function verifyAndReset(
     `;
         const record = rows[0];
 
-        if (!record) return { error: "Invalid code. Please check and try again." };
+        if (!record) {
+            const left = await recordLoginFailure(guardKey, ip);
+            return {
+                error:
+                    left > 0
+                        ? `Invalid code. ${left} attempt${left === 1 ? "" : "s"} left.`
+                        : "Too many wrong codes. Please wait 15 minutes and request a new code.",
+            };
+        }
         if (new Date(record.expires_at) < new Date()) {
             return { error: "This code has expired. Please request a new one." };
         }
@@ -56,6 +75,7 @@ export async function verifyAndReset(
         UPDATE password_reset_tokens SET used_at = NOW() WHERE id = ${record.id}
       `,
         ]);
+        await clearLoginFailures(guardKey, ip);
     } catch (err) {
         console.error("Verify OTP error:", err);
         return { error: "Something went wrong. Please try again." };

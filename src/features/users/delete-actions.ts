@@ -36,10 +36,12 @@ async function requireManager() {
 
 // Ibinabalik ang notice key kung bawal burahin ang account, o null kung puwede.
 async function deleteBlocker(
-    actorId: number,
+    actor: { user_id: number; role: string },
     target: { user_id: number; role: string }
 ): Promise<string | null> {
-    if (target.user_id === actorId) return "self";
+    if (target.user_id === actor.user_id) return "self";
+    // Security: Administrator lang ang puwedeng magbura ng Administrator account
+    if (target.role === "admin" && actor.role !== "admin") return "adminonly";
     if (target.role === "admin") {
         const admins = await prisma.user.count({ where: { role: "admin" } });
         if (admins <= 1) return "lastadmin";
@@ -58,7 +60,7 @@ export async function requestDeleteOtp(formData: FormData) {
     const target = await prisma.user.findUnique({ where: { user_id: userId } });
     if (!target) redirect(`${BACK}?reset=notfound`);
 
-    const blocked = await deleteBlocker(actor.user_id, target);
+    const blocked = await deleteBlocker(actor, target);
     if (blocked) redirect(`${BACK}?reset=${blocked}`);
 
     const otp = crypto.randomInt(0, 1000000).toString().padStart(6, "0");
@@ -146,7 +148,7 @@ export async function confirmDeleteOtp(formData: FormData) {
     const target = await prisma.user.findUnique({ where: { user_id: userId } });
     if (!target) redirect(`${BACK}?reset=notfound`);
 
-    const blocked = await deleteBlocker(actor.user_id, target);
+    const blocked = await deleteBlocker(actor, target);
     if (blocked) redirect(`${BACK}?reset=${blocked}`);
 
     let result = "deleted";
