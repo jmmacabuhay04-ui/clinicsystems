@@ -1,77 +1,96 @@
 import Image from "next/image";
 
-// Kaparehong layout ng Login: buong campus photo sa background,
-// at naka-float na card sa ibabaw. Ginagamit ng Forgot Password at Enter Code.
+// Itsura ng Forgot Password at Enter Code: KAPAREHO ng Log In page
+// (mint na background, malabong campus photo, green na alon, puting card).
 
-// Dark green na input, bagay sa card. May "!" para manalo laban sa global placeholder color sa globals.css.
+// Input: bilugan at mint, kapareho ng Log In
 export const authInputClass =
-    "h-12 w-full rounded-full border! border-white/40! bg-[#0f3a2c] px-5 text-base text-white outline-none transition-colors placeholder:text-white/60! hover:border-white/60! hover:bg-[#0c3226] focus:border-amber-300! focus:bg-[#0c3226] focus:ring-2 focus:ring-amber-300/30 md:text-sm";
+    "h-12 w-full rounded-full border border-transparent bg-[#eef6f2] px-5 text-base text-gray-900 outline-none transition placeholder:text-gray-500 hover:border-[#cfe5d9] focus:border-[#15664f] focus:bg-white focus:ring-4 focus:ring-[#15664f]/10 md:text-sm";
 
+// Green na button (kulay ng system)
 export const authButtonClass =
-    "group inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-amber-400 to-amber-300 px-4 text-base font-semibold text-[#0b2a20] shadow-lg shadow-black/20 transition-all hover:from-amber-300 hover:to-amber-200 hover:shadow-amber-400/30 active:scale-[0.99] disabled:opacity-60";
+    "group inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#15664f] px-4 text-sm font-semibold text-white shadow-lg shadow-[#15664f]/25 transition hover:bg-[#10523f] disabled:opacity-60";
+
+// Label sa itaas ng input
+export const authLabelClass = "block text-sm font-semibold text-gray-800";
+
+// Error at success na mensahe
+export const authErrorClass = "flex items-start gap-2 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700";
+export const authSuccessClass =
+    "flex items-start gap-2 rounded-2xl border border-green-200 bg-green-50 p-3 text-sm text-green-700";
+
+// Lumulutang na mensahe sa itaas ng screen (hindi tinutulak pababa ang form)
+export const authToastWrap = "pointer-events-none fixed inset-x-0 top-4 z-50 flex justify-center px-4 [&>*]:pointer-events-auto [&>*]:w-full [&>*]:max-w-sm [&>*]:shadow-lg";
+
+// Link sa ibaba (hal. Back to Sign In)
+export const authLinkClass = "font-semibold text-gray-600 hover:text-[#15664f] hover:underline";
 
 export default function AuthShell({
     title,
     subtitle,
+    eyebrow = "BCAS School Clinic",
     children,
 }: {
     title: string;
     subtitle: React.ReactNode;
+    eyebrow?: string;
     children: React.ReactNode;
 }) {
     const year = new Date().getFullYear();
 
     return (
-        <main className="relative min-h-screen overflow-hidden bg-[#1a5240]">
-            {/* BACKGROUND: buong campus photo, malinaw at buhay ang kulay */}
+        <main className="relative min-h-dvh bg-[#e7f3e2]">
+            {/* BACKGROUND: kapareho ng Log In; naka-"fixed" para hindi gumalaw kahit mag-scroll */}
             <div
                 aria-hidden
-                className="absolute inset-0 bg-cover bg-[position:30%_center] brightness-105 saturate-[1.15] max-lg:scale-110 max-lg:blur-[3px] lg:bg-center"
+                className="pointer-events-none fixed inset-0 scale-105 bg-cover bg-center blur-[2px]"
                 style={{ backgroundImage: "url('/bg.jpg')" }}
             />
-            {/* Bahagyang dilim lang sa kaliwa at ibaba para lumutang ang card at mabasa ang text */}
-            <div aria-hidden className="absolute inset-0 bg-gradient-to-r from-black/35 via-black/5 to-transparent" />
-            <div aria-hidden className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/55 to-transparent" />
-            {/* Phone/tablet: green na takip para malinis tingnan ang pinalaking photo at lumutang ang card */}
-            <div aria-hidden className="absolute inset-0 bg-gradient-to-b from-[#0f3a2c]/40 via-[#1a5240]/35 to-[#0f3a2c]/70 lg:hidden" />
+            <div
+                aria-hidden
+                className="pointer-events-none fixed inset-0 bg-gradient-to-br from-white/85 via-[#eef6f2]/75 to-[#e7f3e2]/70"
+            />
+            <div aria-hidden className="pointer-events-none fixed -left-24 top-1/4 h-96 w-96 rounded-full bg-white/60 blur-3xl" />
+            <div aria-hidden className="pointer-events-none fixed -right-20 bottom-0 h-80 w-80 rounded-full bg-[#15664f]/10 blur-3xl" />
+            <svg
+                aria-hidden
+                viewBox="0 0 400 200"
+                preserveAspectRatio="none"
+                className="pointer-events-none fixed bottom-0 left-0 h-28 w-2/3 sm:h-36 lg:h-44 lg:w-1/2"
+            >
+                <path d="M0 120 C 90 70, 190 90, 300 150 C 340 172, 370 188, 400 200 H0 Z" fill="#15664f" fillOpacity="0.9" />
+                <path d="M0 96 C 100 46, 200 66, 310 130 C 350 154, 380 176, 400 190" fill="none" stroke="#fbbf24" strokeWidth="4" />
+            </svg>
 
-            <div className="relative flex min-h-screen flex-col px-4 py-6 sm:px-8 lg:px-16 xl:px-24">
-                <div className="flex flex-1 items-center justify-center lg:justify-between lg:gap-12">
-                    {/* FLOATING CARD */}
-                    <section className="w-full max-w-[26.5rem] rounded-3xl border border-white/15 bg-[#1a5240]/90 px-6 pb-6 pt-8 shadow-2xl shadow-black/40 backdrop-blur-md sm:px-8 sm:pb-7 sm:pt-10">
-                        {/* Brand */}
-                        <div className="flex items-center gap-3">
-                            <Image
-                                src="/bcas.jpg"
-                                alt="BCAS logo"
-                                width={96}
-                                height={96}
-                                priority
-                                className="h-12 w-12 shrink-0 rounded-full bg-white object-contain ring-2 ring-white/30"
-                            />
-                            <div className="leading-tight">
-                                <p className="text-sm font-bold tracking-wide text-white">BCAS CLINIC</p>
-                                <p className="text-xs text-white/70">Health Record System</p>
-                            </div>
-                        </div>
+            {/* Nakapirmi ang card sa itaas (hindi naka-gitna): kapag may lumabas na error,
+                pababa lang ito hahaba at hindi gagalaw ang logo, pamagat at mga field */}
+            <div className="relative mx-auto flex min-h-dvh w-full max-w-6xl flex-col items-center gap-6 px-4 pb-6 pt-10 sm:px-8 sm:pt-[10vh]">
+                {/* Logo */}
+                <span className="relative block drop-shadow-[0_18px_24px_rgba(16,82,63,0.4)]">
+                    <Image
+                        src="/bcas.jpg"
+                        alt="BCAS logo"
+                        width={160}
+                        height={160}
+                        priority
+                        className="block h-20 w-20 rounded-full bg-white object-cover [clip-path:circle(49%)] sm:h-24 sm:w-24"
+                    />
+                </span>
 
-                        <h1 className="mt-7 text-3xl font-bold tracking-tight text-white">{title}</h1>
-                        <p className="mt-1.5 text-sm leading-relaxed text-white/70">{subtitle}</p>
-                        <div className="mt-7">{children}</div>
-                    </section>
+                {/* CARD: kapareho ng Log In card */}
+                <section className="relative w-full max-w-[440px] overflow-hidden rounded-3xl bg-white p-6 shadow-2xl shadow-[#15664f]/15 sm:p-10">
+                    <span aria-hidden className="absolute -right-16 -top-16 h-32 w-32 rounded-full bg-[#4f9a7c]/80" />
+                    <span aria-hidden className="absolute -right-6 -top-20 h-24 w-24 rounded-full bg-[#15664f]/20" />
 
-                    {/* Tagline sa kanang-ibaba (desktop lang) */}
-                    <div className="hidden max-w-md self-end pb-4 text-left lg:block">
-                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-300 drop-shadow">School Clinic</p>
-                        <p className="mt-2 text-3xl font-bold leading-snug text-white drop-shadow-lg">
-                            Caring for the health of every BCAS student and employee.
-                        </p>
+                    <div className="relative">
+                        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-gray-600">{eyebrow}</p>
+                        <h1 className="mt-2 text-3xl font-bold tracking-tight text-[#10523f] sm:text-4xl">{title}</h1>
+                        <p className="mt-3 text-sm leading-relaxed text-gray-600">{subtitle}</p>
+                        <div className="mt-8">{children}</div>
                     </div>
-                </div>
+                </section>
 
-                <p className="mt-6 text-center text-xs text-white/80 drop-shadow lg:text-left">
-                    © {year} Batangas College of Arts and Sciences · School Clinic
-                </p>
+                <p className="relative z-10 mt-auto rounded-full bg-white/70 px-3 py-1 text-center text-sm text-gray-600 backdrop-blur-sm">© {year} Batangas College of Arts and Sciences · School Clinic</p>
             </div>
         </main>
     );

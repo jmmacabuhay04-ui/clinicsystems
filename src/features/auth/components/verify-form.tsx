@@ -1,17 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { startTransition, useActionState } from "react";
 import { verifyAndReset, type VerifyState } from "@/features/auth/verify-otp-actions";
 import { AlertCircle, ArrowLeft, CheckCircle2 } from "lucide-react";
 import PasswordInput from "@/components/shared/password-input";
-import { authButtonClass, authInputClass } from "./auth-shell";
+import { authToastWrap, authButtonClass, authErrorClass, authInputClass, authLabelClass, authLinkClass, authSuccessClass } from "./auth-shell";
 
 const initialState: VerifyState = {};
 
 const inputClass = authInputClass;
-// Puting eye icon para kita sa madilim
-const eyeWrap = "block [&_button]:text-white/60 [&_button:hover]:text-white";
+// Mata (show password) na kulay ng system
+const eyeWrap = "block [&_button]:right-4 [&_button]:text-gray-600 [&_button:hover]:text-[#15664f]";
 
 export default function VerifyForm({ email }: { email: string }) {
     const [state, formAction, pending] = useActionState(verifyAndReset, initialState);
@@ -19,7 +19,7 @@ export default function VerifyForm({ email }: { email: string }) {
     if (state.success) {
         return (
             <div className="space-y-5">
-                <p className="flex items-start gap-2 rounded-2xl border border-emerald-300/40 bg-emerald-400/15 p-3 text-sm text-emerald-100">
+                <p className={authSuccessClass}>
                     <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
                     {state.success}
                 </p>
@@ -31,18 +31,30 @@ export default function VerifyForm({ email }: { email: string }) {
     }
 
     return (
-        <form action={formAction} className="space-y-5">
+        <form
+            // onSubmit (hindi action=) para HINDI mabura ang na-type kapag may error
+            onSubmit={(e) => {
+                e.preventDefault();
+                const data = new FormData(e.currentTarget);
+                startTransition(() => formAction(data));
+            }}
+            className="space-y-5"
+            data-req-float
+        >
+            {/* Lumulutang ang error para hindi gumalaw ang form */}
             {state.error && (
-                <div role="alert" className="flex items-start gap-2 rounded-2xl border border-red-400/40 bg-red-500/15 p-3 text-sm text-red-100">
-                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                    <span>{state.error}</span>
+                <div className={authToastWrap}>
+                    <div role="alert" className={authErrorClass}>
+                        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                        <span>{state.error}</span>
+                    </div>
                 </div>
             )}
 
             <input type="hidden" name="email" value={email} />
 
             <div className="space-y-2">
-                <label htmlFor="code" className="block text-sm font-medium text-white">
+                <label htmlFor="code" className={authLabelClass}>
                     6-Digit Code
                 </label>
                 <input
@@ -60,7 +72,7 @@ export default function VerifyForm({ email }: { email: string }) {
             </div>
 
             <div className="space-y-2">
-                <label htmlFor="password" className="block text-sm font-medium text-white">
+                <label htmlFor="password" className={authLabelClass}>
                     New Password
                 </label>
                 <span className={eyeWrap}>
@@ -77,7 +89,7 @@ export default function VerifyForm({ email }: { email: string }) {
             </div>
 
             <div className="space-y-2">
-                <label htmlFor="confirm" className="block text-sm font-medium text-white">
+                <label htmlFor="confirm" className={authLabelClass}>
                     Confirm New Password
                 </label>
                 <span className={eyeWrap}>
@@ -102,13 +114,13 @@ export default function VerifyForm({ email }: { email: string }) {
                 {pending ? "Verifying..." : "Reset Password"}
             </button>
 
-            <p className="pt-2 text-center text-sm text-white/70">
+            <p className="pt-2 text-center text-sm text-gray-600">
                 Didn&apos;t get the code?{" "}
-                <Link href="/forgot-password" className="font-semibold text-amber-300 hover:underline">
+                <Link href="/forgot-password" className="font-semibold text-[#15664f] hover:underline">
                     Send again
                 </Link>
             </p>
-            <Link href="/login" className="flex items-center justify-center gap-1.5 text-sm font-medium text-white/70 hover:text-amber-300">
+            <Link href="/login" className={`flex items-center justify-center gap-1.5 text-sm ${authLinkClass}`}>
                 <ArrowLeft className="h-4 w-4" />
                 Back to Sign In
             </Link>

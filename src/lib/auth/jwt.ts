@@ -15,7 +15,8 @@ const DEV_FALLBACK_SECRET = "bcas-clinic-dev-only-secret-change-this-before-depl
 // HS256 keys shorter than this are brute-forceable.
 const MIN_SECRET_LENGTH = 32;
 
-function getKey() {
+// Naka-export para magamit ng 2FA (HMAC ng code) gamit ang parehong SESSION_SECRET
+export function getKey() {
     const secret = process.env.SESSION_SECRET?.trim();
 
     if (secret) {

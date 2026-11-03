@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { createSession, deleteSession } from "@/lib/auth/session";
+import { startTwoFactor } from "@/lib/auth/two-factor";
 import { createStudentSession } from "@/lib/auth/student-session";
 import { createEmployeeSession } from "@/lib/auth/employee-session";
 import {
@@ -132,9 +133,21 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
     await log(identifier, "success", device);
 
     if (staffOk && staff) {
+        // Two-Factor: naka-on sa Settings -> code muna sa email bago makapasok
+        if (staff.two_factor) {
+            try {
+                await startTwoFactor(staff);
+            } catch (err) {
+                console.error("2FA code could not be sent:", err);
+                return { error: "Could not send your sign-in code. Please try again later." };
+            }
+            redirect("/two-factor");
+        }
+
         await createSession(
             { userId: staff.user_id, username: staff.username, role: staff.role },
-            staff.session_minutes ?? 30
+            // Kapareho ng sliding session (30 min na cookie, 15 min na idle logout sa browser)
+            30
         );
         redirect("/dashboard");
     }

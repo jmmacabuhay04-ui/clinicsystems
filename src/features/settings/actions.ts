@@ -3,7 +3,7 @@
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { getSession, createSession } from "@/lib/auth/session";
+import { getSession } from "@/lib/auth/session";
 
 const BASE = "/dashboard/settings";
 
@@ -55,23 +55,14 @@ export async function saveSessionSettings(
     const session = await getSession();
     if (!session) return { error: "Your session has expired. Please sign in again." };
 
-    const minutes = Number(formData.get("minutes"));
+    // Auto-logout ay laging 15 minuto para sa lahat (wala nang pagpipilian)
     const twoFactor = formData.get("twoFactor") === "on";
-
-    if (![15, 30, 60, 240, 480].includes(minutes)) {
-        return { error: "Select a valid auto-logout time." };
-    }
 
     try {
         await prisma.user.update({
             where: { user_id: session.userId },
-            data: { session_minutes: minutes, two_factor: twoFactor },
+            data: { session_minutes: 15, two_factor: twoFactor },
         });
-
-        await createSession(
-            { userId: session.userId, username: session.username, role: session.role },
-            minutes
-        );
     } catch (err) {
         console.error("Save session settings error:", err);
         return { error: "Could not save the settings. Please try again." };
