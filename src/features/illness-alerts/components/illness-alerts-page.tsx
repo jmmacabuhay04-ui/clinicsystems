@@ -497,6 +497,16 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
         c.patient_type === "employee"
             ? `/dashboard/employee-health-records?employee=${encodeURIComponent(c.id_number ?? "")}&tab=history`
             : `/dashboard/student-health-records?student=${encodeURIComponent(c.id_number ?? "")}&tab=history`;
+    // ID na kapareho ng Report page (walang taon):
+    //   V-038 = clinic visit (numero ng case report nito; kung wala pa, numero ng visit)
+    //   C-037 = case report na ginawa sa New Case Report
+    //   D-040 = dental report
+    const lastPart = (v: string) => v.split("-").pop() ?? v;
+    const displayId = (c: Case) => {
+        if (c.source === "dental") return c.reference ?? "D";
+        if (c.source === "visit") return `V-${lastPart(c.reference ?? c.visitId ?? "")}`;
+        return `C-${lastPart(c.reference ?? "")}`;
+    };
     const caseHref = (c: Case) =>
         c.source === "dental"
             ? `${CASES_BASE}?kind=dental&q=${encodeURIComponent(c.id_number ?? "")}`
@@ -837,7 +847,7 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                                                     href={visitHref(c)}
                                                     className="text-sm font-semibold text-gray-900 hover:text-[#15664f] hover:underline"
                                                 >
-                                                    {c.visitId}
+                                                    {displayId(c)}
                                                 </Link>
                                                 <span className="rounded-full bg-[#e3f1ea] px-2 py-0.5 text-sm font-medium text-[#15664f]">Clinic Visit</span>
                                             </span>
@@ -847,7 +857,7 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                                                     href={caseHref(c)}
                                                     className="text-sm font-semibold text-gray-900 hover:text-[#15664f] hover:underline"
                                                 >
-                                                    {c.reference ?? "Case"}
+                                                    {displayId(c)}
                                                 </Link>
                                                 {c.source === "dental" ? (
                                                     <span className="rounded-full bg-[#fdf3cf] px-2 py-0.5 text-sm font-medium text-[#8a6500]">Dental</span>
@@ -928,7 +938,7 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                                                             href={visitHref(c)}
                                                             className="rounded-full bg-[#e3f1ea] px-2.5 py-0.5 text-sm font-semibold text-[#15664f] hover:bg-[#cfe5d9]"
                                                         >
-                                                            Visit {c.visitId}
+                                                            {displayId(c)}
                                                         </Link>
                                                         {/* Status mula sa case report ng visit na ito */}
                                                         {c.status ? (
@@ -949,7 +959,7 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                                                                 : "bg-blue-50 text-blue-700 hover:bg-blue-100"
                                                                 }`}
                                                         >
-                                                            {c.source === "dental" ? `Dental ${c.reference ?? ""}` : `Case ${c.reference ?? ""}`}
+                                                            {displayId(c)}
                                                         </Link>
                                                         {c.status ? (
                                                             <span

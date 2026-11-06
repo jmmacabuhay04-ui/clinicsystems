@@ -10,7 +10,7 @@ import ListPagination from "@/components/shared/list-pagination";
 import RowActionMenu, { type RowAction } from "@/components/shared/row-action-menu";
 import { PersonAvatar, listCardClass, listSearchClass, listSelectClass } from "@/components/shared/list-ui";
 
-// All Dental Visits: kapareho ng itsura ng Students / Employees page.
+// Today's Dental Visits (View All ng Dashboard para sa Dentist): na-record ngayong araw lang.
 
 type Row = {
     dental_id: number;
@@ -97,6 +97,9 @@ export default async function DentalVisitsPage({
         LEFT JOIN students s  ON s.student_id  = d.student_id
         LEFT JOIN employees e ON e.employee_id = d.employee_id
         WHERE d.archived_at IS NULL
+          -- Na-record (na-save) ngayong araw, oras ng Manila (View All ng Today's Visits)
+          AND ((d.created_at AT TIME ZONE current_setting('TimeZone')) AT TIME ZONE 'Asia/Manila')::date
+              = CAST(${new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date())} AS DATE)
       )
       SELECT v.*, COUNT(*) OVER () AS total_count
       FROM v
@@ -151,8 +154,8 @@ export default async function DentalVisitsPage({
                     <ArrowLeft className="h-4 w-4" /> Back to Dashboard
                 </Link>
                 <div className="min-w-0">
-                    <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">All Dental Visits</h1>
-                    <p className="mt-1 text-sm text-gray-600">All dental visits of students and employees, newest first.</p>
+                    <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">Today&apos;s Dental Visits</h1>
+                    <p className="mt-1 text-sm text-gray-600">Dental records saved today, newest first.</p>
                 </div>
             </div>
 
@@ -192,7 +195,7 @@ export default async function DentalVisitsPage({
                 </form>
 
                 {rows.length === 0 ? (
-                    <p className="border-t border-gray-100 p-8 text-center text-sm text-gray-600">No dental visits found.</p>
+                    <p className="border-t border-gray-100 p-8 text-center text-sm text-gray-600">No dental records saved today yet.</p>
                 ) : (
                     <>
                         {/* MOBILE: card list */}

@@ -732,12 +732,24 @@ export default function EmployeeRecordView({
                     Back to dashboard
                 </Link>
 
-                {/* Header */}
-                <div className="flex items-center gap-3">
+                {/* Header + Edit button (Nurse/Doctor lang) */}
+                <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="min-w-0">
                         <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">Clinic Visit Record</h1>
                         <p className="text-sm text-gray-600">Details of this clinic visit.</p>
                     </div>
+                    {canEdit && one && (
+                        <ConfirmLink
+                            href={`${BASE}/edit?record=${one.record_id}`}
+                            title="Edit visit record"
+                            message={`Edit this visit (${formatDate(one.visit_date)} - ${one.complaint})?`}
+                            confirmLabel="Edit"
+                            className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#15664f] px-4 text-sm font-semibold text-white shadow-sm hover:bg-[#10523f]"
+                        >
+                            <Pencil className="h-4 w-4" />
+                            Edit Record
+                        </ConfirmLink>
+                    )}
                 </div>
 
                 {/* Patient */}

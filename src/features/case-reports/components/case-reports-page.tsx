@@ -9,6 +9,7 @@ import RowActionMenu, { type RowAction } from "@/components/shared/row-action-me
 import AutoSubmitSelect from "@/components/shared/auto-submit-select";
 import AutoSubmitInput from "@/components/shared/auto-submit-input";
 import ListPagination from "@/components/shared/list-pagination";
+import CaseRecordDetail from "./case-record-detail";
 import SearchInput from "@/components/shared/search-input";
 
 type CaseRow = {
@@ -22,20 +23,56 @@ type CaseRow = {
     report_date: Date;
     staff_name: string | null;
     status: string;
+    /** true = kusang nagawa mula sa isang Clinic Visit (V-), false = ginawa sa New Case Report (C-) */
+    from_visit?: boolean;
     /** Dental lang: ngipin */
     tooth?: string | null;
 };
+
+/**
+ * Report ID na makikita sa listahan:
+ *   C-040 = Case report na ginawa sa "New Case Report"
+ *   V-040 = Case report na kusang nagawa mula sa Clinic Visit
+ *   D-012 = Dental report (may D- na)
+ * Hindi binabago ang naka-save na case_number; sa pagpapakita lang ang titik.
+ */
+function reportId(c: CaseRow) {
+    if (c.from_visit === undefined) return c.case_number; // dental
+    // Walang taon sa ipinapakita: "2026-040" -> "C-040" o "V-040"
+    const num = c.case_number.split("-").pop() ?? c.case_number;
+    return `${c.from_visit ? "V" : "C"}-${num}`;
+}
+
+/** Report ID bilang may kulay na badge: V = green, C = blue, D = dilaw (kapareho ng Illness Alerts) */
+function ReportIdBadge({ c }: { c: CaseRow }) {
+    const tone =
+        c.from_visit === undefined
+            ? "bg-[#fdf3cf] text-[#8a6500]" // dental
+            : c.from_visit
+                ? "bg-[#e3f1ea] text-[#15664f]" // galing Clinic Visit
+                : "bg-blue-50 text-blue-700"; // New Case Report
+    return (
+        <span className={`inline-block whitespace-nowrap rounded-full px-2.5 py-0.5 text-sm font-semibold ${tone}`}>
+            {reportId(c)}
+        </span>
+    );
+}
 
 type Props = {
     searchParams: Promise<{
         kind?: string;
         status?: string;
         type?: string;
+        source?: string;
         diagnosis?: string;
         q?: string;
         from?: string;
         to?: string;
         page?: string;
+        /** Buksan ang isang case report (Case Report Record) */
+        case?: string;
+        /** "list" = galing sa listahang ito (babalik sa Report, hindi sa dashboard) */
+        back?: string;
     }>;
 };
 
@@ -75,6 +112,8 @@ const COMMON_DIAGNOSES = [
 ];
 // Uri ng case: kung kanino ang case report
 const TYPES: Record<string, string> = { student: "Student", employee: "Employee" };
+// Health Report lang: kung saan galing ang report (Clinic Visit = V-, New Case Report = C-)
+const SOURCES: Record<string, string> = { visit: "Visit", case: "Case" };
 
 const statusStyles: Record<string, { label: string; className: string }> = {
     pending: { label: "Pending", className: "bg-yellow-100 text-yellow-800" },
@@ -137,11 +176,26 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
     const isDental = kind === "dental";
     const canEdit = isDental ? canManageDental(session.role) : canManageRecords(session.role);
 
+    // ?case=<id>: ipakita ang isang case report (kapareho ng Dental Visit Record)
+    const viewCaseId = parseInt(params.case ?? "", 10);
+    if (viewCaseId > 0 && showHealth) {
+        return (
+            <CaseRecordDetail
+                caseId={viewCaseId}
+                canEdit={canManageRecords(session.role)}
+                backHref={params.back === "list" ? BASE : "/dashboard"}
+            />
+        );
+    }
+
     const statusList = isDental ? DENTAL_STATUSES : STATUSES;
     const rawStatus = (params.status ?? "").trim().toLowerCase();
     const status = statusList.includes(rawStatus) ? rawStatus : "";
     const rawType = (params.type ?? "").trim().toLowerCase();
     const type = rawType in TYPES ? rawType : "";
+    // Health Report lang: Visit (galing Clinic Visit) o Case (New Case Report)
+    const rawSource = (params.source ?? "").trim().toLowerCase();
+    const source = !isDental && rawSource in SOURCES ? rawSource : "";
     // Diagnosis (hal. Fever, Headache). Hindi case-sensitive ang paghahambing.
     const diagnosis = (params.diagnosis ?? "").trim().slice(0, 255);
     const q = (params.q ?? "").trim();
@@ -149,6 +203,8 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
     const to = cleanDate(params.to);
     const page = Math.max(1, parseInt(params.page ?? "1", 10) || 1);
     const like = `%${q}%`;
+    // Puwedeng hanapin ang "C-040" o "V-040": tinatanggal ang C-/V- bago ihambing
+    const likeNumber = `%${q.replace(/^[cv]-/i, "")}%`;
     const offset = (page - 1) * PAGE_SIZE;
 
     // Link na may parehong filters, iba lang ang ilang value.
@@ -157,6 +213,7 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
             kind: kind === "dental" && showHealth ? "dental" : "",
             status,
             type,
+            source,
             diagnosis,
             q,
             from,
@@ -198,8 +255,9 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
         AND (${q} = ''
             OR COALESCE(s.last_name, e.last_name) ILIKE ${like}
             OR COALESCE(s.first_name, e.first_name) ILIKE ${like}
+            OR (COALESCE(s.first_name, e.first_name) || ' ' || COALESCE(s.last_name, e.last_name)) ILIKE ${like}
             OR COALESCE(s.student_number, e.employee_number) ILIKE ${like}
-            OR d.procedure_name ILIKE ${like})
+            OR ('D-' || LPAD(d.dental_id::text, 3, '0')) ILIKE ${like})
         ORDER BY d.visit_date DESC, d.dental_id DESC
         LIMIT ${PAGE_SIZE} OFFSET ${offset}
     `,
@@ -219,8 +277,9 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
         AND (${q} = ''
             OR COALESCE(s.last_name, e.last_name) ILIKE ${like}
             OR COALESCE(s.first_name, e.first_name) ILIKE ${like}
+            OR (COALESCE(s.first_name, e.first_name) || ' ' || COALESCE(s.last_name, e.last_name)) ILIKE ${like}
             OR COALESCE(s.student_number, e.employee_number) ILIKE ${like}
-            OR d.procedure_name ILIKE ${like})
+            OR ('D-' || LPAD(d.dental_id::text, 3, '0')) ILIKE ${like})
     `,
         ]);
 
@@ -231,7 +290,16 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
                COALESCE(s.student_number, e.employee_number) AS id_number,
                COALESCE(s.last_name, e.last_name)            AS last_name,
                COALESCE(s.first_name, e.first_name)          AS first_name,
-               c.complaint, c.report_date, c.staff_name, c.status
+               c.complaint, c.report_date, c.staff_name, c.status,
+               -- Galing ba sa Clinic Visit? (parehong pasyente, petsa at reklamo)
+               (EXISTS (SELECT 1 FROM health_records h
+                        WHERE c.student_id IS NOT NULL AND h.student_id = c.student_id
+                          AND h.visit_date = c.report_date
+                          AND LOWER(TRIM(h.complaint)) = LOWER(TRIM(c.complaint)))
+                OR EXISTS (SELECT 1 FROM employee_health_records h
+                        WHERE c.employee_id IS NOT NULL AND h.employee_id = c.employee_id
+                          AND h.visit_date = c.report_date
+                          AND LOWER(TRIM(h.complaint)) = LOWER(TRIM(c.complaint)))) AS from_visit
         FROM health_case_reports c
         LEFT JOIN students  s ON s.student_id  = c.student_id
         LEFT JOIN employees e ON e.employee_id = c.employee_id
@@ -239,16 +307,33 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
         AND (${status} = '' OR c.status = ${status})
         AND (${type} = ''
             OR (${type} = 'employee' AND c.employee_id IS NOT NULL)
-            OR (${type} = 'student' AND c.employee_id IS NULL))
+            OR (${type} = 'student' AND c.employee_id IS NULL)
+            ) AND (${source} = ''
+            OR (${source} = 'visit' AND (EXISTS (SELECT 1 FROM health_records h
+                        WHERE c.student_id IS NOT NULL AND h.student_id = c.student_id
+                          AND h.visit_date = c.report_date
+                          AND LOWER(TRIM(h.complaint)) = LOWER(TRIM(c.complaint)))
+                OR EXISTS (SELECT 1 FROM employee_health_records h
+                        WHERE c.employee_id IS NOT NULL AND h.employee_id = c.employee_id
+                          AND h.visit_date = c.report_date
+                          AND LOWER(TRIM(h.complaint)) = LOWER(TRIM(c.complaint)))))
+            OR (${source} = 'case' AND NOT (EXISTS (SELECT 1 FROM health_records h
+                        WHERE c.student_id IS NOT NULL AND h.student_id = c.student_id
+                          AND h.visit_date = c.report_date
+                          AND LOWER(TRIM(h.complaint)) = LOWER(TRIM(c.complaint)))
+                OR EXISTS (SELECT 1 FROM employee_health_records h
+                        WHERE c.employee_id IS NOT NULL AND h.employee_id = c.employee_id
+                          AND h.visit_date = c.report_date
+                          AND LOWER(TRIM(h.complaint)) = LOWER(TRIM(c.complaint))))))
         AND (${diagnosis} = '' OR LOWER(TRIM(c.complaint)) = LOWER(${diagnosis}))
         AND (${from} = '' OR c.report_date >= CAST(NULLIF(${from}, '') AS DATE))
         AND (${to} = '' OR c.report_date <= CAST(NULLIF(${to}, '') AS DATE))
         AND (${q} = ''
             OR COALESCE(s.last_name, e.last_name) ILIKE ${like}
             OR COALESCE(s.first_name, e.first_name) ILIKE ${like}
+            OR (COALESCE(s.first_name, e.first_name) || ' ' || COALESCE(s.last_name, e.last_name)) ILIKE ${like}
             OR COALESCE(s.student_number, e.employee_number) ILIKE ${like}
-            OR c.case_number ILIKE ${like}
-            OR c.complaint ILIKE ${like})
+            OR c.case_number ILIKE ${likeNumber})
         ORDER BY c.report_date DESC, c.case_id DESC
         LIMIT ${PAGE_SIZE} OFFSET ${offset}
     `,
@@ -261,16 +346,33 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
         AND (${status} = '' OR c.status = ${status})
         AND (${type} = ''
             OR (${type} = 'employee' AND c.employee_id IS NOT NULL)
-            OR (${type} = 'student' AND c.employee_id IS NULL))
+            OR (${type} = 'student' AND c.employee_id IS NULL)
+            ) AND (${source} = ''
+            OR (${source} = 'visit' AND (EXISTS (SELECT 1 FROM health_records h
+                        WHERE c.student_id IS NOT NULL AND h.student_id = c.student_id
+                          AND h.visit_date = c.report_date
+                          AND LOWER(TRIM(h.complaint)) = LOWER(TRIM(c.complaint)))
+                OR EXISTS (SELECT 1 FROM employee_health_records h
+                        WHERE c.employee_id IS NOT NULL AND h.employee_id = c.employee_id
+                          AND h.visit_date = c.report_date
+                          AND LOWER(TRIM(h.complaint)) = LOWER(TRIM(c.complaint)))))
+            OR (${source} = 'case' AND NOT (EXISTS (SELECT 1 FROM health_records h
+                        WHERE c.student_id IS NOT NULL AND h.student_id = c.student_id
+                          AND h.visit_date = c.report_date
+                          AND LOWER(TRIM(h.complaint)) = LOWER(TRIM(c.complaint)))
+                OR EXISTS (SELECT 1 FROM employee_health_records h
+                        WHERE c.employee_id IS NOT NULL AND h.employee_id = c.employee_id
+                          AND h.visit_date = c.report_date
+                          AND LOWER(TRIM(h.complaint)) = LOWER(TRIM(c.complaint))))))
         AND (${diagnosis} = '' OR LOWER(TRIM(c.complaint)) = LOWER(${diagnosis}))
         AND (${from} = '' OR c.report_date >= CAST(NULLIF(${from}, '') AS DATE))
         AND (${to} = '' OR c.report_date <= CAST(NULLIF(${to}, '') AS DATE))
         AND (${q} = ''
             OR COALESCE(s.last_name, e.last_name) ILIKE ${like}
             OR COALESCE(s.first_name, e.first_name) ILIKE ${like}
+            OR (COALESCE(s.first_name, e.first_name) || ' ' || COALESCE(s.last_name, e.last_name)) ILIKE ${like}
             OR COALESCE(s.student_number, e.employee_number) ILIKE ${like}
-            OR c.case_number ILIKE ${like}
-            OR c.complaint ILIKE ${like})
+            OR c.case_number ILIKE ${likeNumber})
     `,
     ]);
     // Diagnosis filter: ang mga karaniwang diagnosis lang (Fever, Headache, atbp.).
@@ -347,6 +449,14 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
                 icon: "view",
             });
         }
+        items.push({
+            label: "View Report",
+            href: `${BASE}?case=${c.case_id}&back=list`,
+            title: "View case report",
+            message: `Open case ${reportId(c)} (${c.complaint}) of ${fullName(c)}? This contains confidential medical information and your access will be recorded.`,
+            confirmLabel: "View",
+            icon: "view",
+        });
         if (canEdit) {
             items.push({
                 label: "Edit Report",
@@ -423,7 +533,7 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
                 <form
                     method="get"
                     action={BASE}
-                    className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 md:items-end md:p-5 xl:grid-cols-[minmax(0,1fr)_auto_10rem_11rem_9rem]"
+                    className={`grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 md:items-end md:p-5 ${isDental ? "xl:grid-cols-[minmax(0,1fr)_auto_10rem_11rem_9rem]" : "xl:grid-cols-[minmax(0,1fr)_auto_9rem_9rem_10rem_9rem]"}`}
                 >
                     {isDental && showHealth && <input type="hidden" name="kind" value="dental" />}
                     <label className="block space-y-1">
@@ -434,7 +544,7 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
                                 name="q"
                                 defaultValue={q}
                                 autoComplete="off"
-                                placeholder={isDental ? "Name, ID no., or procedure..." : "Name, ID no., case no., or diagnosis..."}
+                                placeholder="Name or ID..."
                                 suppressHydrationWarning
                                 className={`${fieldClass} pl-10 pr-3`}
                             />
@@ -473,8 +583,21 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
                         </div>
                     </div>
 
+                    {/* Health Report lang: kung saan galing ang report */}
+                    {!isDental && (
+                        <label className="block space-y-1">
+                            <span className="text-sm font-medium text-gray-600">Type of Case</span>
+                            <AutoSubmitSelect
+                                name="source"
+                                defaultValue={SOURCES[source] ?? ""}
+                                options={Object.values(SOURCES)}
+                                className={`${fieldClass} px-3`}
+                            />
+                        </label>
+                    )}
+
                     <label className="block space-y-1">
-                        <span className="text-sm font-medium text-gray-600">Type of Case</span>
+                        <span className="text-sm font-medium text-gray-600">Patient Type</span>
                         <AutoSubmitSelect
                             name="type"
                             defaultValue={TYPES[type] ?? ""}
@@ -516,7 +639,7 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
                                 <li key={c.case_id} className="rounded-lg border border-gray-200 p-3">
                                     {/* Itaas: Case No. sa kaliwa; Status + ⋮ sa kanan */}
                                     <div className="flex items-center justify-between gap-2">
-                                        <p className="text-sm font-semibold text-gray-900">{c.case_number}</p>
+                                        <ReportIdBadge c={c} />
                                         <div className="flex shrink-0 items-center gap-1">
                                             <StatusBadge status={c.status} />
                                             {actions(c)}
@@ -552,7 +675,9 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
                                 <tbody>
                                     {reports.map((c) => (
                                         <tr key={c.case_id} className="border-t border-gray-100 hover:bg-[#f6faf8]">
-                                            <td className="whitespace-nowrap px-5 py-4 font-medium text-gray-900">{c.case_number}</td>
+                                            <td className="whitespace-nowrap px-5 py-4 font-medium text-gray-900">
+                                                <ReportIdBadge c={c} />
+                                            </td>
                                             <td className="whitespace-nowrap px-5 py-4 text-gray-600">{formatDate(c.report_date)}</td>
                                             <td className="px-5 py-4">
                                                 <p className="text-gray-900">{fullName(c)}</p>

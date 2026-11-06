@@ -34,6 +34,18 @@ type VisitRow = {
     avatar: string | null;
 };
 
+// Case report na ginawa sa "New Case Report" (hindi galing sa Clinic Visit)
+type CaseTodayRow = {
+    case_id: number;
+    case_number: string;
+    ref_number: string;
+    last_name: string | null;
+    first_name: string | null;
+    patient_type: string;
+    complaint: string;
+    avatar: string | null;
+};
+
 type DentalRow = {
     dental_id: number;
     ref_number: string;
@@ -207,7 +219,7 @@ type TodayItem = {
     name: string;
     detail: string;
     type: "student" | "employee";
-    kind: "clinic" | "dental";
+    kind: "clinic" | "dental" | "case";
     avatar: string | null;
     href: string;
     message: string;
@@ -234,9 +246,11 @@ function TodayList({ items, viewAllHref }: { items: TodayItem[]; viewAllHref: st
                         <li key={item.key}>
                             <ConfirmLink
                                 href={item.href}
-                                title={item.kind === "dental" ? "View dental record" : "View health record"}
+                                title={
+                                    item.kind === "dental" ? "View dental record" : item.kind === "case" ? "View case report" : "View health record"
+                                }
                                 message={item.message}
-                                className="flex items-center gap-3 rounded-lg px-1 py-2.5 hover:bg-[#f6faf8]"
+                                className="flex w-full items-center gap-3 rounded-lg px-1 py-2.5 text-left hover:bg-[#f6faf8]"
                             >
                                 <PatientAvatar name={item.name} type={item.type} avatar={item.avatar} />
                                 <span className="min-w-0 flex-1">
@@ -246,10 +260,12 @@ function TodayList({ items, viewAllHref }: { items: TodayItem[]; viewAllHref: st
                                 <span
                                     className={`shrink-0 rounded-full px-2.5 py-0.5 text-sm font-medium ${item.kind === "dental"
                                         ? "bg-amber-100 text-amber-800"
-                                        : "bg-[#e3f1e9] text-[#15664f]"
+                                        : item.kind === "case"
+                                            ? "bg-blue-50 text-blue-700"
+                                            : "bg-[#e3f1e9] text-[#15664f]"
                                         }`}
                                 >
-                                    {item.kind === "dental" ? "Dental" : "Clinic"}
+                                    {item.kind === "dental" ? "Dental" : item.kind === "case" ? "Case" : "Clinic"}
                                 </span>
                             </ConfirmLink>
                         </li>
@@ -691,8 +707,9 @@ async function loadDashboard(
             activityDental,
             activityReports,
             reasonRows,
+            recentCases,
         ] = await parallel<
-            [SummaryRow[], VisitRow[], DentalRow[], WeeklyRow[], ActivityRow[], ActivityRow[], ActivityRow[], ActivityRow[], ReasonRow[]]
+            [SummaryRow[], VisitRow[], DentalRow[], WeeklyRow[], ActivityRow[], ActivityRow[], ActivityRow[], ActivityRow[], ReasonRow[], CaseTodayRow[]]
         >([
             prisma.$queryRaw<SummaryRow[]>`
           SELECT
@@ -719,21 +736,23 @@ async function loadDashboard(
           FROM (
             SELECT r.record_id, 'student'::text AS patient_type,
                    s.student_number AS ref_number, s.last_name, s.first_name,
-                   r.complaint, r.visit_date, s.avatar
+                   r.complaint, r.visit_date, s.avatar, r.created_at
             FROM health_records r
             JOIN students s ON s.student_id = r.student_id
             WHERE r.archived_at IS NULL
-              AND r.visit_date = CAST(${today} AS DATE)
+              -- Na-record (na-save) ngayong araw, oras ng Manila
+              AND ((r.created_at AT TIME ZONE current_setting('TimeZone')) AT TIME ZONE 'Asia/Manila')::date = CAST(${today} AS DATE)
             UNION ALL
             SELECT r.record_id, 'employee'::text AS patient_type,
                    e.employee_number AS ref_number, e.last_name, e.first_name,
-                   r.complaint, r.visit_date, e.avatar
+                   r.complaint, r.visit_date, e.avatar, r.created_at
             FROM employee_health_records r
             JOIN employees e ON e.employee_id = r.employee_id
             WHERE r.archived_at IS NULL
-              AND r.visit_date = CAST(${today} AS DATE)
+              -- Na-record (na-save) ngayong araw, oras ng Manila
+              AND ((r.created_at AT TIME ZONE current_setting('TimeZone')) AT TIME ZONE 'Asia/Manila')::date = CAST(${today} AS DATE)
           ) v
-          ORDER BY v.visit_date DESC, v.record_id DESC
+          ORDER BY v.created_at DESC
           LIMIT 8
         `,
             prisma.$queryRaw<DentalRow[]>`
@@ -749,8 +768,9 @@ async function loadDashboard(
           LEFT JOIN students s  ON s.student_id  = d.student_id
           LEFT JOIN employees e ON e.employee_id = d.employee_id
           WHERE d.archived_at IS NULL
-            AND CAST(d.visit_date AS DATE) = CAST(${today} AS DATE)
-          ORDER BY d.visit_date DESC, d.dental_id DESC
+            -- Na-record (na-save) ngayong araw, oras ng Manila
+            AND ((d.created_at AT TIME ZONE current_setting('TimeZone')) AT TIME ZONE 'Asia/Manila')::date = CAST(${today} AS DATE)
+          ORDER BY d.created_at DESC
           LIMIT 8
         `,
 
@@ -870,6 +890,36 @@ async function loadDashboard(
           GROUP BY LOWER(TRIM(u.reason))
           ORDER BY COUNT(*) DESC, label ASC
         `,
+
+            // ---- Today's Visits: case report ngayong araw na ginawa sa New Case Report (C-) ----
+            isDentist
+                ? Promise.resolve([] as CaseTodayRow[])
+                : prisma.$queryRaw<CaseTodayRow[]>`
+          SELECT c.case_id, c.case_number,
+                 COALESCE(s.student_number, e.employee_number) AS ref_number,
+                 COALESCE(s.last_name, e.last_name)            AS last_name,
+                 COALESCE(s.first_name, e.first_name)          AS first_name,
+                 CASE WHEN c.employee_id IS NOT NULL THEN 'employee' ELSE 'student' END AS patient_type,
+                 c.complaint,
+                 COALESCE(s.avatar, e.avatar) AS avatar
+          FROM health_case_reports c
+          LEFT JOIN students  s ON s.student_id  = c.student_id
+          LEFT JOIN employees e ON e.employee_id = c.employee_id
+          WHERE c.archived_at IS NULL
+            -- Na-record (na-save) ngayong araw, oras ng Manila
+            AND ((c.created_at AT TIME ZONE current_setting('TimeZone')) AT TIME ZONE 'Asia/Manila')::date = CAST(${today} AS DATE)
+            -- Hindi kasama ang galing sa Clinic Visit (nasa "Clinic" na iyon)
+            AND NOT EXISTS (SELECT 1 FROM health_records h
+                            WHERE c.student_id IS NOT NULL AND h.student_id = c.student_id
+                              AND h.visit_date = c.report_date AND h.archived_at IS NULL
+                              AND LOWER(TRIM(h.complaint)) = LOWER(TRIM(c.complaint)))
+            AND NOT EXISTS (SELECT 1 FROM employee_health_records h
+                            WHERE c.employee_id IS NOT NULL AND h.employee_id = c.employee_id
+                              AND h.visit_date = c.report_date AND h.archived_at IS NULL
+                              AND LOWER(TRIM(h.complaint)) = LOWER(TRIM(c.complaint)))
+          ORDER BY c.created_at DESC
+          LIMIT 8
+        `,
         ]);
 
         const weeklyPoints: WeeklyPoint[] = weekly.map((w) => ({
@@ -937,6 +987,7 @@ async function loadDashboard(
             dentalToday: n(sum?.dental_today),
             recentVisits,
             recentDental,
+            recentCases,
             weeklyPoints,
             activity,
             reasons: reasonRows.map((r): Reason => {
@@ -959,6 +1010,7 @@ async function loadDashboard(
             dentalToday: 0,
             recentVisits: [] as VisitRow[],
             recentDental: [] as DentalRow[],
+            recentCases: [] as CaseTodayRow[],
             weeklyPoints: [] as WeeklyPoint[],
             activity: [] as ActivityItem[],
             reasons: [] as Reason[],
@@ -1322,6 +1374,24 @@ export default async function DashboardPage({
                     message: `Open the dental record of ${name}? This contains confidential medical information and your access will be recorded.`,
                 };
             })),
+        // Case report na ginawa sa New Case Report (blue na "Case")
+        ...(isDentist
+            ? []
+            : data.recentCases.map((c) => {
+                const name = `${c.first_name ?? ""} ${c.last_name ?? ""}`.trim() || "Unknown";
+                const type: "student" | "employee" = c.patient_type === "employee" ? "employee" : "student";
+                const num = c.case_number.split("-").pop() ?? c.case_number;
+                return {
+                    key: `case-${c.case_id}`,
+                    name,
+                    detail: c.complaint,
+                    type,
+                    kind: "case" as const,
+                    avatar: c.avatar,
+                    href: `/dashboard/health-case-reports?case=${c.case_id}`,
+                    message: `Open case report C-${num} of ${name}? This contains confidential medical information and your access will be recorded.`,
+                };
+            })),
     ].slice(0, 6);
 
     // Search sa itaas (student at employee): dentist -> dental records, iba -> health record
@@ -1468,7 +1538,8 @@ export default async function DashboardPage({
                 <RecentActivity
                     items={data.activity}
                     today={data.today}
-                    viewAllHref={isDentist ? "/dashboard/dental-visits" : "/dashboard/clinic-visits"}
+                    // Lahat ng record (hindi lang ngayong araw)
+                    viewAllHref="/dashboard/activities"
                 />
                 <TodayList items={todayItems} viewAllHref={isDentist ? "/dashboard/dental-visits" : "/dashboard/clinic-visits"} />
             </section>
