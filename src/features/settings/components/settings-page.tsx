@@ -128,7 +128,7 @@ export default async function SettingsPage() {
                             <p className="text-sm text-gray-600">Control auto-logout and two-factor authentication.</p>
                         </div>
                     </div>
-                    <SessionForm minutes={user?.session_minutes ?? 60} twoFactor={user?.two_factor ?? false} />
+                    <SessionForm twoFactor={user?.two_factor ?? false} />
                 </section>
             </div>
 
