@@ -212,7 +212,7 @@ export default function DateRangePicker({ from, to, today, label, activePreset }
                             aria-expanded={presetOpen}
                             className="flex h-9 w-full items-center justify-between gap-2 rounded-lg border-2 border-[#cfe5d9] bg-white px-3 text-sm font-medium text-gray-900 hover:border-[#9fcdb6]"
                         >
-                            <span className="truncate">{PRESETS.find((p) => p.id === preset)?.label ?? "Custom range"}</span>
+                            <span className="truncate">{PRESETS.find((p) => p.id === preset)?.label ?? "Select"}</span>
                             <ChevronDown className={`h-4 w-4 shrink-0 text-gray-600 transition-transform ${presetOpen ? "rotate-180" : ""}`} />
                         </button>
                         {presetOpen && (
