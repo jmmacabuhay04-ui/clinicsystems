@@ -331,14 +331,12 @@ function VisitsOverviewChart({
     showDental,
     showReports,
     range,
-    reasonRange,
 }: {
     data: WeeklyPoint[];
     showClinic: boolean;
     showDental: boolean;
     showReports: boolean;
     range: ChartRange;
-    reasonRange: ReasonRange;
 }) {
     const series = [
         { key: "clinic" as const, label: "Clinic Visits", color: CLINIC_COLOR, show: showClinic },
@@ -512,14 +510,12 @@ function rangeDates(range: ReasonRange, today: string): [string, string] {
 function VisitReasons({
     reasons,
     range,
-    chartRange,
     showClinic,
     showDental,
     showReports,
 }: {
     reasons: Reason[];
     range: ReasonRange;
-    chartRange: ChartRange;
     showClinic: boolean;
     showDental: boolean;
     showReports: boolean;
@@ -1541,12 +1537,10 @@ export default async function DashboardPage({
                     showDental={!isDoctor}
                     showReports={!isDentist}
                     range={chartRange}
-                    reasonRange={reasonRange}
                 />
                 <VisitReasons
                     reasons={data.reasons}
                     range={reasonRange}
-                    chartRange={chartRange}
                     showClinic={!isDentist}
                     showDental={!isDoctor}
                     showReports={!isDentist}
