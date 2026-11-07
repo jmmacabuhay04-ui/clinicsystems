@@ -795,7 +795,7 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
             <section className="grid gap-6 xl:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)]">
                 {/* Daily trend */}
                 <div className={`${card} min-w-0 p-3 sm:p-5 md:p-6`}>
-                    <h2 className="mb-3 px-1 text-lg font-semibold text-gray-900 sm:px-0">{isMonth ? "Monthly Case Trend" : "Daily Case Trend"}</h2>
+                    <h2 className="mb-3 px-1 text-lg font-semibold text-gray-900 sm:px-0">{byWeek ? "Monthly Case Trend" : "Daily Case Trend"}</h2>
                     <TrendLineChart data={trendDays} />
                 </div>
 
