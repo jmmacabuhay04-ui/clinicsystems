@@ -45,11 +45,9 @@ function DateBlock({ date, tint }: { date: Date; tint: string }) {
 }
 
 function SectionHeader({
-    icon,
     title,
     href,
 }: {
-    icon: React.ReactNode;
     title: string;
     href: string;
 }) {
@@ -189,7 +187,7 @@ export default async function StudentDashboardPage() {
                 <div className="space-y-6">
                     {/* Recent Visits */}
                     <section className={`${card} min-w-0 overflow-hidden`}>
-                        <SectionHeader icon={<Stethoscope className="h-5 w-5" />} title="Recent Visits" href="/student/visits" />
+                        <SectionHeader title="Recent Visits" href="/student/visits" />
                         {visits.length === 0 ? (
                             <div className="flex flex-col items-center border-t border-gray-100 p-8 text-center">
                                 <Stethoscope className="h-10 w-10 text-[#15664f]/30" />
@@ -214,7 +212,7 @@ export default async function StudentDashboardPage() {
 
                     {/* Recent Dental Visits */}
                     <section className={`${card} min-w-0 overflow-hidden`}>
-                        <SectionHeader icon={<ToothIcon className="h-5 w-5" />} title="Recent Dental Visits" href="/student/dental" />
+                        <SectionHeader title="Recent Dental Visits" href="/student/dental" />
                         {dental.length === 0 ? (
                             <div className="flex flex-col items-center border-t border-gray-100 p-8 text-center">
                                 <ToothIcon className="h-10 w-10 text-[#15664f]/30" />
