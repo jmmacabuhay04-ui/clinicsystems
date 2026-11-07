@@ -29,7 +29,7 @@ function DateBlock({ date }: { date: Date }) {
     const month = d.toLocaleDateString("en-US", { month: "short", timeZone: "UTC" }).toUpperCase();
     const day = d.toLocaleDateString("en-US", { day: "numeric", timeZone: "UTC" });
     return (
-        <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-lg bg-cyan-50 text-cyan-700">
+        <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-lg bg-[#fdf3cf] text-[#8a6500]">
             <span className="text-sm font-semibold tracking-wide">{month}</span>
             <span className="text-xl font-bold leading-none">{day}</span>
         </div>

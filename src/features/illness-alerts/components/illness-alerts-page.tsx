@@ -4,7 +4,7 @@ import { AlertTriangle, CalendarDays, CheckCircle2, School, ShieldAlert, Thermom
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { canViewHealthRecords } from "@/lib/permissions";
-import WeekPicker from "./week-picker";
+import DateRangePicker from "./date-range-picker";
 import ListPagination from "@/components/shared/list-pagination";
 
 type VisitRow = {
@@ -62,7 +62,7 @@ type Case = {
 };
 
 type Props = {
-    searchParams: Promise<{ week?: string; month?: string; page?: string }>;
+    searchParams: Promise<{ week?: string; month?: string; from?: string; to?: string; page?: string }>;
 };
 
 // Number of sick PERSONS in ONE day
@@ -215,7 +215,7 @@ function TrendSvg({
     const y = (v: number) => T + plotH - (v / yMax) * plotH;
 
     // Gaano kadalas ang label ng araw sa ibaba (mas madalang sa phone)
-    const every = small ? 7 : 5;
+    const every = Math.max(1, Math.ceil(data.length / (small ? 5 : 7)));
     const fs = small ? 15 : 14; // laki ng text sa loob ng chart
 
     const thresholds = [
@@ -317,10 +317,18 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
     const thisMonday = mondayOf(todayKey);
 
     const thisMonth = todayKey.slice(0, 7);
-    const monthParam = /^\d{4}-\d{2}$/.test(params.month ?? "") ? params.month! : "";
-    // Monthly kapag may ?month=, kung hindi ay Weekly
+    const isKey = (v?: string) => /^\d{4}-\d{2}-\d{2}$/.test(v ?? "");
+    // Sariling range mula sa date picker (?from=&to=), hanggang 186 araw (mga 6 na buwan)
+    let rangeFrom = isKey(params.from) && isKey(params.to) ? params.from! : "";
+    let rangeTo = rangeFrom ? params.to! : "";
+    if (rangeFrom && rangeFrom > rangeTo) [rangeFrom, rangeTo] = [rangeTo, rangeFrom];
+    if (rangeTo > todayKey) rangeTo = todayKey;
+    if (rangeFrom && addDays(rangeFrom, 185) < rangeTo) rangeFrom = addDays(rangeTo, -185);
+    const isRange = !!rangeFrom;
+    const monthParam = !isRange && /^\d{4}-\d{2}$/.test(params.month ?? "") ? params.month! : "";
+    // Monthly kapag may ?month=, Range kapag may ?from=&to=, kung hindi ay Weekly
     const isMonth = !!monthParam;
-    const unit = isMonth ? "Month" : "Week";
+    const unit = isMonth ? "Month" : isRange ? "Period" : "Week";
 
     const weekStart = /^\d{4}-\d{2}-\d{2}$/.test(params.week ?? "") ? mondayOf(params.week!) : thisMonday;
     // Mon–Sat (6 araw), kapareho ng chart
@@ -330,23 +338,40 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
     const monthFirst = `${monthParam || thisMonth}-01`;
     const [mY, mM] = (monthParam || thisMonth).split("-").map(Number);
     const monthLast = keyOf(new Date(Date.UTC(mY, mM, 0)));
-    const rangeStart = isMonth ? monthFirst : weekStart;
-    const rangeEnd = isMonth ? monthLast : weekEnd;
+    const rangeStart = isRange ? rangeFrom : isMonth ? monthFirst : weekStart;
+    const rangeEnd = isRange ? rangeTo : isMonth ? monthLast : weekEnd;
+    const rangeDays = Math.round((Date.parse(rangeEnd) - Date.parse(rangeStart)) / 86_400_000) + 1;
+    // Mahabang range (lampas 2 linggo): isang bar bawat linggo, gaya ng Monthly
+    const byWeek = isMonth || (isRange && rangeDays > 14);
     const monthName = (ym: string) =>
         new Date(`${ym}-01T00:00:00Z`).toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
-    const periodLabel = isMonth ? monthName(monthParam) : label(weekStart, weekEnd);
+    const periodLabel = isRange
+        ? rangeFrom === rangeTo
+            ? new Date(`${rangeFrom}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })
+            : label(rangeFrom, rangeTo)
+        : isMonth
+            ? monthName(monthParam)
+            : label(weekStart, weekEnd);
+    // Aling mabilisang pagpili ang naka-highlight sa picker
+    const lastMonthKey = keyOf(new Date(Date.UTC(Number(thisMonth.slice(0, 4)), Number(thisMonth.slice(5, 7)) - 2, 1))).slice(0, 7);
+    const activePreset = isRange
+        ? rangeFrom === todayKey && rangeTo === todayKey
+            ? "today"
+            : rangeTo === todayKey && rangeFrom === addDays(todayKey, -6)
+                ? "7d"
+                : rangeTo === todayKey && rangeFrom === addDays(todayKey, -29)
+                    ? "30d"
+                    : undefined
+        : isMonth
+            ? monthParam === thisMonth
+                ? "month"
+                : monthParam === lastMonthKey
+                    ? "lastmonth"
+                    : undefined
+            : weekStart === thisMonday
+                ? "week"
+                : undefined;
 
-    // Pagpipilian sa dropdown: huling 6 na buwan (Monthly) at huling 8 linggo (Weekly)
-    const monthOptions = Array.from({ length: 6 }, (_, i) => {
-        const d = new Date(Date.UTC(Number(thisMonth.slice(0, 4)), Number(thisMonth.slice(5, 7)) - 1 - i, 1));
-        const ym = keyOf(d).slice(0, 7);
-        return { value: `m:${ym}`, label: monthName(ym) };
-    });
-    const weekOptions = Array.from({ length: 8 }, (_, i) => {
-        const start = addDays(thisMonday, -7 * i);
-        return { value: `w:${start}`, label: label(start, addDays(start, 5)) };
-    });
-    const currentOption = isMonth ? `m:${monthParam}` : `w:${weekStart}`;
 
     const [studentRows, visits, employeeVisits, reports, dentalRows] = await Promise.all([
         prisma.$queryRaw<{ total: bigint }[]>`
@@ -517,7 +542,7 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
     const logPage = Math.min(Math.max(1, Number(params.page) || 1), logTotalPages);
     const pagedCases = logCases.slice((logPage - 1) * LOG_PAGE_SIZE, logPage * LOG_PAGE_SIZE);
     const logPageHref = (n: number) =>
-        `/dashboard/illness-alerts?${isMonth ? `month=${monthParam}` : `week=${weekStart}`}&page=${n}#case-log`;
+        `/dashboard/illness-alerts?${isRange ? `from=${rangeFrom}&to=${rangeTo}` : isMonth ? `month=${monthParam}` : `week=${weekStart}`}&page=${n}#case-log`;
     const caseLabel = (c: Case) => (c.source === "dental" ? c.complaint : normalizeComplaint(c.complaint));
 
     // Group by normalized complaint. Bukod sa bilang ng cases, itinatala rin ang
@@ -560,13 +585,13 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
         peakLabel: string;
     };
     let daily: Bar[];
-    if (isMonth) {
-        // Monthly: isang bar bawat linggo (Mon–Sun, tuloy-tuloy ang petsa: Oct 1–4, 5–11, ...).
+    if (byWeek) {
+        // Monthly (o mahabang range): isang bar bawat linggo (Mon–Sun, tuloy-tuloy ang petsa: Oct 1–4, 5–11, ...).
         // Ang taas ay ang pinakamaraming may sakit sa isang araw ng linggong iyon.
         daily = [];
-        for (let mon = mondayOf(monthFirst); mon <= monthLast; mon = addDays(mon, 7)) {
+        for (let mon = mondayOf(rangeStart); mon <= rangeEnd; mon = addDays(mon, 7)) {
             const keys = Array.from({ length: 7 }, (_, i) => addDays(mon, i)).filter(
-                (k) => k >= monthFirst && k <= monthLast,
+                (k) => k >= rangeStart && k <= rangeEnd,
             );
             if (keys.length === 0) continue;
             const days = keys.map(dayStats);
@@ -580,6 +605,14 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                 reportCount: days.reduce((n, d) => n + d.reportCount, 0),
                 peakLabel: shortDate(best.key),
             });
+        }
+    } else if (isRange) {
+        // Maikling range (hanggang 2 linggo): isang bar bawat araw
+        daily = [];
+        for (let k = rangeStart; k <= rangeEnd; k = addDays(k, 1)) {
+            const d = dayStats(k);
+            const name = new Date(`${k}T00:00:00Z`).toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" });
+            daily.push({ name, sub: shortDate(k), count: d.count, level: levelOf(d.count), visitCount: d.visitCount, reportCount: d.reportCount, peakLabel: shortDate(k) });
         }
     } else {
         daily = dayNames.map((name, i) => {
@@ -698,14 +731,14 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
                         <div className="min-w-0">
-                            <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">{isMonth ? "Monthly" : "Weekly"} Illness Alert</h1>
+                            <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">{isRange ? "" : isMonth ? "Monthly " : "Weekly "}Illness Alert</h1>
                             <p className="text-sm text-gray-600">
-                                {isMonth ? "Sick persons per week" : "Daily sick persons"} and the recommended class mode for{" "}
+                                {byWeek ? "Sick persons per week" : "Daily sick persons"} and the recommended class mode for{" "}
                                 {periodLabel}.
                             </p>
                         </div>
                     </div>
-                    <WeekPicker months={monthOptions} weeks={weekOptions} current={currentOption} />
+                    <DateRangePicker from={rangeStart} to={rangeEnd} today={todayKey} label={periodLabel} activePreset={activePreset} />
                 </div>
             </div>
 
@@ -823,7 +856,7 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
             {/* Weekly case log */}
             <section id="case-log" className={`${card} scroll-mt-4 overflow-hidden`}>
                 <div className="flex items-center justify-between gap-3 p-5 md:px-6">
-                    <h2 className="text-lg font-semibold text-gray-900">{isMonth ? "Monthly" : "Weekly"} Case Log</h2>
+                    <h2 className="text-lg font-semibold text-gray-900">{isMonth ? "Monthly " : isRange ? "" : "Weekly "}Case Log</h2>
                     <span className="rounded-full bg-[#eef6f2] px-3 py-1 text-sm font-semibold text-[#15664f]">
                         {logCases.length} case{logCases.length === 1 ? "" : "s"}
                     </span>

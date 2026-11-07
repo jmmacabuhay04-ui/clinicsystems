@@ -33,12 +33,24 @@ function isTextLike(el: Field) {
     return el instanceof HTMLTextAreaElement || (el instanceof HTMLInputElement && !["radio", "date", "time", "number", "select-one"].includes(el.type));
 }
 
+/** Nakasulat ba sa label ng field na optional ito? hal. "Reason (optional)" */
+function saysOptional(el: Field) {
+    const texts: string[] = [];
+    el.labels?.forEach((l) => texts.push(l.textContent ?? ""));
+    const prev = el.parentElement?.previousElementSibling;
+    if (prev) texts.push(prev.textContent ?? "");
+    texts.push(el.getAttribute("aria-label") ?? "");
+    return texts.some((t) => /\boptional\b/i.test(t));
+}
+
 /** Dapat bang awtomatikong gawing required ang field na ito? */
 function eligible(el: Field) {
     const form = el.form;
     if (!form) return false;
     if ((form.getAttribute("method") ?? "").toLowerCase() === "get") return false;
     if (form.hasAttribute("data-optional") || el.closest("[data-optional]")) return false;
+    // May "(optional)" sa label: hindi required
+    if (saysOptional(el)) return false;
     if (!el.name || el.disabled) return false;
     if (el instanceof HTMLInputElement) {
         if (SKIP_TYPES.has(el.type)) return false;
@@ -207,6 +219,9 @@ input[aria-invalid="true"], textarea[aria-invalid="true"], select[aria-invalid="
 }
 [data-req-group-invalid] { outline: 2px solid #fca5a5; outline-offset: 3px; border-radius: 0.6rem; }
 [data-req-msg] { margin-top: 0.3rem; font-size: 0.875rem; line-height: 1.25rem; font-weight: 500; color: #dc2626; }
+/* Mga form na may data-req-float (hal. Log In, Enter Code): hindi tinutulak ng error
+   ang mga kasunod na field; lumalabas ito sa puwang sa pagitan ng mga field */
+[data-req-float] [data-req-msg] { height: 0; margin: 0 !important; position: relative; top: 0.2rem; overflow: visible; white-space: nowrap; }
 `;
 
 export default function RequiredFields() {

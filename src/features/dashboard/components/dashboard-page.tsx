@@ -1097,7 +1097,7 @@ export default async function DashboardPage({
                 backgroundRepeat: "no-repeat",
             }}
         >
-            {/* Kanan: BCAS logo at mga dahon (malaking screen lang) */}
+            {/* Kanan: BCAS logo (malaking screen lang) */}
             <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 hidden w-36 items-center justify-center lg:flex">
                 {/* Malinis na bilog na logo (clip-path); anino nasa lalagyan */}
                 <span className="relative drop-shadow-[0_10px_14px_rgba(0,0,0,0.45)]">
@@ -1108,10 +1108,6 @@ export default async function DashboardPage({
                         className="block h-20 w-20 rounded-full bg-white object-cover [clip-path:circle(49%)]"
                     />
                 </span>
-                <svg viewBox="0 0 120 120" className="absolute -bottom-4 -right-2 h-24 w-24 text-[#3fae86]/60">
-                    <path d="M20 118 C 14 80, 30 46, 70 30 C 74 68, 58 100, 20 118 Z" fill="currentColor" />
-                    <path d="M58 120 C 60 88, 84 64, 118 58 C 116 92, 96 114, 58 120 Z" fill="currentColor" opacity="0.8" />
-                </svg>
             </div>
 
             <div className="relative flex flex-col gap-3 md:flex-row md:items-center md:gap-10 lg:pr-40">
@@ -1145,9 +1141,36 @@ export default async function DashboardPage({
         </section>
     );
 
-    // IT Technician: welcome banner lang ang makikita (walang clinic data)
+    // Password Requests (Nurse at IT Tech): ilan ang naghihintay ng bagong password
+    let pendingPasswordRequests = 0;
+    if (role === "nurse" || isItTech) {
+        try {
+            const rows = await prisma.$queryRaw<{ total: number }[]>`
+                SELECT COUNT(*)::int AS total FROM portal_password_requests WHERE status = 'pending'
+            `;
+            pendingPasswordRequests = Number(rows[0]?.total ?? 0);
+        } catch {
+            pendingPasswordRequests = 0;
+        }
+    }
+    const passwordRequestBell = {
+        label: "Password Requests",
+        hint: "Students and employees waiting for a new password",
+        count: pendingPasswordRequests,
+        href: "/dashboard/password-requests",
+        tone: "amber" as const,
+    };
+
+    // IT Technician: welcome banner + bell ng Password Requests (walang clinic data)
     if (isItTech) {
-        return <main className="min-w-0 space-y-6 p-4 pb-8 md:p-8">{banner}</main>;
+        return (
+            <main className="min-w-0 space-y-6 p-4 pb-8 md:p-8">
+                <div className="flex justify-end">
+                    <NotificationBell items={[passwordRequestBell]} />
+                </div>
+                {banner}
+            </main>
+        );
     }
 
     const data = await loadDashboard(isDentist, isDoctor, showEmployees, reasonRange, chartRange);
@@ -1415,7 +1438,7 @@ export default async function DashboardPage({
 
             {/* Bell (walang bell ang admin):
                 - Doctor: pending case reports
-                - Nurse: pending case reports + dental follow-ups
+                - Nurse: pending case reports + dental follow-ups + password requests
                 - Dentist: dental follow-ups */}
             {role !== "admin" && (
                 <NotificationBell
@@ -1442,6 +1465,7 @@ export default async function DashboardPage({
                                 },
                             ]
                             : []),
+                        ...(role === "nurse" ? [passwordRequestBell] : []),
                     ]}
                 />
             )}

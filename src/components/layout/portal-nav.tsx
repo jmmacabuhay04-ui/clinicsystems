@@ -325,24 +325,6 @@ export default function PortalNav({ basePath, roleLabel, fullName, initials, ava
                     </button>
                 </div>
 
-                {/* Dekorasyon sa pinakababa: green na alon, dalawang dilaw na guhit at mga dahon */}
-                <svg
-                    aria-hidden="true"
-                    viewBox="0 0 260 110"
-                    preserveAspectRatio="xMidYMax slice"
-                    className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-28 w-full"
-                >
-                    <path d="M0 110 V58 C 60 40, 130 50, 190 66 C 220 74, 244 72, 260 66 V110 Z" fill="#2f8a6d" fillOpacity="0.45" />
-                    <path d="M0 52 C 60 34, 130 44, 192 60 C 222 68, 246 66, 260 60" fill="none" stroke="#f2c94c" strokeWidth="3" />
-                    <path d="M0 62 C 62 46, 132 56, 194 72 C 224 80, 246 78, 260 72" fill="none" stroke="#f2c94c" strokeOpacity="0.55" strokeWidth="1.5" />
-                    <path d="M0 110 V78 C 70 64, 140 76, 200 90 C 228 96, 248 94, 260 90 V110 Z" fill="#0b3f2e" fillOpacity="0.9" />
-                    {/* Mga dahon sa kanan */}
-                    <path d="M196 108 C 186 84, 194 60, 222 46 C 230 74, 222 96, 196 108 Z" fill="#3fae86" fillOpacity="0.75" />
-                    <path d="M196 108 C 204 88, 212 70, 222 46" fill="none" stroke="#0b3f2e" strokeOpacity="0.45" strokeWidth="1" />
-                    <path d="M222 110 C 220 82, 236 60, 262 52 C 264 80, 250 102, 222 110 Z" fill="#2f8a6d" fillOpacity="0.9" />
-                    <path d="M222 110 C 234 90, 248 70, 262 52" fill="none" stroke="#0b3f2e" strokeOpacity="0.45" strokeWidth="1" />
-                    <path d="M176 110 C 166 96, 166 80, 178 70 C 188 82, 188 98, 176 110 Z" fill="#3fae86" fillOpacity="0.5" />
-                </svg>
 
                 <div className="relative z-10 flex min-h-0 flex-1 flex-col">
                     <nav aria-label={`${roleLabel} navigation`} className="no-scrollbar flex-1 overflow-y-auto px-3 py-3">
@@ -374,10 +356,21 @@ export default function PortalNav({ basePath, roleLabel, fullName, initials, ava
                     </nav>
 
                     {/* Ibaba: user card, Log Out at tagline (kapareho ng nurse sidebar) */}
-                    <div className="relative px-3 pb-[4.5rem] pt-2">
+                    <div className="relative px-3 pb-14 pt-2">
+                        {/* Alon sa ibaba: green na may dilaw na guhit (walang dahon), gaya ng login */}
+                        <svg
+                            aria-hidden
+                            viewBox="0 0 260 80"
+                            preserveAspectRatio="none"
+                            className="pointer-events-none absolute inset-x-0 bottom-0 h-16 w-full"
+                        >
+                            <path d="M0 40 C 60 18, 130 22, 190 46 C 220 58, 242 64, 260 66 V80 H0 Z" fill="#3fae86" fillOpacity="0.35" />
+                            <path d="M0 52 C 70 30, 140 36, 200 58 C 226 67, 246 72, 260 73 V80 H0 Z" fill="#15664f" />
+                            <path d="M0 30 C 64 8, 134 12, 196 38 C 224 50, 244 56, 260 58" fill="none" stroke="#fbbf24" strokeWidth="3" strokeLinecap="round" />
+                        </svg>
                         <div className="mx-2 mb-3 border-t border-white/15" />
                         {/* User card (gaya ng dati): larawan, pangalan, role at Log Out icon sa kanan */}
-                        <div className="flex items-center gap-3 rounded-xl border border-white/15 bg-white/10 p-2.5">
+                        <div className="relative flex items-center gap-3 rounded-xl border border-white/15 bg-white/10 p-2.5">
                             {avatar ? (
                                 // eslint-disable-next-line @next/next/no-img-element
                                 <img

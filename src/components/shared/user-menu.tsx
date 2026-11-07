@@ -21,7 +21,6 @@ export default function UserMenu({
 }) {
     const [open, setOpen] = useState(false);
     const [confirm, setConfirm] = useState(false);
-    const [pending, setPending] = useState(false);
     const boxRef = useRef<HTMLDivElement>(null);
 
     // Isara kapag nag-click sa labas o pinindot ang Esc
@@ -40,7 +39,7 @@ export default function UserMenu({
     }, [open]);
 
     const modal = confirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => !pending && setConfirm(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setConfirm(false)}>
             <div
                 role="dialog"
                 aria-modal="true"
@@ -48,7 +47,7 @@ export default function UserMenu({
                 className="w-full max-w-md rounded-xl bg-white p-6 text-left shadow-xl"
             >
                 <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#15664f]/10 text-[#15664f]">
                         <LogOut className="h-5 w-5" />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -56,21 +55,19 @@ export default function UserMenu({
                         <p className="mt-1 text-sm leading-relaxed text-gray-600">Are you sure you want to sign out?</p>
                     </div>
                 </div>
-                <form action={logout} onSubmit={() => setPending(true)} className="mt-6 flex justify-end gap-3">
+                <form action={logout} className="mt-6 flex justify-end gap-3">
                     <button
                         type="button"
-                        disabled={pending}
                         onClick={() => setConfirm(false)}
-                        className="h-10 rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-60"
+                        className="h-10 rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-600 hover:bg-gray-50"
                     >
                         Cancel
                     </button>
                     <button
                         type="submit"
-                        disabled={pending}
-                        className="h-10 rounded-lg bg-red-600 px-4 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+                        className="h-10 rounded-lg bg-[#15664f] px-4 text-sm font-semibold text-white hover:bg-[#10523f]"
                     >
-                        {pending ? "Signing out..." : "Sign out"}
+                        Sign out
                     </button>
                 </form>
             </div>

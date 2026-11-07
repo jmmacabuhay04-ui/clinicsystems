@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useActionState } from "react";
+import { startTransition, useActionState } from "react";
 import { AlertCircle, ArrowRight, HeartHandshake, LockKeyhole, ShieldCheck, UserRound, UsersRound } from "lucide-react";
 import { login } from "@/features/auth/login-actions";
 import PasswordInput from "@/components/shared/password-input";
@@ -128,39 +128,40 @@ export default function LoginPage() {
     const year = new Date().getFullYear();
 
     return (
-        <main className="relative min-h-screen overflow-hidden bg-[#e7f3e2]">
+        <main className="relative min-h-dvh bg-[#e7f3e2]">
             {/* Lalabas nang 3 segundo pagka-click ng Log In */}
             {pending && <LoadingScreen />}
 
             {/* BACKGROUND: campus photo na may malambot na puti/mint na takip, para mabasa pa rin ang text */}
             <div
                 aria-hidden
-                className="pointer-events-none absolute inset-0 scale-105 bg-cover bg-center blur-[2px]"
+                className="pointer-events-none fixed inset-0 scale-105 bg-cover bg-center blur-[2px]"
                 style={{ backgroundImage: "url('/bg.jpg')" }}
             />
             <div
                 aria-hidden
-                className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/85 via-[#eef6f2]/75 to-[#e7f3e2]/70"
+                className="pointer-events-none fixed inset-0 bg-gradient-to-br from-white/85 via-[#eef6f2]/75 to-[#e7f3e2]/70"
             />
 
             {/* Malambot na liwanag sa likod */}
-            <div aria-hidden className="pointer-events-none absolute -left-24 top-1/4 h-96 w-96 rounded-full bg-white/60 blur-3xl" />
-            <div aria-hidden className="pointer-events-none absolute -right-20 bottom-0 h-80 w-80 rounded-full bg-[#15664f]/10 blur-3xl" />
+            <div aria-hidden className="pointer-events-none fixed -left-24 top-1/4 h-96 w-96 rounded-full bg-white/60 blur-3xl" />
+            <div aria-hidden className="pointer-events-none fixed -right-20 bottom-0 h-80 w-80 rounded-full bg-[#15664f]/10 blur-3xl" />
 
             {/* Alon sa kaliwang-ibaba: green na may dilaw na guhit */}
             <svg
                 aria-hidden
                 viewBox="0 0 400 200"
                 preserveAspectRatio="none"
-                className="pointer-events-none absolute bottom-0 left-0 h-28 w-2/3 sm:h-36 lg:h-44 lg:w-1/2"
+                className="pointer-events-none fixed bottom-0 left-0 h-28 w-2/3 sm:h-36 lg:h-44 lg:w-1/2"
             >
                 <path d="M0 120 C 90 70, 190 90, 300 150 C 340 172, 370 188, 400 200 H0 Z" fill="#15664f" fillOpacity="0.9" />
                 <path d="M0 96 C 100 46, 200 66, 310 130 C 350 154, 380 176, 400 190" fill="none" stroke="#fbbf24" strokeWidth="4" />
             </svg>
 
-            <div className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col items-center justify-center gap-8 px-4 py-8 sm:px-8 lg:flex-row lg:justify-between lg:gap-12 lg:px-12">
+            <div className="relative mx-auto flex min-h-dvh w-full max-w-6xl flex-col items-center justify-center gap-8 px-4 py-8 sm:px-8 lg:flex-row lg:justify-between lg:gap-12 lg:px-12 lg:py-0">
                 {/* ===== KALIWA: LOGO AT PAMAGAT ===== */}
-                <section className="flex max-w-md flex-col items-center text-center lg:flex-1">
+                {/* Naka-sticky sa desktop: hindi gumagalaw kahit mag-scroll, at laging nasa itaas ng green wave */}
+                <section className="flex max-w-md flex-col items-center text-center lg:sticky lg:top-0 lg:h-dvh lg:flex-1 lg:justify-center lg:self-start lg:pb-36">
                     {/* BCAS logo: walang border, may malambot na liwanag sa likod at lumulutang na anino */}
                     <div className="relative">
                         <span
@@ -207,7 +208,7 @@ export default function LoginPage() {
                 </section>
 
                 {/* ===== KANAN: LOGIN CARD ===== */}
-                <section className="relative w-full max-w-[440px] overflow-hidden rounded-3xl bg-white p-6 shadow-2xl shadow-[#15664f]/15 sm:p-10 lg:flex-none">
+                <section className="relative w-full max-w-[440px] overflow-hidden rounded-3xl bg-white p-6 shadow-2xl shadow-[#15664f]/15 sm:p-10 lg:my-8 lg:flex-none">
                     {/* Green na sulok sa kanang-itaas */}
                     <span aria-hidden className="absolute -right-16 -top-16 h-32 w-32 rounded-full bg-[#4f9a7c]/80" />
                     <span aria-hidden className="absolute -right-6 -top-20 h-24 w-24 rounded-full bg-[#15664f]/20" />
@@ -219,14 +220,26 @@ export default function LoginPage() {
                             Access your account to continue to the School Clinic System.
                         </p>
 
-                        <form action={formAction} className="mt-8 space-y-4">
+                        <form
+                            // onSubmit (hindi action=) para HINDI mabura ang na-type kapag mali ang password
+                            onSubmit={(e) => {
+                                e.preventDefault();
+                                const data = new FormData(e.currentTarget);
+                                startTransition(() => formAction(data));
+                            }}
+                            data-req-float
+                            className="mt-8 space-y-4"
+                        >
+                            {/* Lumulutang ang error sa itaas ng screen para hindi gumalaw ang form */}
                             {state?.error && (
-                                <div
-                                    role="alert"
-                                    className="flex items-start gap-2 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700"
-                                >
-                                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                                    <span>{state.error}</span>
+                                <div className="pointer-events-none fixed inset-x-0 top-4 z-40 flex justify-center px-4">
+                                    <div
+                                        role="alert"
+                                        className="pointer-events-auto flex w-full max-w-sm items-start gap-2 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 shadow-lg"
+                                    >
+                                        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                                        <span>{state.error}</span>
+                                    </div>
                                 </div>
                             )}
 
@@ -271,14 +284,14 @@ export default function LoginPage() {
                                 type="submit"
                                 disabled={pending}
                                 suppressHydrationWarning
-                                className="group inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#15664f] px-4 text-sm font-semibold text-white shadow-lg shadow-[#15664f]/25 transition hover:bg-[#10523f] active:scale-[0.99] disabled:opacity-60"
+                                className="group inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#15664f] px-4 text-sm font-semibold text-white shadow-lg shadow-[#15664f]/25 transition hover:bg-[#10523f] disabled:opacity-60"
                             >
                                 {pending ? (
                                     "Logging in..."
                                 ) : (
                                     <>
                                         Log In
-                                        <ArrowRight className="h-[18px] w-[18px] transition-transform group-hover:translate-x-1" />
+                                        <ArrowRight className="h-[18px] w-[18px]" />
                                     </>
                                 )}
                             </button>
