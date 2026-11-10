@@ -228,7 +228,10 @@ export default function LoginPage() {
                                 startTransition(() => formAction(data));
                             }}
                             data-req-float
-                            className="mt-8 space-y-4"
+                            // Ito lang ang form sa system na may required fields
+                            data-required
+                            // space-y-6: may puwang para sa "This field is required." sa pagitan ng mga field
+                            className="mt-8 space-y-6"
                         >
                             {/* Lumulutang ang error sa itaas ng screen para hindi gumalaw ang form */}
                             {state?.error && (

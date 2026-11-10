@@ -125,7 +125,8 @@ export async function addHealthRecord(_prev: RecordState, formData: FormData): P
 
     const studentNumber = get("studentNumber");
     const visitDate = get("visitDate");
-    const complaint = get("complaint");
+    // Optional ang complaint: kapag blangko, "Vital Signs" ang itatala (vital signs check lang)
+    const complaint = get("complaint") || "Vital Signs";
     const actionTaken = get("actionTaken");
     const attendingStaff = get("attendingStaff");
     const bloodPressure = get("bloodPressure");
@@ -133,8 +134,8 @@ export async function addHealthRecord(_prev: RecordState, formData: FormData): P
     const gender = get("gender");
     const status = get("status") || "pending";
 
-    if (!studentNumber || !visitDate || !complaint) {
-        return fail("Student number, visit date, and complaint are required.");
+    if (!studentNumber || !visitDate) {
+        return fail("Student number and visit date are required.");
     }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(visitDate)) return fail("Enter a valid visit date.");
     if (dateOfBirth && !/^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth)) return fail("Enter a valid date of birth.");

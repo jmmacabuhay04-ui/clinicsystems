@@ -125,6 +125,17 @@ export async function saveDisplayName(_prev: NameState, formData: FormData): Pro
         .replace(/\s+/g, " ")
         .trim();
 
+    // Optional: kapag blangko, buburahin ang Display Name (babalik sa default na pangalan)
+    if (name === "") {
+        try {
+            await prisma.user.update({ where: { user_id: session.userId }, data: { full_name: null } });
+        } catch (err) {
+            console.error("Clear display name error:", err);
+            return { error: "Could not save your display name. Please try again." };
+        }
+        revalidatePath("/dashboard", "layout");
+        return { success: "Display name removed." };
+    }
     if (name.length < 2) return { error: "Please enter at least 2 characters." };
     if (name.length > 60) return { error: "Display name must be 60 characters or less." };
     if (!/^[\p{L}][\p{L} .'-]*$/u.test(name)) {

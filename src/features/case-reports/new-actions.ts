@@ -53,7 +53,8 @@ export async function createCaseReport(
 
     const patientType = get("patientType") === "employee" ? "employee" : "student";
     const patientNumber = get("patientNumber");
-    const complaint = get("complaint");
+    // Optional ang complaint: kapag blangko, "Vital Signs" ang itatala (vital signs check lang)
+    const complaint = get("complaint") || "Vital Signs";
     const reportDate = get("reportDate");
     // Oras ng report (HH:MM). Opsyonal.
     const reportTime = get("reportTime");
@@ -64,8 +65,8 @@ export async function createCaseReport(
 
     const label = patientType === "student" ? "Student number" : "Employee number";
 
-    if (!patientNumber || !complaint || !reportDate) {
-        return fail(`${label}, complaint, and date are required.`);
+    if (!patientNumber || !reportDate) {
+        return fail(`${label} and date are required.`);
     }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(reportDate)) return fail("Enter a valid date.");
     if (reportTime && !/^([01]\d|2[0-3]):[0-5]\d$/.test(reportTime)) return fail("Enter a valid time.");

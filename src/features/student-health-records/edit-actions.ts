@@ -47,8 +47,8 @@ export async function updateHealthRecord(_prev: EditState, formData: FormData): 
     const status = get("status") || "pending";
 
     if (!recordId) return fail("Invalid record.");
-    if (!visitDate || !complaint) return fail("Visit date and complaint are required.");
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(visitDate)) return fail("Enter a valid visit date.");
+    // Blangkong Visit Date o Complaint: hindi papalitan (mananatili ang dati)
+    if (visitDate && !/^\d{4}-\d{2}-\d{2}$/.test(visitDate)) return fail("Enter a valid visit date.");
     if (visitTime && !/^([01]\d|2[0-3]):[0-5]\d$/.test(visitTime)) return fail("Enter a valid visit time.");
     if (!["pending", "referred", "resolved"].includes(status)) return fail("Select a valid status.");
     if (bloodPressure && !/^\d{2,3}\/\d{2,3}$/.test(bloodPressure)) {
@@ -78,7 +78,9 @@ export async function updateHealthRecord(_prev: EditState, formData: FormData): 
             //    BAGO i-edit) ay sumasabay: status, reklamo at petsa.
             await tx.$executeRaw`
       UPDATE health_case_reports c
-      SET status = ${status}, complaint = ${complaint}, report_date = CAST(${visitDate} AS DATE)
+      SET status = ${status},
+          complaint = COALESCE(NULLIF(${complaint}, ''), c.complaint),
+          report_date = COALESCE(CAST(NULLIF(${visitDate}, '') AS DATE), c.report_date)
       FROM health_records h
       WHERE h.record_id = ${recordId}
         AND c.student_id = h.student_id
@@ -89,10 +91,10 @@ export async function updateHealthRecord(_prev: EditState, formData: FormData): 
             // 2) Ang clinic visit mismo
             await tx.$executeRaw`
       UPDATE health_records
-      SET visit_date      = CAST(${visitDate} AS DATE),
+      SET visit_date      = COALESCE(CAST(NULLIF(${visitDate}, '') AS DATE), visit_date),
           visit_time      = CAST(NULLIF(${visitTime}, '') AS TIME),
           notes           = ${notes || null},
-          complaint       = ${complaint},
+          complaint       = COALESCE(NULLIF(${complaint}, ''), complaint),
           action_taken    = ${actionTaken || null},
           attending_staff = ${attendingStaff || null},
           height_cm       = ${height},

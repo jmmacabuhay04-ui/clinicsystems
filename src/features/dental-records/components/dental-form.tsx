@@ -44,6 +44,8 @@ export type DentalValues = {
     patientType: "student" | "employee";
     patientNumber: string;
     visitDate: string;
+    /** HH:MM (24 oras) */
+    visitTime: string;
     procedure: string;
     tooth: string;
     dentistName: string;
@@ -97,6 +99,7 @@ export default function DentalForm({
         patientType: record.patientType,
         patientNumber: record.patientNumber,
         visitDate: record.visitDate,
+        visitTime: record.visitTime,
         procedure: record.procedure,
         tooth: record.tooth,
         status: record.status,
@@ -219,7 +222,16 @@ export default function DentalForm({
                                         className={inputClass}
                                     />
                                 </Field>
-                                <label className="block space-y-1.5">
+                                <Field label="Visit Time">
+                                    <input
+                                        name="visitTime"
+                                        type="time"
+                                        defaultValue={v.visitTime}
+                                        suppressHydrationWarning
+                                        className={inputClass}
+                                    />
+                                </Field>
+                                <label className="block space-y-1.5 sm:col-span-2">
                                     <span className="text-sm font-semibold text-gray-800">Attending Dentist</span>
                                     <input
                                         value={dentist}
@@ -270,7 +282,7 @@ export default function DentalForm({
                                 <div className="grid grid-cols-2 gap-2">
                                     {STATUSES.map((s) => (
                                         <label key={s.value} className="cursor-pointer">
-                                            <input
+                                            <input required
                                                 type="radio"
                                                 name="status"
                                                 value={s.value}
@@ -288,7 +300,7 @@ export default function DentalForm({
                             </div>
 
                             <Field label="Notes">
-                                <textarea
+                                <textarea required
                                     name="notes"
                                     defaultValue={v.notes}
                                     onChange={(e) => setNotesLength(e.target.value.length)}

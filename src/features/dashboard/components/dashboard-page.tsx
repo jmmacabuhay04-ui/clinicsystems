@@ -78,8 +78,9 @@ type ActivityRow = {
 };
 
 // Mga dahilan ng pagbisita ngayong linggo (para sa "Visit Reasons" donut)
-type ReasonRow = { label: string; clinic: bigint; dental: bigint; reports: bigint };
-type Reason = { label: string; clinic: number; dental: number; reports: number; value: number };
+// direct = case report na HINDI galing sa clinic visit (New Case Report lang)
+type ReasonRow = { label: string; clinic: bigint; dental: bigint; reports: bigint; direct: bigint };
+type Reason = { label: string; clinic: number; dental: number; reports: number; direct: number; value: number };
 
 type ActivityItem = {
     key: string;
@@ -540,7 +541,7 @@ function VisitReasons({
         >
             {/* Tabs: All | Clinic | Dental | Case Reports */}
             <ReasonTabs
-                reasons={reasons.map(({ label, clinic, dental, reports }) => ({ label, clinic, dental, reports }))}
+                reasons={reasons.map(({ label, clinic, dental, reports, direct }) => ({ label, clinic, dental, reports, direct }))}
                 kinds={[...kinds]}
                 emptyText={`No visits ${RANGE_LABEL[range].toLowerCase()} yet.`}
             />
@@ -721,8 +722,17 @@ async function loadDashboard(
               WHERE archived_at IS NULL AND CAST(visit_date AS DATE) = CAST(${today} AS DATE)) AS dental_today,
             (SELECT COUNT(*) FROM dental_records
               WHERE archived_at IS NULL AND status = 'follow-up') AS dental_follow,
-            (SELECT COUNT(*) FROM health_case_reports
-              WHERE archived_at IS NULL AND CAST(report_date AS DATE) = CAST(${today} AS DATE)) AS cases_today
+            -- Case report ngayong araw na ginawa sa New Case Report lang (hindi galing sa clinic visit)
+            (SELECT COUNT(*) FROM health_case_reports c
+              WHERE c.archived_at IS NULL AND CAST(c.report_date AS DATE) = CAST(${today} AS DATE)
+                AND NOT EXISTS (SELECT 1 FROM health_records h
+                              WHERE c.student_id IS NOT NULL AND h.student_id = c.student_id
+                                AND h.visit_date = c.report_date AND h.archived_at IS NULL
+                                AND LOWER(TRIM(h.complaint)) = LOWER(TRIM(c.complaint)))
+                AND NOT EXISTS (SELECT 1 FROM employee_health_records h
+                              WHERE c.employee_id IS NOT NULL AND h.employee_id = c.employee_id
+                                AND h.visit_date = c.report_date AND h.archived_at IS NULL
+                                AND LOWER(TRIM(h.complaint)) = LOWER(TRIM(c.complaint)))) AS cases_today
         `,
             isDentist
                 ? Promise.resolve([] as VisitRow[])
@@ -790,8 +800,17 @@ async function loadDashboard(
                      WHERE archived_at IS NULL AND CAST(visit_date AS DATE) BETWEEN b.s AND b.e)
                  AS BIGINT) AS dental,
                  CAST(
-                   (SELECT COUNT(*) FROM health_case_reports
-                     WHERE archived_at IS NULL AND CAST(report_date AS DATE) BETWEEN b.s AND b.e)
+                   -- Hindi kasama ang case report na galing sa clinic visit (nasa Clinic Visits na)
+                   (SELECT COUNT(*) FROM health_case_reports c
+                     WHERE c.archived_at IS NULL AND CAST(c.report_date AS DATE) BETWEEN b.s AND b.e
+                       AND NOT EXISTS (SELECT 1 FROM health_records h
+                              WHERE c.student_id IS NOT NULL AND h.student_id = c.student_id
+                                AND h.visit_date = c.report_date AND h.archived_at IS NULL
+                                AND LOWER(TRIM(h.complaint)) = LOWER(TRIM(c.complaint)))
+                AND NOT EXISTS (SELECT 1 FROM employee_health_records h
+                              WHERE c.employee_id IS NOT NULL AND h.employee_id = c.employee_id
+                                AND h.visit_date = c.report_date AND h.archived_at IS NULL
+                                AND LOWER(TRIM(h.complaint)) = LOWER(TRIM(c.complaint))))
                  AS BIGINT) AS reports
           FROM b
           ORDER BY b.s ASC
@@ -867,19 +886,29 @@ async function loadDashboard(
           SELECT MIN(TRIM(u.reason)) AS label,
                  CAST(COUNT(*) FILTER (WHERE u.src = 'clinic') AS BIGINT) AS clinic,
                  CAST(COUNT(*) FILTER (WHERE u.src = 'dental') AS BIGINT) AS dental,
-                 CAST(COUNT(*) FILTER (WHERE u.src = 'reports') AS BIGINT) AS reports
+                 CAST(COUNT(*) FILTER (WHERE u.src = 'reports' AND NOT u.from_visit) AS BIGINT) AS reports,
+                 -- Case report na hindi galing sa clinic visit (para hindi doble sa "All")
+                 CAST(COUNT(*) FILTER (WHERE u.src = 'reports' AND NOT u.from_visit) AS BIGINT) AS direct
           FROM (
-            SELECT 'clinic' AS src, complaint AS reason, visit_date AS day
+            SELECT 'clinic' AS src, complaint AS reason, visit_date AS day, false AS from_visit
             FROM health_records WHERE archived_at IS NULL AND ${!isDentist}
             UNION ALL
-            SELECT 'clinic', complaint, visit_date
+            SELECT 'clinic', complaint, visit_date, false
             FROM employee_health_records WHERE archived_at IS NULL AND ${!isDentist}
             UNION ALL
-            SELECT 'dental', procedure_name, visit_date
+            SELECT 'dental', procedure_name, visit_date, false
             FROM dental_records WHERE archived_at IS NULL AND ${!isDoctor}
             UNION ALL
-            SELECT 'reports', complaint, report_date
-            FROM health_case_reports WHERE archived_at IS NULL AND ${!isDentist}
+            SELECT 'reports', c.complaint, c.report_date,
+                   (EXISTS (SELECT 1 FROM health_records h
+                            WHERE c.student_id IS NOT NULL AND h.student_id = c.student_id
+                              AND h.visit_date = c.report_date AND h.archived_at IS NULL
+                              AND LOWER(TRIM(h.complaint)) = LOWER(TRIM(c.complaint)))
+                    OR EXISTS (SELECT 1 FROM employee_health_records h
+                            WHERE c.employee_id IS NOT NULL AND h.employee_id = c.employee_id
+                              AND h.visit_date = c.report_date AND h.archived_at IS NULL
+                              AND LOWER(TRIM(h.complaint)) = LOWER(TRIM(c.complaint))))
+            FROM health_case_reports c WHERE c.archived_at IS NULL AND ${!isDentist}
           ) u
           WHERE TRIM(COALESCE(u.reason, '')) <> ''
             AND CAST(u.day AS DATE) BETWEEN CAST(${reasonFrom} AS DATE) AND CAST(${reasonTo} AS DATE)
@@ -990,7 +1019,9 @@ async function loadDashboard(
                 const clinic = Number(r.clinic);
                 const dental = Number(r.dental);
                 const reports = Number(r.reports);
-                return { label: r.label, clinic, dental, reports, value: clinic + dental + reports };
+                const direct = Number(r.direct);
+                // Bilang ng tao/visit: hindi na binibilang ulit ang case report na galing sa clinic visit
+                return { label: r.label, clinic, dental, reports, direct, value: clinic + dental + direct };
             }),
         };
     } catch (err) {

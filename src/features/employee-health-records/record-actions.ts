@@ -139,9 +139,11 @@ export async function createEmployeeRecord(
     }
 
     const values = readValues(formData);
-    if (!values.employeeNumber || !values.visitDate || !values.complaint) {
-        return { error: "Employee, visit date, and complaint are required.", values };
+    if (!values.employeeNumber || !values.visitDate) {
+        return { error: "Employee and visit date are required.", values };
     }
+    // Optional ang complaint: kapag blangko, "Vital Signs" ang itatala (vital signs check lang)
+    if (!values.complaint) values.complaint = "Vital Signs";
     if (!["pending", "referred", "resolved"].includes(values.status)) {
         return { error: "Select a valid status.", values };
     }
@@ -223,8 +225,9 @@ export async function updateEmployeeRecord(
     if (!recordId) return { error: "Missing record." };
 
     const values = readValues(formData);
-    if (!values.visitDate || !values.complaint) {
-        return { error: "Visit date and complaint are required.", values };
+    // Blangkong Visit Date o Complaint: hindi papalitan (mananatili ang dati)
+    if (values.visitDate && !/^\d{4}-\d{2}-\d{2}$/.test(values.visitDate)) {
+        return { error: "Enter a valid visit date.", values };
     }
     if (values.visitTime && !/^([01]\d|2[0-3]):[0-5]\d$/.test(values.visitTime)) {
         return { error: "Enter a valid visit time.", values };
@@ -238,7 +241,9 @@ export async function updateEmployeeRecord(
             // 1) Ang Health Case Report ng visit na ito ay sumasabay (status, reklamo, petsa)
             await tx.$executeRaw`
       UPDATE health_case_reports c
-      SET status = ${values.status}, complaint = ${values.complaint}, report_date = ${values.visitDate}::date
+      SET status = ${values.status},
+          complaint = COALESCE(NULLIF(${values.complaint}, ''), c.complaint),
+          report_date = COALESCE(CAST(NULLIF(${values.visitDate}, '') AS DATE), c.report_date)
       FROM employee_health_records h
       WHERE h.record_id = ${recordId}
         AND c.employee_id = h.employee_id
@@ -249,10 +254,10 @@ export async function updateEmployeeRecord(
             // 2) Ang clinic visit mismo
             await tx.$executeRaw`
       UPDATE employee_health_records SET
-        visit_date      = ${values.visitDate}::date,
+        visit_date      = COALESCE(CAST(NULLIF(${values.visitDate}, '') AS DATE), visit_date),
         visit_time      = CAST(NULLIF(${values.visitTime}, '') AS TIME),
         notes           = ${values.notes || null},
-        complaint       = ${values.complaint},
+        complaint       = COALESCE(NULLIF(${values.complaint}, ''), complaint),
         action_taken    = ${values.actionTaken || null},
         attending_staff = ${values.attendingStaff || null},
         height_cm       = ${num(formData, "heightCm")},

@@ -3,21 +3,18 @@
 import { useEffect } from "react";
 
 /**
- * REQUIRED FIELDS (buong system)
+ * REQUIRED FIELDS: LOG IN LANG
  *
- * Lahat ng input, textarea at select sa mga form na nagse-save (hindi kasama ang
- * search/filter na naka-method="get") ay awtomatikong required:
+ * Ang form lang na may `data-required` (ang Log In) ang may required fields:
  *   - may pulang * sa label
- *   - kapag blangko at nag-save: pulang border + "This field is required." sa ilalim
- *   - pupunta sa unang blangkong field
+ *   - kapag blangko: pulang border + "This field is required." sa ilalim
  *
- * HINDI kasama (sadyang optional):
- *   - search at filter (form method="get", type="search")
- *   - checkbox at file upload (hal. avatar)
- *   - password fields (sa Edit, blangko = hindi papalitan); kung may sariling
- *     `required` ang password field, required pa rin ito
- *   - readOnly / disabled / walang `name` / nakatago (hal. ibang tab)
- *   - kahit anong field o form na may `data-optional`
+ * LAHAT ng ibang form sa system: walang required. Tinatanggal ang `required`
+ * sa mga field at nilalagyan ng `noValidate` ang form, kaya puwedeng i-save kahit
+ * may blangko (may sariling pagsusuri pa rin ang server sa ilang form).
+ *
+ * Sa Log In, hindi kasama ang checkbox, file, search, readOnly, nakatago,
+ * at ang may `data-optional`.
  */
 
 const SKIP_TYPES = new Set(["hidden", "submit", "button", "reset", "image", "checkbox", "file", "search"]);
@@ -43,10 +40,15 @@ function saysOptional(el: Field) {
     return texts.some((t) => /\boptional\b/i.test(t));
 }
 
+/** Form na may required fields (Log In lang) */
+function enabled(form: HTMLFormElement | null) {
+    return !!form && form.hasAttribute("data-required");
+}
+
 /** Dapat bang awtomatikong gawing required ang field na ito? */
 function eligible(el: Field) {
     const form = el.form;
-    if (!form) return false;
+    if (!form || !enabled(form)) return false;
     if ((form.getAttribute("method") ?? "").toLowerCase() === "get") return false;
     if (form.hasAttribute("data-optional") || el.closest("[data-optional]")) return false;
     // May "(optional)" sa label: hindi required
@@ -154,7 +156,16 @@ function showError(el: Field) {
     p.setAttribute("data-req-msg", "");
     p.setAttribute("role", "alert");
     p.textContent = MESSAGE;
-    box.insertAdjacentElement("afterend", p);
+    // Log In (data-req-float): nasa LOOB ng lalagyan ng field, nakalutang sa ilalim nito,
+    // para hindi gumalaw ang form at hindi matakpan ng kasunod na field
+    if (el.form?.hasAttribute("data-req-float")) {
+        // Ang lalagyan mismo ng input (o ang input's parent kung walang lalagyan)
+        const holder = box !== el ? box : el.parentElement ?? box;
+        if (getComputedStyle(holder).position === "static") holder.style.position = "relative";
+        holder.appendChild(p);
+    } else {
+        box.insertAdjacentElement("afterend", p);
+    }
     messages.set(box, p);
 }
 
@@ -181,6 +192,18 @@ function apply() {
     document.querySelectorAll("[data-req-label]").forEach((n) => n.removeAttribute("data-req-label"));
 
     document.querySelectorAll("form").forEach((form) => {
+        // Hindi Log In: alisin ang lahat ng required at huwag harangin ang pag-save
+        if (!enabled(form)) {
+            if (!form.noValidate) form.noValidate = true;
+            Array.from(form.elements).forEach((node) => {
+                if (!isField(node)) return;
+                if (node.required) node.required = false;
+                node.removeAttribute("data-auto-req");
+                clearError(node);
+            });
+            return;
+        }
+
         Array.from(form.elements).forEach((node) => {
             if (!isField(node)) return;
             const el = node;
@@ -221,7 +244,7 @@ input[aria-invalid="true"], textarea[aria-invalid="true"], select[aria-invalid="
 [data-req-msg] { margin-top: 0.3rem; font-size: 0.875rem; line-height: 1.25rem; font-weight: 500; color: #dc2626; }
 /* Mga form na may data-req-float (hal. Log In, Enter Code): hindi tinutulak ng error
    ang mga kasunod na field; lumalabas ito sa puwang sa pagitan ng mga field */
-[data-req-float] [data-req-msg] { height: 0; margin: 0 !important; position: relative; top: 0.2rem; overflow: visible; white-space: nowrap; }
+[data-req-float] [data-req-msg] { position: absolute; left: 1.25rem; top: 100%; margin: 0.1rem 0 0 0 !important; z-index: 1; white-space: nowrap; pointer-events: none; }
 `;
 
 export default function RequiredFields() {
@@ -244,7 +267,7 @@ export default function RequiredFields() {
                     subtree: true,
                     characterData: true,
                     attributes: true,
-                    attributeFilter: ["class", "style", "hidden", "disabled", "readonly", "name", "type", "method"],
+                    attributeFilter: ["class", "style", "hidden", "disabled", "readonly", "name", "type", "method", "required"],
                 });
             }, 400);
         };

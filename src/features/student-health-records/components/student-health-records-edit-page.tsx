@@ -44,7 +44,9 @@ export default async function EditRecordPage({ searchParams }: Props) {
     SELECT r.record_id, s.student_number, s.last_name, s.first_name,
            r.visit_date, r.complaint, r.action_taken, r.attending_staff,
            r.height_cm, r.weight_kg, r.heart_rate, r.blood_pressure, r.temperature,
-           to_char(r.visit_time, 'HH24:MI') AS visit_time, r.notes,
+           -- Walang nakatalang oras (lumang record): gamitin ang oras na na-save ito (Manila)
+           COALESCE(to_char(r.visit_time, 'HH24:MI'),
+                    to_char((r.created_at AT TIME ZONE current_setting('TimeZone')) AT TIME ZONE 'Asia/Manila', 'HH24:MI')) AS visit_time, r.notes,
            (SELECT c.status FROM health_case_reports c
             WHERE c.student_id = r.student_id AND c.report_date = r.visit_date
               AND LOWER(TRIM(c.complaint)) = LOWER(TRIM(r.complaint)) AND c.archived_at IS NULL

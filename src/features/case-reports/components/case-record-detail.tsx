@@ -54,7 +54,8 @@ export default async function CaseRecordDetail({
     backHref?: string;
 }) {
     const rows = await prisma.$queryRaw<DetailRow[]>`
-    SELECT c.case_id, c.case_number, c.report_date, to_char(c.report_time, 'HH24:MI') AS report_time,
+    SELECT c.case_id, c.case_number, c.report_date, COALESCE(to_char(c.report_time, 'HH24:MI'),
+                    to_char((c.created_at AT TIME ZONE current_setting('TimeZone')) AT TIME ZONE 'Asia/Manila', 'HH24:MI')) AS report_time,
            c.complaint, c.action_taken, c.staff_name, c.status, c.notes,
            CASE WHEN c.employee_id IS NOT NULL THEN 'employee' ELSE 'student' END AS patient_type,
            COALESCE(s.student_number, e.employee_number) AS patient_number,

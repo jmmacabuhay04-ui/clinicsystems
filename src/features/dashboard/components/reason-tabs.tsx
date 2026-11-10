@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { PieChart } from "lucide-react";
 
-export type ReasonData = { label: string; clinic: number; dental: number; reports: number };
+/** direct = case report na hindi galing sa clinic visit (ginagamit sa "All" para walang doble) */
+export type ReasonData = { label: string; clinic: number; dental: number; reports: number; direct?: number };
 type Kind = "all" | "clinic" | "dental" | "reports";
 
 // Kulay ng bawat dahilan sa donut (magkakaiba; gray = "Others")
@@ -26,7 +27,10 @@ export default function ReasonTabs({
     const [tab, setTab] = useState<Kind>(tabs[0] ?? "all");
 
     const countOf = (r: ReasonData, k: Kind) =>
-        k === "all" ? kinds.reduce((sum, x) => sum + r[x], 0) : r[k];
+        k === "all"
+            ? // All: clinic + dental + case report na hindi galing sa visit (nasa Clinic na ang iba)
+            kinds.reduce((sum, x) => sum + (x === "reports" && kinds.includes("clinic") ? (r.direct ?? r.reports) : r[x]), 0)
+            : r[k];
 
     const list = reasons
         .map((r) => ({ label: r.label, value: countOf(r, tab) }))

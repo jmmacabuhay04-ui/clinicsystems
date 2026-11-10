@@ -28,6 +28,7 @@ function readValues(formData: FormData) {
         patientType: get("patientType") === "employee" ? "employee" : "student",
         patientNumber: get("patientNumber"),
         visitDate: get("visitDate"),
+        visitTime: get("visitTime"),
         procedure: get("procedure"),
         tooth: get("tooth"),
         status: get("status") === "follow-up" ? "follow-up" : "completed",
@@ -44,6 +45,7 @@ function validate(values: Values) {
             : "Student number is required.";
     }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(values.visitDate)) return "Enter a valid visit date.";
+    if (values.visitTime && !/^([01]\d|2[0-3]):[0-5]\d$/.test(values.visitTime)) return "Enter a valid visit time.";
     if (!values.procedure) return "Procedure is required.";
     if (values.procedure.length > 150) return "Procedure is too long.";
     return null;
@@ -118,10 +120,11 @@ export async function createDental(
 
         await prisma.$executeRaw`
       INSERT INTO dental_records
-        (student_id, employee_id, visit_date, procedure_name, tooth,
+        (student_id, employee_id, visit_date, visit_time, procedure_name, tooth,
          dentist_name, status, notes)
       VALUES
         (${patient.studentId}, ${patient.employeeId}, ${values.visitDate}::date,
+         CAST(NULLIF(${values.visitTime}, '') AS TIME),
          ${values.procedure}, ${values.tooth || null}, ${dentistName},
          ${values.status}, ${values.notes || null})
     `;
@@ -169,6 +172,7 @@ export async function updateDental(
         await prisma.$executeRaw`
       UPDATE dental_records SET
         visit_date     = ${values.visitDate}::date,
+        visit_time     = CAST(NULLIF(${values.visitTime}, '') AS TIME),
         procedure_name = ${values.procedure},
         tooth          = ${values.tooth || null},
         status         = ${values.status},

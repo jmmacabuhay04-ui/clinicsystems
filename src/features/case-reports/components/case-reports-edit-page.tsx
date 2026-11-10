@@ -56,7 +56,9 @@ export default async function EditCasePage({ searchParams }: Props) {
                COALESCE(s.student_number, e.employee_number) AS patient_number,
                COALESCE(s.last_name, e.last_name)            AS last_name,
                COALESCE(s.first_name, e.first_name)          AS first_name,
-               c.complaint, c.report_date, to_char(c.report_time, 'HH24:MI') AS report_time, c.staff_name, c.status, c.notes, c.action_taken
+               c.complaint, c.report_date, -- Walang nakatalang oras: gamitin ang oras na na-save ito (Manila)
+               COALESCE(to_char(c.report_time, 'HH24:MI'),
+                        to_char((c.created_at AT TIME ZONE current_setting('TimeZone')) AT TIME ZONE 'Asia/Manila', 'HH24:MI')) AS report_time, c.staff_name, c.status, c.notes, c.action_taken
         FROM health_case_reports c
         LEFT JOIN students  s ON s.student_id  = c.student_id
         LEFT JOIN employees e ON e.employee_id = c.employee_id

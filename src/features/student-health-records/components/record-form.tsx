@@ -181,7 +181,7 @@ export default function RecordForm({
                             />
                         </Field>
                         <Field label="Visit Time">
-                            <input
+                            <input required
                                 ref={timeRef}
                                 name="visitTime"
                                 type="time"
@@ -193,7 +193,7 @@ export default function RecordForm({
                     </div>
 
                     <Field label="Attending Staff">
-                        <input
+                        <input required
                             name="attendingStaff"
                             defaultValue={v.attendingStaff ?? staffName}
                             placeholder="e.g. Nurse Reyes"
@@ -203,20 +203,19 @@ export default function RecordForm({
                         />
                     </Field>
 
-                    <Field label="Reason for Visit *">
+                    <Field label="Reason for Visit">
                         <SuggestInput
                             name="complaint"
                             defaultValue={v.complaint ?? ""}
                             suggestions={COMMON_REASONS.map((r) => ({ value: r }))}
                             placeholder="Select or type a reason..."
                             maxLength={255}
-                            required
                             className={inputClass}
                         />
                     </Field>
 
                     <Field label="Action Taken">
-                        <SuggestInput
+                        <SuggestInput required
                             name="actionTaken"
                             defaultValue={v.actionTaken ?? ""}
                             suggestions={COMMON_ACTIONS.map((a) => ({ value: a }))}
@@ -232,21 +231,20 @@ export default function RecordForm({
                     <div className="flex items-center gap-2">
                         <HeartPulse className="h-6 w-6 text-[#15664f]" />
                         <h2 className="text-lg font-semibold text-gray-900">Vital Signs</h2>
-                        <span className="text-sm text-gray-600">(optional)</span>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4 xl:grid-cols-3">
                         <Field label="Temperature (°C)">
-                            <input name="temperature" type="number" step="0.1" defaultValue={v.temperature ?? ""} placeholder="36.5" suppressHydrationWarning className={inputClass} />
+                            <input required name="temperature" type="number" step="0.1" defaultValue={v.temperature ?? ""} placeholder="36.5" suppressHydrationWarning className={inputClass} />
                         </Field>
                         <Field label="Blood Pressure">
-                            <input name="bloodPressure" defaultValue={v.bloodPressure ?? ""} placeholder="110/70" suppressHydrationWarning className={inputClass} />
+                            <input required name="bloodPressure" defaultValue={v.bloodPressure ?? ""} placeholder="110/70" suppressHydrationWarning className={inputClass} />
                         </Field>
                         <Field label="Heart Rate (bpm)">
-                            <input name="heartRate" type="number" step="1" defaultValue={v.heartRate ?? ""} placeholder="72" suppressHydrationWarning className={inputClass} />
+                            <input required name="heartRate" type="number" step="1" defaultValue={v.heartRate ?? ""} placeholder="72" suppressHydrationWarning className={inputClass} />
                         </Field>
                         <Field label="Weight (kg)">
-                            <input
+                            <input required
                                 key={`w-${personType}`}
                                 name={isStudent ? "weight" : "weightKg"}
                                 type="number"
@@ -258,7 +256,7 @@ export default function RecordForm({
                             />
                         </Field>
                         <Field label="Height (cm)">
-                            <input
+                            <input required
                                 key={`h-${personType}`}
                                 name={isStudent ? "height" : "heightCm"}
                                 type="number"
@@ -277,7 +275,7 @@ export default function RecordForm({
                         <div className="grid grid-cols-3 gap-2">
                             {STATUSES.map((s) => (
                                 <label key={s.value} className="cursor-pointer">
-                                    <input
+                                    <input required
                                         type="radio"
                                         name="status"
                                         value={s.value}
@@ -296,7 +294,7 @@ export default function RecordForm({
                     </div>
 
                     <Field label="Symptoms / Notes">
-                        <textarea
+                        <textarea required
                             name="notes"
                             defaultValue={v.notes ?? ""}
                             onChange={(e) => setNotesLength(e.target.value.length)}

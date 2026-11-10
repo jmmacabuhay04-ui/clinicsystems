@@ -48,6 +48,8 @@ export default async function NewDentalRecordPage({ searchParams }: Props) {
         patientType: presetEmployee ? "employee" : "student",
         patientNumber: presetEmployee || presetStudent,
         visitDate: new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date()),
+        // Oras ngayon sa Manila (HH:MM), awtomatikong nakalagay
+        visitTime: new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Manila", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date()),
         procedure: "",
         tooth: "",
         dentistName: onDuty,

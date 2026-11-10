@@ -105,7 +105,7 @@ export default async function SettingsPage() {
                         <p className="text-sm text-gray-600">Set the name others see instead of your email.</p>
                     </div>
                 </div>
-                <DisplayNameForm current={user?.full_name ?? ""} email={session.username} />
+                <DisplayNameForm />
             </section>
 
             <div className="grid gap-6 lg:grid-cols-2">

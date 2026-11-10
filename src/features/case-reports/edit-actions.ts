@@ -42,10 +42,8 @@ export async function updateCaseReport(
     const notes = get("notes");
     const actionTaken = get("actionTaken").trim();
 
-    if (!complaint || !reportDate) {
-        return fail("Complaint and date are required.");
-    }
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(reportDate)) return fail("Enter a valid date.");
+    // Blangkong Complaint o Date: hindi papalitan (mananatili ang dati)
+    if (reportDate && !/^\d{4}-\d{2}-\d{2}$/.test(reportDate)) return fail("Enter a valid date.");
     if (reportTime && !/^([01]\d|2[0-3]):[0-5]\d$/.test(reportTime)) return fail("Enter a valid time.");
     if (!["pending", "referred", "resolved"].includes(status)) return fail("Select a valid status.");
 
@@ -66,8 +64,8 @@ export async function updateCaseReport(
 
         const done = await prisma.$executeRaw`
             UPDATE health_case_reports
-            SET complaint   = ${complaint},
-                report_date = CAST(${reportDate} AS DATE),
+            SET complaint   = COALESCE(NULLIF(${complaint}, ''), complaint),
+                report_date = COALESCE(CAST(NULLIF(${reportDate}, '') AS DATE), report_date),
                 report_time = CAST(NULLIF(${reportTime}, '') AS TIME),
                 staff_name  = ${staffName || null},
                 status      = ${status},

@@ -3,9 +3,18 @@ import { ArrowLeft, CalendarDays, ClipboardCheck, NotebookPen, Pencil, UserRound
 import { prisma } from "@/lib/prisma";
 import ConfirmLink from "@/components/shared/confirm-link";
 
+// "14:05" -> "2:05 PM"
+function to12Hour(value: string | null) {
+    if (!value) return "";
+    const [h, m] = value.split(":").map(Number);
+    if (Number.isNaN(h)) return "";
+    return `${h % 12 === 0 ? 12 : h % 12}:${String(m ?? 0).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
+}
+
 type DetailRow = {
     dental_id: number;
     visit_date: Date;
+    visit_time: string | null;
     procedure_name: string;
     tooth: string | null;
     dentist_name: string | null;
@@ -123,6 +132,8 @@ export default async function DentalRecordDetail({
 }) {
     const rows = await prisma.$queryRaw<DetailRow[]>`
     SELECT d.dental_id, d.visit_date, d.procedure_name, d.tooth, d.dentist_name, d.status, d.notes,
+           COALESCE(to_char(d.visit_time, 'HH24:MI'),
+                    to_char((d.created_at AT TIME ZONE current_setting('TimeZone')) AT TIME ZONE 'Asia/Manila', 'HH24:MI')) AS visit_time,
            CASE WHEN d.employee_id IS NOT NULL THEN 'employee' ELSE 'student' END AS patient_type,
            COALESCE(s.student_number, e.employee_number) AS patient_number,
            COALESCE(s.last_name, e.last_name) AS last_name,
@@ -240,6 +251,7 @@ export default async function DentalRecordDetail({
                 <span className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#eef6f2] px-3 py-2 text-sm font-medium text-gray-800 sm:w-auto sm:shrink-0">
                     <CalendarDays className="h-4 w-4 shrink-0 text-[#15664f]" />
                     {longDate}
+                    {to12Hour(d.visit_time) ? ` · ${to12Hour(d.visit_time)}` : ""}
                 </span>
             </section>
 

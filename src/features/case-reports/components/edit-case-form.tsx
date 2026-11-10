@@ -180,7 +180,7 @@ export default function EditCaseForm(props: Props) {
                             />
                         </Field>
                         <Field label="Report Time">
-                            <input
+                            <input required
                                 ref={timeRef}
                                 name="reportTime"
                                 type="time"
@@ -192,7 +192,7 @@ export default function EditCaseForm(props: Props) {
                     </div>
 
                     <Field label="Attending Staff">
-                        <input
+                        <input required
                             name="staffName"
                             defaultValue={v.staffName ?? props.staffName}
                             placeholder="e.g. Nurse Reyes"
@@ -207,20 +207,19 @@ export default function EditCaseForm(props: Props) {
                         )}
                     </Field>
 
-                    <Field label="Diagnosis / Complaint *">
+                    <Field label="Diagnosis / Complaint">
                         <SuggestInput
                             name="complaint"
                             defaultValue={v.complaint ?? props.complaint}
                             suggestions={COMMON_DIAGNOSES.map((d) => ({ value: d }))}
                             placeholder="Select or type a diagnosis..."
                             maxLength={255}
-                            required
                             className={inputClass}
                         />
                     </Field>
 
                     <Field label="Action Taken">
-                        <SuggestInput
+                        <SuggestInput required
                             name="actionTaken"
                             defaultValue={v.actionTaken ?? props.actionTaken ?? ""}
                             suggestions={COMMON_ACTIONS.map((a) => ({ value: a }))}
@@ -243,7 +242,7 @@ export default function EditCaseForm(props: Props) {
                         <div className="grid grid-cols-3 gap-2">
                             {STATUSES.map((s) => (
                                 <label key={s.value} className="cursor-pointer">
-                                    <input
+                                    <input required
                                         type="radio"
                                         name="status"
                                         value={s.value}
@@ -262,7 +261,7 @@ export default function EditCaseForm(props: Props) {
                     </div>
 
                     <Field label="Notes">
-                        <textarea
+                        <textarea required
                             name="notes"
                             defaultValue={v.notes ?? props.notes}
                             onChange={(e) => setNotesLength(e.target.value.length)}

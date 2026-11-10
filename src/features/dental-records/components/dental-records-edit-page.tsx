@@ -21,6 +21,7 @@ function isDentalEditor(role: unknown) {
 type Row = {
     dental_id: number;
     visit_date: Date;
+    visit_time: string | null;
     procedure_name: string;
     tooth: string | null;
     dentist_name: string | null;
@@ -51,6 +52,9 @@ export default async function EditDentalRecordPage({ searchParams }: Props) {
     const rows = await prisma.$queryRaw<Row[]>`
     SELECT d.dental_id, d.visit_date, d.procedure_name, d.tooth, d.dentist_name,
            d.status, d.notes,
+           -- Walang nakatalang oras: gamitin ang oras na na-save ito (Manila)
+           COALESCE(to_char(d.visit_time, 'HH24:MI'),
+                    to_char((d.created_at AT TIME ZONE current_setting('TimeZone')) AT TIME ZONE 'Asia/Manila', 'HH24:MI')) AS visit_time,
            CASE WHEN d.employee_id IS NOT NULL THEN 'employee' ELSE 'student' END AS patient_type,
            COALESCE(s.student_number, e.employee_number) AS patient_number,
            COALESCE(s.last_name, e.last_name) AS last_name,
@@ -69,6 +73,7 @@ export default async function EditDentalRecordPage({ searchParams }: Props) {
         patientType: row.patient_type,
         patientNumber: row.patient_number,
         visitDate: new Date(row.visit_date).toISOString().slice(0, 10),
+        visitTime: row.visit_time ?? "",
         procedure: row.procedure_name,
         tooth: row.tooth ?? "",
         dentistName: row.dentist_name ?? "",
