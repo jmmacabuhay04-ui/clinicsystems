@@ -55,13 +55,15 @@ export async function saveSessionSettings(
     const session = await getSession();
     if (!session) return { error: "Your session has expired. Please sign in again." };
 
-    // Auto-logout ay laging 15 minuto para sa lahat (wala nang pagpipilian)
+    // Auto-logout: 5, 10 o 15 minuto lang
+    const minutes = Number(formData.get("sessionMinutes"));
+    if (![5, 10, 15].includes(minutes)) return { error: "Choose 5, 10, or 15 minutes." };
     const twoFactor = formData.get("twoFactor") === "on";
 
     try {
         await prisma.user.update({
             where: { user_id: session.userId },
-            data: { session_minutes: 15, two_factor: twoFactor },
+            data: { session_minutes: minutes, two_factor: twoFactor },
         });
     } catch (err) {
         console.error("Save session settings error:", err);
@@ -125,8 +127,13 @@ export async function saveDisplayName(_prev: NameState, formData: FormData): Pro
         .replace(/\s+/g, " ")
         .trim();
 
-    // Optional: kapag blangko, buburahin ang Display Name (babalik sa default na pangalan)
-    if (name === "") {
+    // Blangko at pinindot ang Save: walang babaguhin
+    if (name === "" && formData.get("remove") !== "1") {
+        return { error: "Type a new display name first." };
+    }
+
+    // "Remove display name": buburahin (babalik sa default na pangalan)
+    if (formData.get("remove") === "1") {
         try {
             await prisma.user.update({ where: { user_id: session.userId }, data: { full_name: null } });
         } catch (err) {

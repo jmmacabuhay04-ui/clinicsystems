@@ -3,8 +3,10 @@ import { redirect } from "next/navigation";
 import { AlertTriangle, CalendarDays, CheckCircle2, School, ShieldAlert, Thermometer, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
-import { canViewHealthRecords } from "@/lib/permissions";
+import { canViewDental, canViewHealthRecords } from "@/lib/permissions";
 import DateRangePicker from "./date-range-picker";
+import DownloadReportButton from "./download-report-button";
+import PrintHeader from "@/components/layout/print-header";
 import ListPagination from "@/components/shared/list-pagination";
 
 type VisitRow = {
@@ -254,6 +256,7 @@ function TrendSvg({
 
             {/* Malambot na kulay sa ilalim ng Clinic Visits */}
             <path
+                data-series="visits"
                 d={`${smoothPath(data.map((d, i) => [x(i), y(d.visits)]))} L${x(data.length - 1)},${baseY} L${x(0)},${baseY} Z`}
                 fill={`url(#${gradientId})`}
             />
@@ -262,7 +265,7 @@ function TrendSvg({
             {[...series].reverse().map((s) => {
                 const main = s.key === "visits";
                 return (
-                    <g key={s.key}>
+                    <g key={s.key} data-series={s.key}>
                         <path
                             d={smoothPath(data.map((d, i) => [x(i), y(d[s.key])]))}
                             fill="none"
@@ -308,8 +311,13 @@ function TrendSvg({
 export default async function IllnessAlertsPage({ searchParams }: Props) {
     const session = await getSession();
     if (!session) redirect("/login");
-    // Health records: Admin, Nurse at Doctor lang (hindi ang Dentist)
-    if (!canViewHealthRecords(session.role)) redirect("/dashboard");
+    // Admin, Nurse, Doctor at Dentist.
+    //   - Health records (clinic visit, case report) sa Case Log: Admin, Nurse, Doctor
+    //   - Dental reports sa Case Log: Admin, Nurse, Dentist
+    // Ang alert level, graph at Illness Breakdown ay bilang lang (walang pangalan), kaya kita ng lahat.
+    const seesHealth = canViewHealthRecords(session.role);
+    const seesDental = canViewDental(session.role);
+    if (!seesHealth && !seesDental) redirect("/dashboard");
 
     const params = await searchParams;
 
@@ -516,7 +524,7 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
         reference: `D-${String(d.dental_id).padStart(3, "0")}`,
         status: d.status,
     }));
-    const logCases = [...cases, ...dentalCases].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const logCases = [...(seesHealth ? cases : []), ...(seesDental ? dentalCases : [])].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     // Clinic visit: papunta sa Clinic Visit tab ng record ng pasyente
     const visitHref = (c: Case) =>
         c.patient_type === "employee"
@@ -738,9 +746,248 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                             </p>
                         </div>
                     </div>
-                    <DateRangePicker from={rangeStart} to={rangeEnd} today={todayKey} label={periodLabel} activePreset={activePreset} />
+                    <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+                        <DateRangePicker from={rangeStart} to={rangeEnd} today={todayKey} label={periodLabel} activePreset={activePreset} />
+                        <DownloadReportButton
+                            fileName={`Illness Alert Report - ${periodLabel}`}
+                            // Ayon sa role: walang Dental Reports ang Doctor (hindi niya nakikita ang dental records)
+                            // Dentist: Dental Reports lang. Doctor: walang Dental Reports.
+                            series={TREND_SERIES.filter((t) => (t.key === "dental" ? seesDental : seesHealth)).map((t) => ({
+                                key: t.key,
+                                label: t.label,
+                                color: t.color,
+                            }))}
+                        />
+                    </div>
                 </div>
             </div>
+
+            {/* ===== REPORT NA IDA-DOWNLOAD (lumalabas lang sa print / Save as PDF) ===== */}
+            <style>{`
+                @media print {
+                    /* Isang short bond paper (Letter 8.5" x 11") */
+                    @page { size: letter; margin: 10mm; }
+                    #illness-report { font-size: 13px; }
+                    #illness-report img { width: 56px !important; height: 56px !important; }
+                    #illness-report .avoid-break, #illness-report tr { break-inside: avoid; }
+                    #illness-report thead { display: table-header-group; }
+                    /* Itago ang sidebar, header at lahat ng ibang bahagi ng page; ang report lang ang matitira */
+                    aside, header, nav, [role="dialog"] { display: none !important; }
+                    main:has(> #illness-report) > :not(#illness-report) { display: none !important; }
+                    main:has(> #illness-report) { padding: 0 !important; }
+                    html, body, body [class*="overflow"], body [class*="h-screen"] { overflow: visible !important; height: auto !important; }
+                    #illness-report { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                    #illness-report .avoid-break { break-inside: avoid; }
+                }
+            `}</style>
+            <section id="illness-report" className="hidden text-gray-900 print:block">
+                {/* Kaparehong print header ng ibang form (BCAS logo, pangalan ng school, School Clinic) */}
+                <PrintHeader />
+
+                {/* Pamagat: kagaya ng Referral Slip (naka-gitna, malaki, may underline) pero green */}
+                <p className="mt-3 text-center text-xl font-bold uppercase tracking-wide text-[#10523f] underline">
+                    Illness Alert Report
+                </p>
+
+                {/* Detalye: kagaya ng "Date: ... Time: ..." ng Referral Slip */}
+                <div className="mt-4 space-y-1 border-b-2 border-[#15664f] pb-2 text-sm">
+                    <div className="flex gap-8">
+                        <span className="flex-1">
+                            <span className="font-semibold text-[#10523f]">Period:</span> {periodLabel}
+                        </span>
+                        <span className="flex-1">
+                            <span className="font-semibold text-[#10523f]">Generated:</span>{" "}
+                            {new Date().toLocaleString("en-US", { timeZone: "Asia/Manila", dateStyle: "medium", timeStyle: "short" })}
+                        </span>
+                    </div>
+                    <div className="flex gap-8">
+                        <span className="flex-1">
+                            <span className="font-semibold text-[#10523f]">Alert Level:</span> {current.tab}
+                        </span>
+                        <span className="flex-1">
+                            <span className="font-semibold text-[#10523f]">Recommended Mode:</span> {current.mode}
+                        </span>
+                    </div>
+                </div>
+
+                {/* 1) Graph */}
+                <div className="avoid-break mt-3">
+                    <h2 className="mb-1 text-base font-semibold text-[#10523f]">{byWeek ? "Monthly Case Trend" : "Daily Case Trend"}</h2>
+                    <TrendSvg data={trendDays} W={900} H={250} gradientId="illness-area-print" className="h-auto w-full" />
+                    <div className="mt-1 flex flex-wrap justify-center gap-x-6 text-sm text-gray-700">
+                        {TREND_SERIES.map((s) => (
+                            <span key={s.key} data-series={s.key} className="inline-flex items-center gap-2">
+                                <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color }} />
+                                {s.label}
+                            </span>
+                        ))}
+                    </div>
+                </div>
+
+                {/* 2) Breakdown bawat uri (Clinic Visits, Health Reports, Dental Reports).
+                    Magkakatabi; nakatago ang hindi napili sa Download, kaya kapag Dental lang,
+                    ang breakdown ng dental procedures lang ang lalabas. */}
+                <div className="avoid-break mt-4">
+                    <h2 className="mb-1 text-base font-semibold text-[#10523f]">Illness Breakdown</h2>
+                    <div className="flex gap-3">
+                        {(
+                            [
+                                { key: "visits", title: "Clinic Visits", head: "Illness", list: cases.filter((c) => c.source === "visit") },
+                                { key: "reports", title: "Health Reports", head: "Illness", list: cases.filter((c) => c.source === "report") },
+                                { key: "dental", title: "Dental Reports", head: "Procedure", list: dentalCases },
+                            ] as const
+                        ).map((g) => {
+                            // Bilang bawat sakit / procedure
+                            const counts = new Map<string, number>();
+                            for (const c of g.list) {
+                                const name = g.key === "dental" ? c.complaint || "Dental" : normalizeComplaint(c.complaint);
+                                counts.set(name, (counts.get(name) ?? 0) + 1);
+                            }
+                            const all = [...counts.entries()].sort((x, y) => y[1] - x[1]);
+                            // Top 6 lang para kasya sa isang bond paper; ang iba ay "Others"
+                            const rows = [
+                                ...all.slice(0, 6),
+                                ...(all.length > 6 ? [[`Others (${all.length - 6})`, all.slice(6).reduce((n, x) => n + x[1], 0)] as [string, number]] : []),
+                            ];
+                            const total = g.list.length;
+                            return (
+                                <div key={g.key} data-series={g.key} className="min-w-0 flex-1">
+                                    <p className="mb-1 text-sm font-semibold text-[#10523f]">
+                                        {g.title} <span className="font-normal text-gray-600">({total})</span>
+                                    </p>
+                                    {rows.length === 0 ? (
+                                        <p className="rounded border border-gray-300 px-2 py-1 text-sm text-gray-600">No records.</p>
+                                    ) : (
+                                        <table className="w-full border-collapse text-sm">
+                                            <thead>
+                                                <tr className="bg-[#eef6f2] text-left">
+                                                    <th className="border border-gray-300 px-2 py-1">{g.head}</th>
+                                                    <th className="border border-gray-300 px-2 py-1 text-right">Cases</th>
+                                                    <th className="border border-gray-300 px-2 py-1 text-right">%</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {rows.map(([name, count]) => (
+                                                    <tr key={name}>
+                                                        <td className="border border-gray-300 px-2 py-1">{name}</td>
+                                                        <td className="border border-gray-300 px-2 py-1 text-right">{count}</td>
+                                                        <td className="border border-gray-300 px-2 py-1 text-right">
+                                                            {total > 0 ? ((count / total) * 100).toFixed(0) : 0}%
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {/* 3) Case Log Summary (kabuuan lang, walang pangalan ng pasyente) */}
+                <div className="avoid-break mt-4">
+                    <h2 className="mb-1 text-base font-semibold text-[#10523f]">Case Log Summary</h2>
+                    {/* Isang hanay bawat uri; nakatago ang hindi pinili sa Download */}
+                    <table className="w-full border-collapse text-sm">
+                        <thead>
+                            <tr className="bg-[#eef6f2] text-left">
+                                <th className="border border-gray-300 px-2 py-1">Type</th>
+                                <th className="border border-gray-300 px-2 py-1 text-right">Total</th>
+                                <th className="border border-gray-300 px-2 py-1 text-right">Students</th>
+                                <th className="border border-gray-300 px-2 py-1 text-right">Employees</th>
+                                <th className="border border-gray-300 px-2 py-1">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {(
+                                [
+                                    { key: "visits", label: "Clinic Visits", source: "visit" },
+                                    { key: "reports", label: "Health Reports", source: "report" },
+                                    { key: "dental", label: "Dental Reports", source: "dental" },
+                                    { key: "all", label: "Total", source: null },
+                                ] as const
+                            ).map((row) => {
+                                const list = row.source ? logCases.filter((c) => c.source === row.source) : logCases;
+                                // Status: health = Pending / Referred / Resolved; dental = Completed / Follow-up
+                                const st = (v: string) => list.filter((c) => (c.status ?? "").toLowerCase() === v).length;
+                                const statuses =
+                                    row.key === "dental"
+                                        ? (["completed", "follow-up"] as const)
+                                        : row.key === "all"
+                                            ? (["pending", "referred", "resolved", "completed", "follow-up"] as const)
+                                            : (["pending", "referred", "resolved"] as const);
+                                const label = (v: string) => (v === "follow-up" ? "Follow-up" : v[0].toUpperCase() + v.slice(1));
+                                const statusText =
+                                    statuses
+                                        .map((v) => [v, st(v)] as const)
+                                        .filter(([, n]) => n > 0 || row.key !== "all")
+                                        .map(([v, n]) => `${label(v)} ${n}`)
+                                        .join(" · ") || "—";
+                                return (
+                                    <tr key={row.key} data-series={row.key} className={row.key === "all" ? "bg-gray-50 font-semibold" : ""}>
+                                        <td className="border border-gray-300 px-2 py-1">{row.label}</td>
+                                        <td className="border border-gray-300 px-2 py-1 text-right font-semibold">{list.length}</td>
+                                        <td className="border border-gray-300 px-2 py-1 text-right">{list.filter((c) => c.patient_type === "student").length}</td>
+                                        <td className="border border-gray-300 px-2 py-1 text-right">{list.filter((c) => c.patient_type === "employee").length}</td>
+                                        <td className="border border-gray-300 px-2 py-1">{statusText}</td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                    <p data-series="illness" className="mt-2 text-sm text-gray-700">
+                        Highest persons in a day: <span className="font-semibold">{peak.count > 0 ? `${peak.count} (${peak.peakLabel})` : "0"}</span>
+                    </p>
+                    <p data-series="illness" className="mt-2 text-sm text-gray-600">
+                        Illness alert counts exclude dental reports. Warning: {WARNING_PER_DAY}+ persons/day · Outbreak:{" "}
+                        {OUTBREAK_PER_DAY}+ persons/day.
+                    </p>
+                </div>
+
+                {/* 4) Case Log: bawat kaso na may pangalan ng student / employee.
+                    Ayon sa role ang laman (hal. Dentist = dental lang) at sa napili sa Download. */}
+                <div className="mt-4">
+                    <h2 className="mb-1 text-base font-semibold text-[#10523f]">Case Log</h2>
+                    {logCases.length === 0 ? (
+                        <p className="text-sm text-gray-700">No cases recorded.</p>
+                    ) : (
+                        <table className="w-full border-collapse text-sm">
+                            <thead>
+                                <tr className="bg-[#eef6f2] text-left">
+                                    <th className="border border-gray-300 px-2 py-1">Date</th>
+                                    <th className="border border-gray-300 px-2 py-1">ID</th>
+                                    <th className="border border-gray-300 px-2 py-1">ID Number</th>
+                                    <th className="border border-gray-300 px-2 py-1">Name</th>
+                                    <th className="border border-gray-300 px-2 py-1">Patient</th>
+                                    <th className="border border-gray-300 px-2 py-1">Reason / Procedure</th>
+                                    <th className="border border-gray-300 px-2 py-1">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {logCases.map((c) => (
+                                    <tr
+                                        key={c.key}
+                                        data-series={c.source === "visit" ? "visits" : c.source === "report" ? "reports" : "dental"}
+                                    >
+                                        <td className="whitespace-nowrap border border-gray-300 px-2 py-1">{formatDay(c.date)}</td>
+                                        <td className="whitespace-nowrap border border-gray-300 px-2 py-1">{displayId(c)}</td>
+                                        <td className="whitespace-nowrap border border-gray-300 px-2 py-1">{c.id_number ?? "—"}</td>
+                                        <td className="border border-gray-300 px-2 py-1">
+                                            {[c.last_name, c.first_name].filter(Boolean).join(", ") || "—"}
+                                        </td>
+                                        <td className="border border-gray-300 px-2 py-1">
+                                            {c.patient_type === "employee" ? "Employee" : "Student"}
+                                        </td>
+                                        <td className="border border-gray-300 px-2 py-1">{caseLabel(c)}</td>
+                                        <td className="border border-gray-300 px-2 py-1 capitalize">{c.status ?? "—"}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
+                </div>
+            </section>
 
             {/* Alert level banner */}
             <section className={`rounded-xl border-2 p-5 shadow-sm md:p-6 ${current.banner}`}>

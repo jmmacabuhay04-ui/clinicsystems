@@ -36,6 +36,10 @@ export async function issueSlip(_prev: SlipState, formData: FormData): Promise<S
     if (!studentNumber || !reason || !slipDate || !timeIssued) {
         return { error: "Student, reason, date, and time are required." };
     }
+    // Lahat ng field ay kailangang may laman
+    if (slipType === "teacher" && (!teacherName || !subject)) {
+        return { error: "Please enter the teacher name and subject/class." };
+    }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(slipDate)) return { error: "Enter a valid date." };
     if (!/^\d{2}:\d{2}$/.test(timeIssued)) return { error: "Enter a valid time." };
     if (reason.length > 500) return { error: "Reason is too long." };

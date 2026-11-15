@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CalendarDays, Plus, Search, X } from "lucide-react";
+import ReportTypeSelect from "./report-type-select";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { canManageDental, canManageRecords, canViewDental, canViewHealthRecords } from "@/lib/permissions";
@@ -404,6 +405,16 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
     }
 
     const total = count[0]?.count ?? 0;
+
+    // Bilang sa mga tab (Health Report / Dental Report): lahat ng hindi naka-archive
+    const kindRows =
+        showHealth && showDental
+            ? await prisma.$queryRaw<{ health: number; dental: number }[]>`
+                SELECT (SELECT COUNT(*) FROM health_case_reports WHERE archived_at IS NULL)::int AS health,
+                       (SELECT COUNT(*) FROM dental_records WHERE archived_at IS NULL)::int AS dental
+              `
+            : [];
+    const kindCounts = { health: kindRows[0]?.health ?? 0, dental: kindRows[0]?.dental ?? 0 };
     const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
     if (page > totalPages) redirect(hrefFor(totalPages));
 
@@ -513,19 +524,7 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
 
             {/* Tabs: Health | Dental (lalabas lang kapag may access sa dalawa, hal. Nurse at Admin) */}
             {showHealth && showDental && (
-                <nav className="inline-flex gap-1 rounded-xl border-2 border-[#cfe5d9] bg-white p-1 shadow-sm" aria-label="Report type">
-                    {(["health", "dental"] as const).map((k) => (
-                        <Link
-                            key={k}
-                            href={k === "dental" ? `${BASE}?kind=dental` : BASE}
-                            aria-current={kind === k ? "page" : undefined}
-                            className={`inline-flex h-10 items-center rounded-lg px-4 text-sm font-semibold transition-colors ${kind === k ? "bg-[#15664f] text-white shadow-sm" : "text-gray-600 hover:bg-[#eef6f2] hover:text-[#15664f]"
-                                }`}
-                        >
-                            {k === "dental" ? "Dental Report" : "Health Report"}
-                        </Link>
-                    ))}
-                </nav>
+                <ReportTypeSelect kind={kind} base={BASE} counts={kindCounts} />
             )}
 
             <section className="overflow-hidden rounded-xl border-2 border-[#cfe5d9] bg-white shadow-md shadow-[#15664f]/10">

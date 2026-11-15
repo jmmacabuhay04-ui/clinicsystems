@@ -16,7 +16,9 @@ import {
     LOCK_MINUTES,
 } from "@/lib/auth/login-guard";
 
-export type LoginState = { error?: string } | undefined;
+// error = mali ang login (mananatili sa form)
+// to    = tama ang login: ang page na pupuntahan (ipapakita muna ang loading screen)
+export type LoginState = { error?: string; to?: string } | undefined;
 
 function deviceFrom(ua: string) {
     const browser = /Edg\//.test(ua)
@@ -121,11 +123,12 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
         const left = await recordLoginFailure(identifier, ip);
         await log(identifier, "failed", device);
 
+        // Iisang mensahe kahit mali ang email/ID o ang password (hindi malalaman kung may account)
         return {
             error:
                 left > 0
-                    ? `Invalid email/ID number or password. ${left} attempt${left === 1 ? "" : "s"} left before this account is locked.`
-                    : `Invalid email/ID number or password. This account is now locked for ${LOCK_MINUTES} minutes.`,
+                    ? `Your email and password do not match. Please try again. ${left} attempt${left === 1 ? "" : "s"} left before this account is locked.`
+                    : `Your email and password do not match. This account is now locked for ${LOCK_MINUTES} minutes.`,
         };
     }
 
@@ -141,7 +144,7 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
                 console.error("2FA code could not be sent:", err);
                 return { error: "Could not send your sign-in code. Please try again later." };
             }
-            redirect("/two-factor");
+            return { to: "/two-factor" };
         }
 
         await createSession(
@@ -149,7 +152,7 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
             // Kapareho ng sliding session (30 min na cookie, 15 min na idle logout sa browser)
             30
         );
-        redirect("/dashboard");
+        return { to: "/dashboard" };
     }
 
     if (studentOk && student) {
@@ -159,7 +162,7 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
             role: "student",
             mustChangePassword: student.must_change_password,
         });
-        redirect("/student/dashboard");
+        return { to: "/student/dashboard" };
     }
 
     if (employeeOk && employee) {
@@ -168,7 +171,7 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
             employeeNumber: employee.employee_number,
             mustChangePassword: employee.must_change_password,
         });
-        redirect("/employee/dashboard");
+        return { to: "/employee/dashboard" };
     }
 
     return { error: "Something went wrong. Please try again later." };

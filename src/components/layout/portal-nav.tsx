@@ -327,7 +327,7 @@ export default function PortalNav({ basePath, roleLabel, fullName, initials, ava
 
 
                 <div className="relative z-10 flex min-h-0 flex-1 flex-col">
-                    <nav aria-label={`${roleLabel} navigation`} className="no-scrollbar flex-1 overflow-y-auto px-3 py-3">
+                    <nav aria-label={`${roleLabel} navigation`} className="flex-1 overflow-y-auto overscroll-contain px-3 py-3 [scrollbar-color:rgb(255_255_255/0.35)_transparent] [scrollbar-gutter:stable] [scrollbar-width:thin]">
                         <p className="px-3 pb-1 pt-1 text-sm font-medium uppercase tracking-[0.14em] text-white/40">Menu</p>
                         {tabs.map((tab) => {
                             const href = `${basePath}/${tab.path}`;

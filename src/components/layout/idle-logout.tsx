@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { logoutSession, refreshSession } from "@/features/session/session-actions";
 
-// Ilang minutong WALANG GALAW bago mag-logout. Habang ginagamit ang system
-// (galaw ng mouse, pag-type, pag-scroll, pag-tap), hindi ito magla-logout.
-const IDLE_MINUTES = 15;
+// Ilang minutong WALANG GALAW bago mag-logout (5, 10 o 15, mula sa Settings).
+// Habang ginagamit ang system (galaw ng mouse, pag-type, pag-scroll, pag-tap), hindi ito magla-logout.
+const ALLOWED = [5, 10, 15];
+const DEFAULT_MINUTES = 15;
 // Pahabain ang session sa server nang hindi hihigit sa isang beses kada minuto.
 const REFRESH_EVERY_MS = 60 * 1000;
 // Huling galaw, ibinabahagi sa lahat ng nakabukas na tab ng system
@@ -27,21 +29,23 @@ function writeShared(value: number) {
     }
 }
 
-// `minutes` ay hindi na ginagamit (laging 15 minuto), pero iniwan para hindi
-// masira ang <IdleLogout minutes={...} /> sa layout.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export default function IdleLogout({ minutes }: { minutes?: number }) {
+export default function IdleLogout({ minutes }: { minutes?: number | null }) {
+    const router = useRouter();
+    // Lumang setting (hal. 30 o 60): gawing 15
+    const idleMinutes = ALLOWED.includes(Number(minutes)) ? Number(minutes) : DEFAULT_MINUTES;
     const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const lastRefresh = useRef(0);
     const lastActivity = useRef(0);
 
     useEffect(() => {
-        const idleMs = IDLE_MINUTES * 60 * 1000;
+        const idleMs = idleMinutes * 60 * 1000;
         lastActivity.current = Date.now();
         writeShared(lastActivity.current);
 
+        // Lipat sa Log In gamit ang Next router (hindi window.location.href)
         const goToLogin = () => {
-            window.location.href = "/login";
+            router.replace("/login");
+            router.refresh();
         };
 
         // Pinakabagong galaw sa KAHIT ANONG tab (hal. bukas ang dalawang tab)
@@ -52,7 +56,7 @@ export default function IdleLogout({ minutes }: { minutes?: number }) {
             timer.current = setTimeout(check, ms);
         };
 
-        // Bago mag-logout, siguraduhing talagang 15 minutong walang galaw
+        // Bago mag-logout, siguraduhing talagang lumipas ang itinakdang minuto nang walang galaw
         // (baka may galaw sa ibang tab, o naantala lang ang timer)
         async function check() {
             const idleFor = Date.now() - latest();
@@ -114,7 +118,7 @@ export default function IdleLogout({ minutes }: { minutes?: number }) {
             events.forEach((e) => window.removeEventListener(e, onActivity, { capture: true }));
             window.removeEventListener("storage", onStorage);
         };
-    }, []);
+    }, [idleMinutes, router]);
 
     return null;
 }

@@ -108,7 +108,7 @@ const navItems: NavEntry[] = [
             { href: "/dashboard/health-case-reports", label: "Report", icon: ClipboardList, roles: ["admin", "nurse", "doctor", "dentist"] }, // Dentist: Dental tab lang
         ],
     },
-    { href: "/dashboard/illness-alerts", label: "Illness Alerts", icon: BarChart3, roles: ["admin", "nurse", "doctor"], section: "Health Records" },
+    { href: "/dashboard/illness-alerts", label: "Illness Alerts", icon: BarChart3, roles: ["admin", "nurse", "doctor", "dentist"], section: "Health Records" },
     { href: "/dashboard/visitor-recording", label: "Visitor Recording", icon: Users, roles: ["admin", "nurse", "doctor", "dentist"], section: "Clinic" },
     { href: "/dashboard/referral-slips", label: "Referral Slips", icon: FileCheck, roles: ["admin", "nurse", "dentist", "doctor"], section: "Clinic" },
     { href: "/dashboard/archive-records", label: "Archive Records", icon: Archive, roles: ["admin", "nurse"], section: "Clinic" },
@@ -327,7 +327,7 @@ export default function AdminSidebar({ username, displayName: savedName, role, a
                 {/* Body (nasa ibabaw ng alon) */}
                 <div className="relative z-10 flex min-h-0 flex-1 flex-col">
                     {/* Menu */}
-                    <nav className="no-scrollbar flex-1 overflow-y-auto px-3 py-3" onScroll={() => setTip(null)}>
+                    <nav className="flex-1 overflow-y-auto overscroll-contain px-3 py-3 [scrollbar-color:rgb(255_255_255/0.35)_transparent] [scrollbar-gutter:stable] [scrollbar-width:thin]" onScroll={() => setTip(null)}>
                         {visibleItems.map((item, index) => {
                             const Icon = item.icon;
                             // Pamagat ng section kapag iba ito sa nauna

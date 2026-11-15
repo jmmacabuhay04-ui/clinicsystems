@@ -3,7 +3,7 @@ import { ClipboardList, Pencil } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { canManageDentalForm, canViewDental } from "@/lib/permissions";
-import { LEGEND, OCCLUSION, PERIODONTAL, TREATMENT } from "@/features/dental-health-form/chart-data";
+import { LEGEND, OCCLUSION, PERIODONTAL, TREATMENT, examinerName } from "@/features/dental-health-form/chart-data";
 import ToothGrid, { type ChartMap } from "./tooth-grid";
 import PrintButton from "./print-button";
 import ConfirmLink from "@/components/shared/confirm-link";
@@ -141,6 +141,18 @@ export default async function DentalHealthFormPage({ searchParams }: Props) {
     `;
         form = rows[0];
     }
+
+    // "Examined by": ang pinakabagong School Dentist account (hal. kapag napalitan o
+    // nabura ang lumang dentist account). Kung walang dentist account, ang naka-save na pangalan.
+    const latestDentist = (
+        await prisma.$queryRaw<{ full_name: string | null; username: string }[]>`
+      SELECT full_name, username FROM users
+      WHERE LOWER(role) = 'dentist'
+      ORDER BY created_at DESC, user_id DESC
+      LIMIT 1
+    `
+    )[0];
+    const examiner = latestDentist ? examinerName(latestDentist.full_name, latestDentist.username) : form?.examined_by ?? null;
 
     const chart = form?.chart ?? {};
     const perio = form?.periodontal ?? {};
@@ -335,7 +347,7 @@ export default async function DentalHealthFormPage({ searchParams }: Props) {
                                             </p>
                                             <div className="text-center">
                                                 <p className="break-words font-semibold text-gray-900 underline">
-                                                    {form.examined_by || "—"}
+                                                    {examiner || "—"}
                                                 </p>
                                                 <p className="text-sm text-gray-600">Examined by · School Dentist</p>
                                             </div>

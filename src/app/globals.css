@@ -182,3 +182,48 @@ input::placeholder,
 textarea::placeholder {
   color: #686767;
 }
+
+/* ===== PANGUNAHING BUTTON (buong system) =====
+   Lahat ng solid green na button na h-10 / h-11 / h-12 (Save, Download, Issue, Log In,
+   New Case Report, at iba pa): bilugan, may gradient at malambot na anino.
+   Hindi kasama: mga tab (nasa <nav> o may aria-current), maliliit na button sa table (h-8 / h-9),
+   at mga parisukat na icon button. */
+:is(button, a)[class*="bg-[#15664f]"]:is([class*="h-10"], [class*="h-11"], [class*="h-12"]):not(nav *):not([data-keep-shape] *):not([aria-current]):not([class*="w-10"]):not([class*="w-11"]):not([class*="w-12"]) {
+  border-radius: 9999px;
+  border-color: transparent;
+  background-image: linear-gradient(135deg, #1f8a6a 0%, #15664f 55%, #0f4d3b 100%);
+  box-shadow: 0 10px 22px -10px rgba(21, 102, 79, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  transition: filter 0.15s ease, box-shadow 0.15s ease;
+}
+
+:is(button, a)[class*="bg-[#15664f]"]:is([class*="h-10"], [class*="h-11"], [class*="h-12"]):not(nav *):not([data-keep-shape] *):not([aria-current]):not([class*="w-10"]):not([class*="w-11"]):not([class*="w-12"]):hover:not(:disabled) {
+  filter: brightness(1.08);
+  box-shadow: 0 12px 26px -10px rgba(21, 102, 79, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+
+/* ===== LAHAT NG BUTTON: BILOG (pill) =====
+   Lahat ng button sa buong system: <button>, link na mukhang button, input na submit,
+   at ang mga pagpipilian sa magkatabing toggle (hal. Student | Employee) pati ang lalagyan nito.
+   Hindi kasama: Dashboard (data-keep-shape), sidebar menu, mga item sa loob ng bukas na dropdown, at mga checkbox. */
+:is(button,
+  [role="button"],
+  input[type="submit"],
+  input[type="button"],
+  a[class*="inline-flex"][class*="rounded"],
+  a[class*="flex"][class*="h-"][class*="rounded"]):not(aside *):not([data-keep-shape] *):not([role="listbox"] *):not([role="option"]):not([role="checkbox"]),
+:is(div, nav)[class*="rounded-"][class~="p-1"]:not([class*="border-dashed"]):has(> :is(button, a, label)):not(aside *):not([data-keep-shape] *):not([role="listbox"]),
+:is(div, nav)[class*="rounded-"][class~="p-1"]:not([class*="border-dashed"]):has(> :is(button, a, label)):not(aside *):not([data-keep-shape] *):not([role="listbox"])> :is(button, a, label),
+:is(div, nav)[class*="rounded-"][class~="p-1"]:not([class*="border-dashed"]):has(> :is(button, a, label)):not(aside *):not([data-keep-shape] *):not([role="listbox"])> :is(button, a, label)>span {
+  border-radius: 9999px !important;
+}
+
+/* Poppins sa buong system (siguradong gamit kahit may ibang style na nagtakda ng font) */
+html,
+body,
+button,
+input,
+select,
+textarea {
+  font-family: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+}

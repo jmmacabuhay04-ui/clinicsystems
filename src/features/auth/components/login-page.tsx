@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { startTransition, useActionState } from "react";
+import { startTransition, useActionState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { AlertCircle, ArrowRight, HeartHandshake, LockKeyhole, ShieldCheck, UserRound, UsersRound } from "lucide-react";
 import { login } from "@/features/auth/login-actions";
 import PasswordInput from "@/components/shared/password-input";
@@ -25,13 +26,8 @@ const FEATURES = [
     { icon: HeartHandshake, label: "A Healthier School Community" },
 ] as const;
 
-// Loading screen nang 3 segundo bago mag-sign in
+// Loading screen nang 3 segundo, PAGKATAPOS lang ng tamang login
 const LOADING_MS = 3000;
-
-async function loginWithDelay(prev: Awaited<ReturnType<typeof login>> | undefined, formData: FormData) {
-    await new Promise((resolve) => setTimeout(resolve, LOADING_MS));
-    return login(prev as Awaited<ReturnType<typeof login>>, formData);
-}
 
 // Loading screen: BCAS logo sa puting bilog, may umiikot na amber na guhit sa paligid,
 // kumikislap na liwanag sa likod, at progress bar na napupuno sa loob ng 3 segundo.
@@ -124,13 +120,23 @@ function LoadingScreen() {
 }
 
 export default function LoginPage() {
-    const [state, formAction, pending] = useActionState(loginWithDelay, undefined);
+    const router = useRouter();
+    const [state, formAction, pending] = useActionState(login, undefined);
+    // Tama ang login: loading screen, saka lipat sa dashboard. Mali: walang loading, error lang sa form.
+    const success = !!state?.to;
+
+    useEffect(() => {
+        if (!state?.to) return;
+        const to = state.to;
+        const t = window.setTimeout(() => router.replace(to), LOADING_MS);
+        return () => window.clearTimeout(t);
+    }, [state, router]);
     const year = new Date().getFullYear();
 
     return (
         <main className="relative min-h-dvh bg-[#e7f3e2]">
-            {/* Lalabas nang 3 segundo pagka-click ng Log In */}
-            {pending && <LoadingScreen />}
+            {/* Lalabas lang kapag TAMA ang email/ID at password (3 segundo) */}
+            {success && <LoadingScreen />}
 
             {/* BACKGROUND: campus photo na may malambot na puti/mint na takip, para mabasa pa rin ang text */}
             <div
@@ -233,16 +239,14 @@ export default function LoginPage() {
                             // space-y-6: may puwang para sa "This field is required." sa pagitan ng mga field
                             className="mt-8 space-y-6"
                         >
-                            {/* Lumulutang ang error sa itaas ng screen para hindi gumalaw ang form */}
-                            {state?.error && (
-                                <div className="pointer-events-none fixed inset-x-0 top-4 z-40 flex justify-center px-4">
-                                    <div
-                                        role="alert"
-                                        className="pointer-events-auto flex w-full max-w-sm items-start gap-2 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 shadow-lg"
-                                    >
-                                        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                                        <span>{state.error}</span>
-                                    </div>
+                            {/* Error sa loob ng form (mali ang email/ID o password) */}
+                            {state?.error && !pending && (
+                                <div
+                                    role="alert"
+                                    className="flex items-start gap-2 rounded-2xl bg-red-500/90 p-3 text-sm font-medium text-white shadow-sm"
+                                >
+                                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                                    <span>{state.error}</span>
                                 </div>
                             )}
 
@@ -285,11 +289,11 @@ export default function LoginPage() {
 
                             <button
                                 type="submit"
-                                disabled={pending}
+                                disabled={pending || success}
                                 suppressHydrationWarning
                                 className="group inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#15664f] px-4 text-sm font-semibold text-white shadow-lg shadow-[#15664f]/25 transition hover:bg-[#10523f] disabled:opacity-60"
                             >
-                                {pending ? (
+                                {pending || success ? (
                                     "Logging in..."
                                 ) : (
                                     <>

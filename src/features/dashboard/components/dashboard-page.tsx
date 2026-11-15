@@ -362,7 +362,10 @@ function VisitsOverviewChart({
     const ticks = [0, 1, 2, 3, 4, 5].map((i) => i * step);
 
     const many = data.length > 12; // buwan: maraming araw
-    const x = (i: number) => L + (data.length > 1 ? (plotW * i) / (data.length - 1) : plotW / 2);
+    // Puwang sa kaliwa't kanan ng unang/huling punto para buo ang label ng petsa (hal. "Nov 14")
+    const padX = 22;
+    const innerW = plotW - padX * 2;
+    const x = (i: number) => L + padX + (data.length > 1 ? (innerW * i) / (data.length - 1) : innerW / 2);
     const y = (v: number) => T + plotH - (v / yMax) * plotH;
 
     return (
@@ -1191,7 +1194,7 @@ export default async function DashboardPage({
     // IT Technician: welcome banner + bell ng Password Requests (walang clinic data)
     if (isItTech) {
         return (
-            <main className="min-w-0 space-y-6 p-4 pb-8 md:p-8">
+            <main data-keep-shape className="min-w-0 space-y-6 p-4 pb-8 md:p-8">
                 <div className="flex justify-end">
                     <NotificationBell items={[passwordRequestBell]} />
                 </div>
@@ -1502,7 +1505,7 @@ export default async function DashboardPage({
     );
 
     return (
-        <main className="min-w-0 space-y-5 p-4 pb-8 md:p-6">
+        <main data-keep-shape className="min-w-0 space-y-5 p-4 pb-8 md:p-6">
             {topBar}
 
             {banner}
