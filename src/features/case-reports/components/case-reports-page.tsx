@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CalendarDays, Plus, Search, X } from "lucide-react";
-import ReportTypeSelect from "./report-type-select";
+import { CalendarDays, ClipboardList, Plus, Search, X } from "lucide-react";
+import TabSelect, { ToothIcon } from "@/components/shared/tab-select";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { canManageDental, canManageRecords, canViewDental, canViewHealthRecords } from "@/lib/permissions";
@@ -524,7 +524,14 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
 
             {/* Tabs: Health | Dental (lalabas lang kapag may access sa dalawa, hal. Nurse at Admin) */}
             {showHealth && showDental && (
-                <ReportTypeSelect kind={kind} base={BASE} counts={kindCounts} />
+                <TabSelect
+                    label="Report type"
+                    value={kind}
+                    options={[
+                        { key: "health", label: "Health Report", href: BASE, count: kindCounts.health, icon: <ClipboardList /> },
+                        { key: "dental", label: "Dental Report", href: `${BASE}?kind=dental`, count: kindCounts.dental, icon: <ToothIcon /> },
+                    ]}
+                />
             )}
 
             <section className="overflow-hidden rounded-xl border-2 border-[#cfe5d9] bg-white shadow-md shadow-[#15664f]/10">
