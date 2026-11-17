@@ -1363,29 +1363,17 @@ export default async function DashboardPage({
                         "border-gray-100 bg-white hover:border-[#15664f]/30 hover:bg-[#eef6f2] hover:shadow-md hover:shadow-[#15664f]/10",
                     iconClass: TILE_ICON,
                 },
-                // Report: Dental Report lang ang makikita ng Dentist doon
-                {
-                    label: "View Reports",
-                    description: "View dental reports",
-                    href: "/dashboard/health-case-reports",
-                    icon: BarChart3,
-                    cardClass:
-                        "border-gray-100 bg-white hover:border-[#15664f]/30 hover:bg-[#eef6f2] hover:shadow-md hover:shadow-[#15664f]/10",
-                    iconClass: TILE_ICON,
-                },
             ]
-            : [
-                // Illness Alerts: hindi para sa dentist
-                {
-                    label: "View Reports",
-                    description: "Generate and view reports",
-                    href: "/dashboard/illness-alerts",
-                    icon: BarChart3,
-                    cardClass:
-                        "border-gray-100 bg-white hover:border-[#15664f]/30 hover:bg-[#eef6f2] hover:shadow-md hover:shadow-[#15664f]/10",
-                    iconClass: TILE_ICON,
-                },
-            ]),
+            : []),
+        // Illness Alerts: Doctor, Nurse, Dentist (at Admin)
+        {
+            label: "Illness Alerts",
+            description: "Case trends and alerts",
+            href: "/dashboard/illness-alerts",
+            icon: BarChart3,
+            cardClass: "border-gray-100 bg-white hover:border-[#15664f]/30 hover:bg-[#eef6f2] hover:shadow-md hover:shadow-[#15664f]/10",
+            iconClass: TILE_ICON,
+        },
     ];
 
     // Mga pumunta ngayong araw (clinic + dental), para sa "Today's Visits" sa kanan

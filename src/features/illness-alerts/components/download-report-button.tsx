@@ -6,6 +6,8 @@ import { Check, ChevronDown, Download } from "lucide-react";
 type Series = { key: string; label: string; color: string };
 
 const ALL_KEYS = ["visits", "reports", "dental"];
+// Mga uri ng record (para sa "Total" na hanay sa Case Log Summary)
+const RECORD_KEYS = ["visits", "reports", "dental"];
 
 // "Download Report": pipiliin muna kung aling uri ang isasama (Clinic Visits,
 // Health Reports, Dental Reports). Ang napiling period sa date picker ang susundin.
@@ -45,7 +47,7 @@ export default function DownloadReportButton({ fileName, series }: { fileName: s
         //   (Laging kasama ang Illness Breakdown, pati sa Dentist)
         // Lahat ng uri sa report; itatago ang hindi napili O hindi pinapayagan sa role (hal. Dental sa Doctor)
         const hide = ALL_KEYS.filter((k) => !chosen.includes(k));
-        if (hide.length > 0) hide.push("all");
+        if (RECORD_KEYS.some((k) => !chosen.includes(k))) hide.push("all");
         const style = document.createElement("style");
         style.textContent = hide.map((k) => `#illness-report [data-series="${k}"]{display:none !important}`).join("\n");
         document.head.appendChild(style);
@@ -80,7 +82,7 @@ export default function DownloadReportButton({ fileName, series }: { fileName: s
             </button>
 
             {open && (
-                <div className="absolute right-0 z-50 mt-2 w-64 rounded-xl border border-[#dcebe3] bg-white p-3 shadow-lg shadow-[#15664f]/10">
+                <div className="absolute left-0 z-50 mt-2 w-[min(16rem,calc(100vw-2rem))] rounded-xl sm:left-auto sm:right-0 border border-[#dcebe3] bg-white p-3 shadow-lg shadow-[#15664f]/10">
                     <p className="px-1 text-sm font-semibold text-gray-900">Include in report</p>
                     <ul className="mt-2 space-y-1">
                         {series.map((s) => {

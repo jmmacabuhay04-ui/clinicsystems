@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { ClipboardList, Pencil } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { canManageDentalForm, canViewDental } from "@/lib/permissions";
@@ -9,7 +9,7 @@ import PrintButton from "./print-button";
 import ConfirmLink from "@/components/shared/confirm-link";
 import PrintHeader from "@/components/layout/print-header";
 import FlashMessage from "@/components/shared/flash-message";
-import PersonPicker from "@/components/shared/person-picker";
+import PersonPicker, { BackToList } from "@/components/shared/person-picker";
 
 const BASE = "/dashboard/dental-health-form";
 
@@ -43,7 +43,7 @@ type FormRow = {
 };
 
 type Props = {
-    searchParams: Promise<{ q?: string; student?: string; saved?: string }>;
+    searchParams: Promise<{ q?: string; student?: string; saved?: string; status?: string }>;
 };
 
 function fmtDate(date: Date | null) {
@@ -98,7 +98,7 @@ export default async function DentalHealthFormPage({ searchParams }: Props) {
     // Dental records: Admin, Nurse at Dentist lang (hindi ang Doctor)
     if (!canViewDental(session.role)) redirect("/dashboard");
 
-    const { q = "", student: studentNumber = "", saved } = await searchParams;
+    const { q = "", student: studentNumber = "", saved, status = "" } = await searchParams;
     const canEdit = canManageDentalForm(session.role);
     const like = `%${q}%`;
 
@@ -114,7 +114,7 @@ export default async function DentalHealthFormPage({ searchParams }: Props) {
         OR s.first_name ILIKE ${like}
       )
     ORDER BY s.last_name, s.first_name
-    LIMIT 50
+    LIMIT 300
   `;
 
     const selected = studentNumber
@@ -203,36 +203,32 @@ export default async function DentalHealthFormPage({ searchParams }: Props) {
                     <FlashMessage clearParam="saved">Dental health record saved.</FlashMessage>
                 </div>
             )}
-            <div className="grid gap-4 lg:grid-cols-[340px_minmax(0,1fr)] lg:gap-6">
-                <PersonPicker
-                    q={q}
-                    placeholder="Search name or student number..."
-                    heading="Students"
-                    activeKey={studentNumber}
-                    confirmTitle="View dental health record"
-                    emptyText="No students found."
-                    items={students.map((s) => ({
-                        key: s.student_number,
-                        href: `${BASE}?q=${encodeURIComponent(q)}&student=${encodeURIComponent(s.student_number)}`,
-                        name: `${s.first_name} ${s.last_name}`,
-                        initials: `${s.first_name[0] ?? ""}${s.last_name[0] ?? ""}`.toUpperCase(),
-                        sub: `${s.student_number}${s.grade_level ? ` · ${s.grade_level}` : ""}`,
-                        hasForm: Boolean(s.has_form),
-                        message: `Open the dental health record of ${s.first_name} ${s.last_name} (${s.student_number})? This contains confidential medical information.`,
-                    }))}
-                />
+            <div className="min-w-0 space-y-4 lg:space-y-6">
+                {!selected && (
+                    <PersonPicker
+                        base={BASE}
+                        status={status}
+                        subLabel="Student No. · Year Level"
+                        q={q}
+                        placeholder="Search name or student number..."
+                        heading="Students"
+                        activeKey={studentNumber}
+                        confirmTitle="View dental health record"
+                        emptyText="No students found."
+                        items={students.map((s) => ({
+                            key: s.student_number,
+                            href: `${BASE}?q=${encodeURIComponent(q)}&student=${encodeURIComponent(s.student_number)}`,
+                            name: `${s.first_name} ${s.last_name}`,
+                            initials: `${s.first_name[0] ?? ""}${s.last_name[0] ?? ""}`.toUpperCase(),
+                            sub: `${s.student_number}${s.grade_level ? ` · ${s.grade_level}` : ""}`,
+                            hasForm: Boolean(s.has_form),
+                            message: `Open the dental health record of ${s.first_name} ${s.last_name} (${s.student_number})? This contains confidential medical information.`,
+                        }))}
+                    />
+                )}
 
                 <section className="min-w-0 space-y-4 lg:space-y-6">
-                    {!selected && (
-                        <div className="flex flex-col items-center rounded-xl border-2 border-dashed border-[#cfe5d9] bg-white p-8 text-center md:p-16">
-                            <ClipboardList className="h-12 w-12 text-[#15664f]/40" />
-                            <p className="mt-3 text-base font-semibold text-gray-800">No student selected</p>
-                            <p className="mt-1 text-sm text-gray-600">
-                                Select a student <span className="lg:hidden">from the list above</span>
-                                <span className="hidden lg:inline">on the left</span> to view their dental health record.
-                            </p>
-                        </div>
-                    )}
+                    {selected && <BackToList href={q ? `${BASE}?q=${encodeURIComponent(q)}` : BASE} />}
 
                     {selected && (
                         <>

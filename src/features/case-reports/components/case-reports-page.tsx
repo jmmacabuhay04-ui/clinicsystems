@@ -11,6 +11,7 @@ import AutoSubmitSelect from "@/components/shared/auto-submit-select";
 import AutoSubmitInput from "@/components/shared/auto-submit-input";
 import ListPagination from "@/components/shared/list-pagination";
 import CaseRecordDetail from "./case-record-detail";
+import DentalRecordDetail from "@/features/dental-records/components/dental-record-detail";
 import SearchInput from "@/components/shared/search-input";
 
 type CaseRow = {
@@ -72,6 +73,8 @@ type Props = {
         page?: string;
         /** Buksan ang isang case report (Case Report Record) */
         case?: string;
+        /** Buksan ang isang dental report (Dental Record) */
+        record?: string;
         /** "list" = galing sa listahang ito (babalik sa Report, hindi sa dashboard) */
         back?: string;
     }>;
@@ -185,6 +188,18 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
                 caseId={viewCaseId}
                 canEdit={canManageRecords(session.role)}
                 backHref={params.back === "list" ? BASE : "/dashboard"}
+            />
+        );
+    }
+
+    // ?kind=dental&record=<id>: ipakita ang isang dental report (kapareho ng View Report sa Health)
+    const viewRecordId = parseInt(params.record ?? "", 10);
+    if (viewRecordId > 0 && showDental) {
+        return (
+            <DentalRecordDetail
+                dentalId={viewRecordId}
+                canEdit={canManageDental(session.role)}
+                backHref={`${BASE}?kind=dental`}
             />
         );
     }
@@ -420,7 +435,7 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
 
     // "⋮" menu sa dulo ng row: buksan ang report o ang health record ng pasyente
     const actions = (c: CaseRow) => {
-        // Kapareho ng ayos sa Dental Records: View muna, tapos Edit
+        // Pareho ang action ng Health at Dental: View Record, View Report, Edit Report
         const items: RowAction[] = [];
         if (isDental) {
             // Dental: buksan ang Dental Records tab ng pasyente, o i-edit ang dental record
@@ -434,12 +449,20 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
                     icon: "view",
                 });
             }
+            items.push({
+                label: "View Report",
+                href: `${BASE}?kind=dental&record=${c.case_id}`,
+                title: "View dental report",
+                message: `Open dental report ${reportId(c)} (${c.complaint}) of ${fullName(c)}? This contains confidential medical information and your access will be recorded.`,
+                confirmLabel: "View",
+                icon: "view",
+            });
             if (canEdit) {
                 items.push({
-                    label: "Edit Record",
+                    label: "Edit Report",
                     href: `/dashboard/dental-records/edit?record=${c.case_id}&back=${encodeURIComponent(hrefFor(page))}`,
-                    title: "Edit dental record",
-                    message: `Edit the dental record (${c.complaint}) of ${fullName(c)}?`,
+                    title: "Edit dental report",
+                    message: `Edit dental report ${reportId(c)} (${c.complaint}) of ${fullName(c)}?`,
                     confirmLabel: "Edit",
                     icon: "edit",
                 });

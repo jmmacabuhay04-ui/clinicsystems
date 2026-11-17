@@ -154,7 +154,9 @@ export default async function DentalRecordDetail({
                 ? "Back to dashboard"
                 : backHref.includes("health-records")
                     ? "Back to health record"
-                    : "Back to dental records"}
+                    : backHref.includes("health-case-reports")
+                        ? "Back to dental reports"
+                        : "Back to dental records"}
         </Link>
     );
 
@@ -207,7 +209,8 @@ export default async function DentalRecordDetail({
                 {canEdit && (
                     <div className="flex w-full gap-2 sm:w-auto">
                         <ConfirmLink
-                            href={`/dashboard/dental-records/edit?record=${d.dental_id}`}
+                            href={`/dashboard/dental-records/edit?record=${d.dental_id}${backHref.includes("health-case-reports") ? `&back=${encodeURIComponent(backHref)}` : ""
+                                }`}
                             title="Edit dental record"
                             message={`Edit this dental record (${d.procedure_name}) of ${fullName}?`}
                             confirmLabel="Edit"

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ClipboardList, Pencil } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { canManageRecords, canViewHealthRecords } from "@/lib/permissions";
@@ -9,7 +9,7 @@ import PrintButton from "./print-button";
 import ConfirmLink from "@/components/shared/confirm-link";
 import PrintHeader from "@/components/layout/print-header";
 import FlashMessage from "@/components/shared/flash-message";
-import PersonPicker from "@/components/shared/person-picker";
+import PersonPicker, { BackToList } from "@/components/shared/person-picker";
 
 const BASE = "/dashboard/health-declaration";
 
@@ -45,7 +45,7 @@ type DeclarationRow = {
 };
 
 type Props = {
-    searchParams: Promise<{ q?: string; student?: string; saved?: string }>;
+    searchParams: Promise<{ q?: string; student?: string; saved?: string; status?: string }>;
 };
 
 function fmt(date: Date | null) {
@@ -102,7 +102,7 @@ export default async function HealthDeclarationPage({ searchParams }: Props) {
     // Health records: Admin, Nurse at Doctor lang (hindi ang Dentist)
     if (!canViewHealthRecords(session.role)) redirect("/dashboard");
 
-    const { q = "", student: studentNumber = "", saved } = await searchParams;
+    const { q = "", student: studentNumber = "", saved, status = "" } = await searchParams;
     const canEdit = canManageRecords(session.role);
     const like = `%${q}%`;
 
@@ -118,7 +118,7 @@ export default async function HealthDeclarationPage({ searchParams }: Props) {
         OR s.first_name ILIKE ${like}
       )
     ORDER BY s.last_name, s.first_name
-    LIMIT 50
+    LIMIT 300
   `;
 
     const selected = studentNumber
@@ -181,36 +181,32 @@ export default async function HealthDeclarationPage({ searchParams }: Props) {
                 </div>
             )}
 
-            <div className="grid gap-4 lg:grid-cols-[340px_minmax(0,1fr)] lg:gap-6">
-                <PersonPicker
-                    q={q}
-                    placeholder="Search name or student number..."
-                    heading="Students"
-                    activeKey={studentNumber}
-                    confirmTitle="View health declaration"
-                    emptyText="No students found."
-                    items={students.map((s) => ({
-                        key: s.student_number,
-                        href: `${BASE}?q=${encodeURIComponent(q)}&student=${encodeURIComponent(s.student_number)}`,
-                        name: `${s.first_name} ${s.last_name}`,
-                        initials: `${s.first_name[0] ?? ""}${s.last_name[0] ?? ""}`.toUpperCase(),
-                        sub: `${s.student_number}${s.grade_level ? ` · ${s.grade_level}` : ""}`,
-                        hasForm: Boolean(s.has_form),
-                        message: `Open the health declaration of ${s.first_name} ${s.last_name} (${s.student_number})? This contains confidential medical information.`,
-                    }))}
-                />
+            <div className="min-w-0 space-y-4 lg:space-y-6">
+                {!selected && (
+                    <PersonPicker
+                        base={BASE}
+                        status={status}
+                        subLabel="Student No. · Year Level"
+                        q={q}
+                        placeholder="Search name or student number..."
+                        heading="Students"
+                        activeKey={studentNumber}
+                        confirmTitle="View health declaration"
+                        emptyText="No students found."
+                        items={students.map((s) => ({
+                            key: s.student_number,
+                            href: `${BASE}?q=${encodeURIComponent(q)}&student=${encodeURIComponent(s.student_number)}`,
+                            name: `${s.first_name} ${s.last_name}`,
+                            initials: `${s.first_name[0] ?? ""}${s.last_name[0] ?? ""}`.toUpperCase(),
+                            sub: `${s.student_number}${s.grade_level ? ` · ${s.grade_level}` : ""}`,
+                            hasForm: Boolean(s.has_form),
+                            message: `Open the health declaration of ${s.first_name} ${s.last_name} (${s.student_number})? This contains confidential medical information.`,
+                        }))}
+                    />
+                )}
 
                 <section className="min-w-0 space-y-4 lg:space-y-6">
-                    {!selected && (
-                        <div className="flex flex-col items-center rounded-xl border-2 border-dashed border-[#cfe5d9] bg-white p-8 text-center md:p-16">
-                            <ClipboardList className="h-12 w-12 text-[#15664f]/40" />
-                            <p className="mt-3 text-base font-semibold text-gray-800">No student selected</p>
-                            <p className="mt-1 text-sm text-gray-600">
-                                Select a student <span className="lg:hidden">from the list above</span>
-                                <span className="hidden lg:inline">on the left</span> to view the declaration.
-                            </p>
-                        </div>
-                    )}
+                    {selected && <BackToList href={q ? `${BASE}?q=${encodeURIComponent(q)}` : BASE} />}
 
                     {selected && !form && (
                         <div className="rounded-xl border-2 border-dashed border-[#cfe5d9] bg-white p-6 text-center md:p-12">

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ClipboardList, FileHeart, Pencil, Search } from "lucide-react";
+import { FileHeart, Pencil } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { canManageRecords, canViewHealthRecords } from "@/lib/permissions";
@@ -14,7 +14,7 @@ import PrintButton from "./print-button";
 import ConfirmLink from "@/components/shared/confirm-link";
 import PrintHeader from "@/components/layout/print-header";
 import FlashMessage from "@/components/shared/flash-message";
-import SearchInput from "@/components/shared/search-input";
+import PersonPicker, { BackToList } from "@/components/shared/person-picker";
 
 const BASE = "/dashboard/student-health-form";
 
@@ -70,7 +70,7 @@ type FormRow = {
 };
 
 type Props = {
-    searchParams: Promise<{ q?: string; student?: string; saved?: string }>;
+    searchParams: Promise<{ q?: string; student?: string; saved?: string; status?: string }>;
 };
 
 function fmt(date: Date | null) {
@@ -119,7 +119,7 @@ export default async function StudentHealthFormPage({ searchParams }: Props) {
     // Health records: Admin, Nurse at Doctor lang (hindi ang Dentist)
     if (!canViewHealthRecords(session.role)) redirect("/dashboard");
 
-    const { q = "", student: studentNumber = "", saved } = await searchParams;
+    const { q = "", student: studentNumber = "", saved, status = "" } = await searchParams;
     const canEdit = canManageRecords(session.role);
     const like = `%${q}%`;
 
@@ -136,7 +136,7 @@ export default async function StudentHealthFormPage({ searchParams }: Props) {
         OR s.first_name ILIKE ${like}
       )
     ORDER BY s.last_name, s.first_name
-    LIMIT 50
+    LIMIT 300
   `;
 
     const selected = studentNumber
@@ -201,85 +201,32 @@ export default async function StudentHealthFormPage({ searchParams }: Props) {
                 </div>
             )}
 
-            <div className="grid gap-4 lg:grid-cols-[340px_minmax(0,1fr)] lg:gap-6">
-                <aside className="no-print min-w-0 self-start rounded-xl border-2 border-[#cfe5d9] bg-white p-4 shadow-md shadow-[#15664f]/10">
-                    <form method="get" className="relative">
-                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-600" />
-                        <SearchInput
-                            name="q"
-                            defaultValue={q}
-                            autoComplete="off"
-                            placeholder="Search name or student number..."
-                            suppressHydrationWarning
-                            className="h-11 w-full rounded-lg border border-gray-300 bg-white pl-9 pr-3 text-base text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20 md:text-sm"
-                        />
-                    </form>
-
-                    <div className="mt-4 flex items-center justify-between px-1">
-                        <span className="text-sm font-semibold uppercase tracking-wide text-gray-600">Students</span>
-                        <span className="rounded-full bg-[#eef6f2] px-2 py-0.5 text-sm font-semibold text-[#15664f]">
-                            {students.length}
-                        </span>
-                    </div>
-
-                    {/* Mas maikli ang listahan sa mobile para hindi mahaba ang scroll bago makita ang form */}
-                    <ul className="mt-2 max-h-72 space-y-1 overflow-auto pr-1 lg:max-h-[600px]">
-                        {students.length === 0 && (
-                            <li className="p-3 text-center text-sm text-gray-600">No students found.</li>
-                        )}
-                        {students.map((s) => {
-                            const active = s.student_number === studentNumber;
-                            const initials = `${s.first_name[0] ?? ""}${s.last_name[0] ?? ""}`.toUpperCase();
-                            return (
-                                <li key={s.student_id}>
-                                    <ConfirmLink
-                                        href={`${BASE}?q=${encodeURIComponent(q)}&student=${encodeURIComponent(s.student_number)}`}
-                                        title="View health form"
-                                        message={`Open the health form of ${s.first_name} ${s.last_name} (${s.student_number})? This contains confidential medical information.`}
-                                        className={`flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors ${active
-                                            ? "border-[#15664f] bg-[#eef6f2]"
-                                            : "border-transparent hover:bg-gray-50"
-                                            }`}
-                                    >
-                                        <span
-                                            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${active ? "bg-[#15664f] text-white" : "bg-gray-100 text-gray-600"
-                                                }`}
-                                        >
-                                            {initials}
-                                        </span>
-                                        <span className="min-w-0 flex-1">
-                                            <span className="block truncate text-sm font-semibold text-gray-900">
-                                                {s.first_name} {s.last_name}
-                                            </span>
-                                            <span className="block truncate text-sm text-gray-600">
-                                                {s.student_number}
-                                                {s.grade_level ? ` · ${s.grade_level}` : ""}
-                                            </span>
-                                        </span>
-                                        <span
-                                            className={`shrink-0 rounded-full px-2 py-0.5 text-sm font-semibold ${s.has_form ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
-                                                }`}
-                                        >
-                                            {s.has_form ? "On file" : "No form"}
-                                        </span>
-                                    </ConfirmLink>
-                                </li>
-                            );
-                        })}
-                    </ul>
-                </aside>
+            <div className="min-w-0 space-y-4 lg:space-y-6">
+                {!selected && (
+                    <PersonPicker
+                        base={BASE}
+                        status={status}
+                        subLabel="Student No. · Year Level"
+                        q={q}
+                        placeholder="Search name or student number..."
+                        heading="Students"
+                        activeKey={studentNumber}
+                        confirmTitle="View health form"
+                        emptyText="No students found."
+                        items={students.map((s) => ({
+                            key: s.student_number,
+                            href: `${BASE}?q=${encodeURIComponent(q)}&student=${encodeURIComponent(s.student_number)}`,
+                            name: `${s.first_name} ${s.last_name}`,
+                            initials: `${s.first_name[0] ?? ""}${s.last_name[0] ?? ""}`.toUpperCase(),
+                            sub: `${s.student_number}${s.grade_level ? ` · ${s.grade_level}` : ""}`,
+                            hasForm: Boolean(s.has_form),
+                            message: `Open the health form of ${s.first_name} ${s.last_name} (${s.student_number})? This contains confidential medical information.`,
+                        }))}
+                    />
+                )}
 
                 <section className="min-w-0 space-y-4 lg:space-y-6">
-                    {!selected && (
-                        <div className="flex flex-col items-center rounded-xl border-2 border-dashed border-[#cfe5d9] bg-white p-8 text-center md:p-16">
-                            <ClipboardList className="h-12 w-12 text-[#15664f]/40" />
-                            <p className="mt-3 text-base font-semibold text-gray-800">No student selected</p>
-                            <p className="mt-1 text-sm text-gray-600">
-                                Select a student <span className="lg:hidden">from the list above</span>
-                                <span className="hidden lg:inline">on the left</span> to view the form.
-                            </p>
-                        </div>
-                    )}
+                    {selected && <BackToList href={q ? `${BASE}?q=${encodeURIComponent(q)}` : BASE} />}
 
                     {selected && !form && (
                         <div className="flex flex-col items-center rounded-xl border-2 border-dashed border-[#cfe5d9] bg-white p-8 text-center md:p-16">

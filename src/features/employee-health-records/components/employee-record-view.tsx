@@ -855,7 +855,12 @@ export default function EmployeeRecordView({
     const clinicVisits = visits.filter((v) => v.kind === "visit");
 
     // Dentist: naka-archive na dental records lang ang makikita sa Archive Logs
-    const archivedShown = dentalOnly ? archived.filter((a) => a.kind === "dental") : archived;
+    // Doctor (walang Dental): walang dental record sa Archive Logs
+    const archivedShown = dentalOnly
+        ? archived.filter((a) => a.kind === "dental")
+        : showDental
+            ? archived
+            : archived.filter((a) => a.kind !== "dental");
 
     const allTabs: { key: RecordTab; label: string; count: number }[] = [
         { key: "history", label: "Clinic Visit", count: clinicVisits.length },

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { ClipboardList, Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { canManageRecords, canViewHealthRecords } from "@/lib/permissions";
@@ -15,7 +15,7 @@ import PrintButton from "./print-button";
 import ConfirmLink from "@/components/shared/confirm-link";
 import PrintHeader from "@/components/layout/print-header";
 import FlashMessage from "@/components/shared/flash-message";
-import PersonPicker from "@/components/shared/person-picker";
+import PersonPicker, { BackToList } from "@/components/shared/person-picker";
 
 const BASE = "/dashboard/employee-health-form";
 
@@ -82,7 +82,7 @@ type LabExam = {
 };
 
 type Props = {
-    searchParams: Promise<{ q?: string; employee?: string; saved?: string }>;
+    searchParams: Promise<{ q?: string; employee?: string; saved?: string; status?: string }>;
 };
 
 // text-base sa mobile para hindi mag-zoom ang iOS kapag nag-focus sa input
@@ -135,7 +135,7 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
     // Health records: Admin, Nurse at Doctor lang (hindi ang Dentist)
     if (!canViewHealthRecords(session.role)) redirect("/dashboard");
 
-    const { q = "", employee: employeeNumber = "", saved } = await searchParams;
+    const { q = "", employee: employeeNumber = "", saved, status = "" } = await searchParams;
     const canEdit = canManageRecords(session.role);
     const like = `%${q}%`;
 
@@ -151,7 +151,7 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
         OR e.first_name ILIKE ${like}
       )
     ORDER BY e.last_name, e.first_name
-    LIMIT 50
+    LIMIT 300
   `;
 
     const selected = employeeNumber
@@ -234,36 +234,32 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
                 </div>
             )}
 
-            <div className="grid gap-4 lg:grid-cols-[340px_minmax(0,1fr)] lg:gap-6">
-                <PersonPicker
-                    q={q}
-                    placeholder="Search name or employee number..."
-                    heading="Employees"
-                    activeKey={employeeNumber}
-                    confirmTitle="View health form"
-                    emptyText="No employees found."
-                    items={employees.map((e) => ({
-                        key: e.employee_number,
-                        href: `${BASE}?q=${encodeURIComponent(q)}&employee=${encodeURIComponent(e.employee_number)}`,
-                        name: `${e.first_name} ${e.last_name}`,
-                        initials: `${e.first_name[0] ?? ""}${e.last_name[0] ?? ""}`.toUpperCase(),
-                        sub: `${e.employee_number}${e.position ? ` · ${e.position}` : ""}`,
-                        hasForm: Boolean(e.has_form),
-                        message: `Open the health form of ${e.first_name} ${e.last_name} (${e.employee_number})? This contains confidential medical information.`,
-                    }))}
-                />
+            <div className="min-w-0 space-y-4 lg:space-y-6">
+                {!selected && (
+                    <PersonPicker
+                        base={BASE}
+                        status={status}
+                        subLabel="Employee No. · Position"
+                        q={q}
+                        placeholder="Search name or employee number..."
+                        heading="Employees"
+                        activeKey={employeeNumber}
+                        confirmTitle="View health form"
+                        emptyText="No employees found."
+                        items={employees.map((e) => ({
+                            key: e.employee_number,
+                            href: `${BASE}?q=${encodeURIComponent(q)}&employee=${encodeURIComponent(e.employee_number)}`,
+                            name: `${e.first_name} ${e.last_name}`,
+                            initials: `${e.first_name[0] ?? ""}${e.last_name[0] ?? ""}`.toUpperCase(),
+                            sub: `${e.employee_number}${e.position ? ` · ${e.position}` : ""}`,
+                            hasForm: Boolean(e.has_form),
+                            message: `Open the health form of ${e.first_name} ${e.last_name} (${e.employee_number})? This contains confidential medical information.`,
+                        }))}
+                    />
+                )}
 
                 <section className="min-w-0 space-y-4 lg:space-y-6">
-                    {!selected && (
-                        <div className="flex flex-col items-center rounded-xl border-2 border-dashed border-[#cfe5d9] bg-white p-8 text-center md:p-16">
-                            <ClipboardList className="h-12 w-12 text-[#15664f]/40" />
-                            <p className="mt-3 text-base font-semibold text-gray-800">No employee selected</p>
-                            <p className="mt-1 text-sm text-gray-600">
-                                Select an employee <span className="lg:hidden">from the list above</span>
-                                <span className="hidden lg:inline">on the left</span> to view the form.
-                            </p>
-                        </div>
-                    )}
+                    {selected && <BackToList href={q ? `${BASE}?q=${encodeURIComponent(q)}` : BASE} />}
 
                     {selected && (
                         <>
