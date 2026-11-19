@@ -29,11 +29,11 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 
 // Header ng bawat card: icon + title + maikling paliwanag
 function SectionHeader({
-    icon,
     title,
     description,
 }: {
-    icon: React.ReactNode;
+    /** Hindi na ipinapakita (inalis ang icon sa header); puwede pa ring ipasa */
+    icon?: React.ReactNode;
     title: string;
     description?: string;
 }) {
