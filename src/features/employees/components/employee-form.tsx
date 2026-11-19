@@ -1,5 +1,5 @@
 "use client";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Briefcase, Camera, KeyRound, Phone, Save, ShieldCheck, UserRound, X } from "lucide-react";
 import { createEmployee, updateEmployee, type EmployeeState } from "@/features/employees/employee-actions";
 import ConfirmSubmit from "@/components/shared/confirm-submit";
@@ -7,6 +7,7 @@ import RedirectNotice from "@/components/shared/redirect-notice";
 import ConfirmLink from "@/components/shared/confirm-link";
 import BirthdateField from "@/components/shared/birthdate-field";
 import PasswordInput from "@/components/shared/password-input";
+import PasswordChecklist from "@/components/shared/password-checklist";
 import RecordAvatar from "@/components/shared/record-avatar";
 
 const initialState: EmployeeState = {};
@@ -75,6 +76,8 @@ type Props = {
 export default function EmployeeForm({ mode, employee, cancelHref, returnTo, avatar = null }: Props) {
     const action = mode === "create" ? createEmployee : updateEmployee;
     const [state, formAction, pending] = useActionState(action, initialState);
+    // Na-type na portal password (para sa checklist sa ilalim)
+    const [newPassword, setNewPassword] = useState("");
 
     const { employeeId, ...rest } = employee;
     // Maluwag na type para gumana kahit anong laman ng EmployeeState mo
@@ -116,26 +119,29 @@ export default function EmployeeForm({ mode, employee, cancelHref, returnTo, ava
                                 maxLength={20}
                                 required
                                 suppressHydrationWarning
+                                autoComplete="off"
                                 className={inputClass}
                             />
                         </Field>
                         <Field label="Department">
-                            <input
+                            <input required
                                 name="department"
                                 defaultValue={v.department}
                                 placeholder="e.g. College Department"
                                 maxLength={100}
                                 suppressHydrationWarning
+                                autoComplete="off"
                                 className={inputClass}
                             />
                         </Field>
                         <Field label="Position">
-                            <input
+                            <input required
                                 name="position"
                                 defaultValue={v.position}
                                 placeholder="e.g. Instructor"
                                 maxLength={100}
                                 suppressHydrationWarning
+                                autoComplete="off"
                                 className={inputClass}
                             />
                         </Field>
@@ -182,6 +188,7 @@ export default function EmployeeForm({ mode, employee, cancelHref, returnTo, ava
                                     required
                                     suppressHydrationWarning
                                     className={inputClass}
+                                    autoComplete="off"
                                 />
                             </Field>
                             <Field label="First Name *">
@@ -192,21 +199,24 @@ export default function EmployeeForm({ mode, employee, cancelHref, returnTo, ava
                                     required
                                     suppressHydrationWarning
                                     className={inputClass}
+                                    autoComplete="off"
                                 />
                             </Field>
                             <Field label="Middle Name">
-                                <input
+                                <input required
                                     name="middleName"
                                     defaultValue={v.middleName}
+                                    placeholder="Type N/A if none"
                                     maxLength={50}
                                     suppressHydrationWarning
                                     className={inputClass}
+                                    autoComplete="off"
                                 />
                             </Field>
                             {/* Dalawang cell ito: Date of Birth at Age */}
                             <BirthdateField name="dateOfBirth" defaultValue={v.dateOfBirth} inputClass={inputClass} />
                             <Field label="Gender">
-                                <select name="gender" defaultValue={v.gender} suppressHydrationWarning className={inputClass}>
+                                <select required name="gender" defaultValue={v.gender} suppressHydrationWarning className={inputClass}>
                                     <option value="">Not specified</option>
                                     <option value="Male">Male</option>
                                     <option value="Female">Female</option>
@@ -222,11 +232,11 @@ export default function EmployeeForm({ mode, employee, cancelHref, returnTo, ava
                 <SectionHeader
                     icon={<Phone className="h-5 w-5" />}
                     title="Contact Information"
-                    description="Optional. Used by the clinic to reach the employee."
+                    description="Used by the clinic to reach the employee."
                 />
                 <div className="grid gap-4 p-5 sm:grid-cols-2 md:p-6">
                     <Field label="Contact Number">
-                        <input
+                        <input required
                             name="contactNumber"
                             type="tel"
                             defaultValue={v.contactNumber}
@@ -238,7 +248,7 @@ export default function EmployeeForm({ mode, employee, cancelHref, returnTo, ava
                         />
                     </Field>
                     <Field label="Email Address">
-                        <input
+                        <input required
                             name="email"
                             type="email"
                             defaultValue={v.email}
@@ -272,8 +282,11 @@ export default function EmployeeForm({ mode, employee, cancelHref, returnTo, ava
                                 autoComplete="new-password"
                                 minLength={8}
                                 required={mode === "create"}
+                                onChange={(e) => setNewPassword(e.target.value)}
                                 className={inputClass}
                             />
+                            {/* Requirement ng password (Edit: lalabas lang kapag nagta-type ng bago) */}
+                            {(mode === "create" || newPassword) && <PasswordChecklist password={newPassword} className="mt-2" />}
                         </Field>
                         <Field label={mode === "create" ? "Confirm Password *" : "Confirm New Password"}>
                             <PasswordInput
@@ -287,7 +300,7 @@ export default function EmployeeForm({ mode, employee, cancelHref, returnTo, ava
                         </Field>
                     </div>
 
-                    <div className="flex flex-col gap-4 rounded-xl border-2 border-amber-200 bg-amber-50/70 p-4 md:flex-row md:items-end md:justify-between">
+                    <div className="flex flex-col gap-4 rounded-xl border-2 border-amber-200 bg-amber-50/70 p-4 md:flex-row md:items-center md:justify-between">
                         <div className="flex items-start gap-3">
                             <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
                             <div>

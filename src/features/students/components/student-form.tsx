@@ -1,5 +1,5 @@
 "use client";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Camera, GraduationCap, KeyRound, Phone, Save, ShieldCheck, UserRound, X } from "lucide-react";
 import { createStudent, updateStudent } from "@/features/students/actions";
 import type { StudentState } from "@/features/students/types";
@@ -8,6 +8,7 @@ import RedirectNotice from "@/components/shared/redirect-notice";
 import ConfirmLink from "@/components/shared/confirm-link";
 import BirthdateField from "@/components/shared/birthdate-field";
 import PasswordInput from "@/components/shared/password-input";
+import PasswordChecklist from "@/components/shared/password-checklist";
 import RecordAvatar from "@/components/shared/record-avatar";
 
 const initialState: StudentState = {};
@@ -76,6 +77,8 @@ type Props = {
 export default function StudentForm({ mode, student, cancelHref, returnTo, avatar = null }: Props) {
     const action = mode === "create" ? createStudent : updateStudent;
     const [state, formAction, pending] = useActionState(action, initialState);
+    // Na-type na portal password (para sa checklist sa ilalim)
+    const [newPassword, setNewPassword] = useState("");
 
     const { studentId, ...rest } = student;
     const v: Record<string, string> = { ...rest, ...(state.values ?? {}) };
@@ -113,26 +116,29 @@ export default function StudentForm({ mode, student, cancelHref, returnTo, avata
                                 defaultValue={v.studentNumber}
                                 placeholder="e.g. 2024-00123"
                                 maxLength={20}
+                                autoComplete="off"
                                 required
                                 suppressHydrationWarning
                                 className={inputClass}
                             />
                         </Field>
                         <Field label="Grade/Level">
-                            <input
+                            <input required
                                 name="gradeLevel"
                                 defaultValue={v.gradeLevel}
                                 placeholder="e.g. Grade 12"
+                                autoComplete="off"
                                 maxLength={30}
                                 suppressHydrationWarning
                                 className={inputClass}
                             />
                         </Field>
                         <Field label="Program">
-                            <input
+                            <input required
                                 name="program"
                                 defaultValue={v.program}
                                 placeholder="e.g. STEM"
+                                autoComplete="off"
                                 maxLength={100}
                                 suppressHydrationWarning
                                 className={inputClass}
@@ -181,6 +187,7 @@ export default function StudentForm({ mode, student, cancelHref, returnTo, avata
                                     required
                                     suppressHydrationWarning
                                     className={inputClass}
+                                    autoComplete="off"
                                 />
                             </Field>
                             <Field label="First Name *">
@@ -191,21 +198,24 @@ export default function StudentForm({ mode, student, cancelHref, returnTo, avata
                                     required
                                     suppressHydrationWarning
                                     className={inputClass}
+                                    autoComplete="off"
                                 />
                             </Field>
                             <Field label="Middle Name">
-                                <input
+                                <input required
                                     name="middleName"
                                     defaultValue={v.middleName}
+                                    placeholder="Type N/A if none"
                                     maxLength={50}
                                     suppressHydrationWarning
                                     className={inputClass}
+                                    autoComplete="off"
                                 />
                             </Field>
                             {/* Dalawang cell ito: Date of Birth at Age */}
                             <BirthdateField name="dateOfBirth" defaultValue={v.dateOfBirth} inputClass={inputClass} />
                             <Field label="Gender">
-                                <select name="gender" defaultValue={v.gender} suppressHydrationWarning className={inputClass}>
+                                <select required name="gender" defaultValue={v.gender} suppressHydrationWarning className={inputClass}>
                                     <option value="">Not specified</option>
                                     <option value="Male">Male</option>
                                     <option value="Female">Female</option>
@@ -221,11 +231,11 @@ export default function StudentForm({ mode, student, cancelHref, returnTo, avata
                 <SectionHeader
                     icon={<Phone className="h-5 w-5" />}
                     title="Contact Information"
-                    description="Optional. Used by the clinic to reach the student."
+                    description="Used by the clinic to reach the student."
                 />
                 <div className="grid gap-4 p-5 sm:grid-cols-2 md:p-6">
                     <Field label="Contact Number">
-                        <input
+                        <input required
                             name="contactNumber"
                             type="tel"
                             defaultValue={v.contactNumber}
@@ -237,7 +247,7 @@ export default function StudentForm({ mode, student, cancelHref, returnTo, avata
                         />
                     </Field>
                     <Field label="Email Address">
-                        <input
+                        <input required
                             name="email"
                             type="email"
                             defaultValue={v.email}
@@ -271,8 +281,11 @@ export default function StudentForm({ mode, student, cancelHref, returnTo, avata
                                 autoComplete="new-password"
                                 minLength={8}
                                 required={mode === "create"}
+                                onChange={(e) => setNewPassword(e.target.value)}
                                 className={inputClass}
                             />
+                            {/* Requirement ng password (Edit: lalabas lang kapag nagta-type ng bago) */}
+                            {(mode === "create" || newPassword) && <PasswordChecklist password={newPassword} className="mt-2" />}
                         </Field>
                         <Field label={mode === "create" ? "Confirm Password *" : "Confirm New Password"}>
                             <PasswordInput
@@ -286,7 +299,7 @@ export default function StudentForm({ mode, student, cancelHref, returnTo, avata
                         </Field>
                     </div>
 
-                    <div className="flex flex-col gap-4 rounded-xl border-2 border-amber-200 bg-amber-50/70 p-4 md:flex-row md:items-end md:justify-between">
+                    <div className="flex flex-col gap-4 rounded-xl border-2 border-amber-200 bg-amber-50/70 p-4 md:flex-row md:items-center md:justify-between">
                         <div className="flex items-start gap-3">
                             <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
                             <div>

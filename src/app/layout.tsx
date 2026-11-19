@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist_Mono, Poppins } from "next/font/google";
 import "./globals.css";
 import RequiredFields from "@/components/shared/required-fields";
+import NoAutofill from "@/components/shared/no-autofill";
 
 // Pangunahing font ng buong system: Poppins
 const poppins = Poppins({
@@ -34,6 +35,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         {/* Lahat ng input sa mga form ay required (pulang * at error kapag blangko) */}
         <RequiredFields />
+        {/* Lahat ng input: autoComplete="off" (maliban sa Log In) */}
+        <NoAutofill />
         {children}
       </body>
     </html>
