@@ -116,7 +116,6 @@ export default function StudentForm({ mode, student, cancelHref, returnTo, avata
                                 defaultValue={v.studentNumber}
                                 placeholder="e.g. 2024-00123"
                                 maxLength={20}
-                                autoComplete="off"
                                 required
                                 suppressHydrationWarning
                                 className={inputClass}
@@ -127,7 +126,6 @@ export default function StudentForm({ mode, student, cancelHref, returnTo, avata
                                 name="gradeLevel"
                                 defaultValue={v.gradeLevel}
                                 placeholder="e.g. Grade 12"
-                                autoComplete="off"
                                 maxLength={30}
                                 suppressHydrationWarning
                                 className={inputClass}
@@ -138,7 +136,6 @@ export default function StudentForm({ mode, student, cancelHref, returnTo, avata
                                 name="program"
                                 defaultValue={v.program}
                                 placeholder="e.g. STEM"
-                                autoComplete="off"
                                 maxLength={100}
                                 suppressHydrationWarning
                                 className={inputClass}
@@ -187,7 +184,6 @@ export default function StudentForm({ mode, student, cancelHref, returnTo, avata
                                     required
                                     suppressHydrationWarning
                                     className={inputClass}
-                                    autoComplete="off"
                                 />
                             </Field>
                             <Field label="First Name *">
@@ -198,7 +194,6 @@ export default function StudentForm({ mode, student, cancelHref, returnTo, avata
                                     required
                                     suppressHydrationWarning
                                     className={inputClass}
-                                    autoComplete="off"
                                 />
                             </Field>
                             <Field label="Middle Name">
@@ -209,7 +204,6 @@ export default function StudentForm({ mode, student, cancelHref, returnTo, avata
                                     maxLength={50}
                                     suppressHydrationWarning
                                     className={inputClass}
-                                    autoComplete="off"
                                 />
                             </Field>
                             {/* Dalawang cell ito: Date of Birth at Age */}

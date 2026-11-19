@@ -119,7 +119,6 @@ export default function EmployeeForm({ mode, employee, cancelHref, returnTo, ava
                                 maxLength={20}
                                 required
                                 suppressHydrationWarning
-                                autoComplete="off"
                                 className={inputClass}
                             />
                         </Field>
@@ -130,7 +129,6 @@ export default function EmployeeForm({ mode, employee, cancelHref, returnTo, ava
                                 placeholder="e.g. College Department"
                                 maxLength={100}
                                 suppressHydrationWarning
-                                autoComplete="off"
                                 className={inputClass}
                             />
                         </Field>
@@ -141,7 +139,6 @@ export default function EmployeeForm({ mode, employee, cancelHref, returnTo, ava
                                 placeholder="e.g. Instructor"
                                 maxLength={100}
                                 suppressHydrationWarning
-                                autoComplete="off"
                                 className={inputClass}
                             />
                         </Field>
@@ -188,7 +185,6 @@ export default function EmployeeForm({ mode, employee, cancelHref, returnTo, ava
                                     required
                                     suppressHydrationWarning
                                     className={inputClass}
-                                    autoComplete="off"
                                 />
                             </Field>
                             <Field label="First Name *">
@@ -199,7 +195,6 @@ export default function EmployeeForm({ mode, employee, cancelHref, returnTo, ava
                                     required
                                     suppressHydrationWarning
                                     className={inputClass}
-                                    autoComplete="off"
                                 />
                             </Field>
                             <Field label="Middle Name">
@@ -210,7 +205,6 @@ export default function EmployeeForm({ mode, employee, cancelHref, returnTo, ava
                                     maxLength={50}
                                     suppressHydrationWarning
                                     className={inputClass}
-                                    autoComplete="off"
                                 />
                             </Field>
                             {/* Dalawang cell ito: Date of Birth at Age */}
