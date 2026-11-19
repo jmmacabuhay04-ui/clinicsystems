@@ -5,6 +5,7 @@ import { startTransition, useActionState } from "react";
 import { verifyAndReset, type VerifyState } from "@/features/auth/verify-otp-actions";
 import { AlertCircle, ArrowLeft, CheckCircle2 } from "lucide-react";
 import PasswordInput from "@/components/shared/password-input";
+import OtpInput from "@/components/shared/otp-input";
 import { authToastWrap, authButtonClass, authErrorClass, authInputClass, authLabelClass, authLinkClass, authSuccessClass } from "./auth-shell";
 
 const initialState: VerifyState = {};
@@ -57,18 +58,17 @@ export default function VerifyForm({ email }: { email: string }) {
                 <label htmlFor="code" className={authLabelClass}>
                     6-Digit Code
                 </label>
-                <input
-                    id="code"
-                    name="code"
-                    inputMode="numeric"
-                    pattern="\d{6}"
-                    maxLength={6}
-                    placeholder="000000"
-                    autoComplete="one-time-code"
-                    required
-                    suppressHydrationWarning
-                    className={`${inputClass} text-center text-2xl font-semibold tracking-[0.5em] md:text-2xl`}
-                />
+                {/* Hiwa-hiwalay na kahon bawat numero */}
+                <OtpInput id="code" name="code" autoFocus />
+                <p className="pt-1 text-center text-sm text-gray-600">
+                    Didn&apos;t get the code?{" "}
+                    <Link
+                        href="/forgot-password"
+                        className="font-semibold text-[#15664f] underline underline-offset-2 hover:text-[#10523f]"
+                    >
+                        Click to resend
+                    </Link>
+                </p>
             </div>
 
             <div className="space-y-2">
@@ -114,12 +114,6 @@ export default function VerifyForm({ email }: { email: string }) {
                 {pending ? "Verifying..." : "Reset Password"}
             </button>
 
-            <p className="pt-2 text-center text-sm text-gray-600">
-                Didn&apos;t get the code?{" "}
-                <Link href="/forgot-password" className="font-semibold text-[#15664f] hover:underline">
-                    Send again
-                </Link>
-            </p>
             <Link href="/login" className={`flex items-center justify-center gap-1.5 text-sm ${authLinkClass}`}>
                 <ArrowLeft className="h-4 w-4" />
                 Back to Sign In

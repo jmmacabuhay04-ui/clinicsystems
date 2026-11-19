@@ -16,12 +16,16 @@ export default function FitTrendChart({
     className = "",
     linkBase,
     linkSeries,
+    dentalOnly = false,
+    noDental = false,
 }: {
     data: DayPoint[];
     alignId: string;
     className?: string;
     linkBase?: string;
     linkSeries?: string[];
+    dentalOnly?: boolean;
+    noDental?: boolean;
 }) {
     const box = useRef<HTMLDivElement>(null);
     const [size, setSize] = useState<{ w: number; h: number } | null>(null);
@@ -62,7 +66,7 @@ export default function FitTrendChart({
 
     return (
         <div ref={box} className={`w-full ${className}`} style={size ? { height: size.h } : { aspectRatio: `${1 / RATIO}` }}>
-            {size && <TrendSvg data={data} W={size.w} H={size.h} gradientId="illness-area-lg" className="block h-full w-full" linkBase={linkBase} linkSeries={linkSeries} />}
+            {size && <TrendSvg data={data} W={size.w} H={size.h} gradientId="illness-area-lg" className="block h-full w-full" linkBase={linkBase} linkSeries={linkSeries} dentalOnly={dentalOnly} noDental={noDental} />}
         </div>
     );
 }

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
-import { Fragment } from "react";
 import Link from "next/link";
-import { KeyRound, Mail, ShieldCheck, Trash2 } from "lucide-react";
+import { CalendarDays, HeartPulse, KeyRound, Mail, ShieldCheck, Stethoscope, Trash2, UserPlus, Users, Wrench, X } from "lucide-react";
+import TabSelect, { ToothIcon } from "@/components/shared/tab-select";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import UserForm from "./user-form";
@@ -14,6 +14,7 @@ import { canCreateAccounts } from "@/lib/permissions";
 import RoleBadge from "@/components/shared/role-badge";
 import RowActionMenu, { type RowAction } from "@/components/shared/row-action-menu";
 import PasswordInput from "@/components/shared/password-input";
+import OtpInput from "@/components/shared/otp-input";
 type Props = {
     searchParams: Promise<{
         reset?: string;
@@ -24,6 +25,10 @@ type Props = {
         derr?: string;
         pw?: string;
         rm?: string;
+        /** Bukas ang "New Account" na form (modal) */
+        new?: string;
+        /** Filter ng listahan ayon sa role */
+        role?: string;
     }>;
 };
 
@@ -52,14 +57,13 @@ const notices: Record<string, { tone: "green" | "red"; text: string }> = {
 
 const card = "rounded-xl border-2 border-[#cfe5d9] bg-white shadow-md shadow-[#15664f]/10";
 
-// Mobile: bawat row ay card. md pataas: normal na table.
-const tr =
-    "mb-3 block rounded-lg border border-gray-200 py-2 md:mb-0 md:table-row md:rounded-none md:border-0 md:border-t md:border-gray-100 md:py-0 md:hover:bg-[#f6faf8]";
 
 const smallInput =
     "h-9 rounded-lg border border-gray-300 bg-white px-3 text-base text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20 md:text-sm";
 const btnGreen =
     "inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg bg-[#15664f] px-3 text-sm font-semibold text-white hover:bg-[#10523f]";
+const btnRed =
+    "inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg bg-red-600 px-3 text-sm font-semibold text-white hover:bg-red-700";
 const btnCancel = "inline-flex h-9 items-center px-2 text-sm font-medium text-gray-600 hover:text-gray-800 hover:underline";
 
 function formatCreated(d: Date) {
@@ -76,7 +80,7 @@ export default async function UsersPage({ searchParams }: Props) {
     if (!session) redirect("/login");
     if (!canCreateAccounts(session.role)) redirect("/dashboard");
     const canReset = session.role === "admin" || session.role === "ittech";
-    const { reset, otp, err, edit, del, derr, pw, rm } = await searchParams;
+    const { reset, otp, err, edit, del, derr, pw, rm, new: openNew, role: roleParam } = await searchParams;
     const pwId = Number(pw) || 0;
     const rmId = Number(rm) || 0;
     const otpUserId = Number(otp) || 0;
@@ -97,16 +101,71 @@ export default async function UsersPage({ searchParams }: Props) {
         return acc;
     }, {});
     const ROLE_ORDER = ["admin", "ittech", "doctor", "nurse", "dentist"];
+    const ROLE_LABEL: Record<string, string> = {
+        admin: "Administrator",
+        ittech: "IT Technician",
+        doctor: "Doctor",
+        nurse: "Nurse",
+        dentist: "Dentist",
+    };
+    const ROLE_ICON: Record<string, React.ReactNode> = {
+        admin: <ShieldCheck />,
+        ittech: <Wrench />,
+        doctor: <Stethoscope />,
+        nurse: <HeartPulse />,
+        dentist: <ToothIcon />,
+    };
+    const roleFilter = roleParam && ROLE_ORDER.includes(roleParam) ? roleParam : "";
+    // Mga card na ipapakita (ayon sa napiling role)
+    const shownUsers = roleFilter ? users.filter((u) => u.role === roleFilter) : users;
 
     return (
         <main className="min-w-0 space-y-6 p-4 pb-8 md:p-8">
             {/* Header */}
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="min-w-0">
                     <h1 className="text-2xl font-bold text-[#10523f] md:text-3xl">Manage Accounts</h1>
                     <p className="text-sm text-gray-600">Create staff accounts, change roles, and reset passwords.</p>
                 </div>
+                {/* Bubukas ang form ng bagong account (modal) */}
+                <Link
+                    href="/dashboard/users?new=1"
+                    className="inline-flex h-11 items-center gap-2 rounded-lg bg-[#15664f] px-5 text-sm font-semibold text-white shadow-sm hover:bg-[#10523f]"
+                >
+                    <UserPlus className="h-4 w-4" />
+                    New Account
+                </Link>
             </div>
+
+            {/* NEW ACCOUNT (modal): bukas kapag ?new=1 */}
+            {openNew && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <Link href="/dashboard/users" aria-label="Close" className="absolute inset-0 bg-black/40" />
+                    <section
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="new-account-title"
+                        className="relative w-full max-w-md rounded-xl bg-white p-6 shadow-xl"
+                    >
+                        <div className="mb-5 flex items-start justify-between gap-3">
+                            <div>
+                                <h2 id="new-account-title" className="text-lg font-semibold text-gray-900">
+                                    New Account
+                                </h2>
+                                <p className="text-sm text-gray-600">Add a clinic staff login.</p>
+                            </div>
+                            <Link
+                                href="/dashboard/users"
+                                aria-label="Close"
+                                className="flex h-9 w-9 items-center justify-center rounded-full text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                            >
+                                <X className="h-5 w-5" />
+                            </Link>
+                        </div>
+                        <UserForm allowAdmin={session.role === "admin"} />
+                    </section>
+                </div>
+            )}
 
             {notice &&
                 (notice.tone === "green" ? (
@@ -137,353 +196,285 @@ export default async function UsersPage({ searchParams }: Props) {
                 </div>
             )}
 
-            {/* Role summary */}
-            <section className="flex flex-wrap gap-2">
-                <span className="inline-flex h-9 items-center gap-2 rounded-lg border-2 border-[#cfe5d9] bg-white px-3 text-sm font-semibold text-gray-800">
-                    Total
-                    <span className="rounded-full bg-[#15664f] px-2 py-0.5 text-sm font-semibold text-white">{users.length}</span>
-                </span>
-                {ROLE_ORDER.filter((r) => roleCounts[r]).map((r) => (
-                    <span
-                        key={r}
-                        className="inline-flex h-9 items-center gap-2 rounded-lg border-2 border-[#cfe5d9] bg-white px-3 text-sm text-gray-600"
-                    >
-                        <RoleBadge role={r} />
-                        <span className="font-semibold text-gray-900">{roleCounts[r]}</span>
+            {/* Role filter (dropdown, kapareho ng Visitor Recording): All Accounts o isang role, may bilang */}
+            <TabSelect
+                label="Filter accounts by role"
+                value={roleFilter || "all"}
+                options={[
+                    { key: "all", label: "All Accounts", href: "/dashboard/users", count: users.length, icon: <Users /> },
+                    ...ROLE_ORDER.filter((r) => roleCounts[r]).map((r) => ({
+                        key: r,
+                        label: ROLE_LABEL[r],
+                        href: `/dashboard/users?role=${r}`,
+                        count: roleCounts[r],
+                        icon: ROLE_ICON[r],
+                    })),
+                ]}
+            />
+
+            {/* Lahat ng account: card bawat isa (1 sa phone, 2 sa tablet, 3 sa desktop) */}
+            <section className="space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                    <h2 className="text-lg font-semibold text-gray-900">{roleFilter ? `${ROLE_LABEL[roleFilter]} Accounts` : "All Accounts"}</h2>
+                    <span className="rounded-full bg-white px-3 py-1 text-sm font-semibold text-[#15664f] ring-2 ring-[#cfe5d9]">
+                        {shownUsers.length} account{shownUsers.length === 1 ? "" : "s"}
                     </span>
-                ))}
-            </section>
+                </div>
 
-            {/* Nakasalansan hanggang 2xl para buong lapad ang table at walang horizontal scroll */}
-            <div className="grid grid-cols-1 gap-6 2xl:grid-cols-[320px_minmax(0,1fr)]">
-                {/* New account */}
-                <section className={`${card} min-w-0 self-start p-5 md:p-6`}>
-                    <div className="mb-5 flex items-start gap-3">
-                        <div>
-                            <h2 className="text-lg font-semibold text-gray-900">New Account</h2>
-                            <p className="text-sm text-gray-600">Add a clinic staff login.</p>
-                        </div>
-                    </div>
-                    <UserForm allowAdmin={session.role === "admin"} />
-                </section>
+                {/* items-start: kapag may bukas na form sa isang card, hindi hahaba ang ibang card sa hanay */}
+                <div className="grid items-start gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                    {shownUsers.map((u) => {
+                        const isMe = u.user_id === session.userId;
+                        const actions: RowAction[] = [
+                            {
+                                label: "Reset Password",
+                                href: `/dashboard/users?pw=${u.user_id}`,
+                                title: "Reset password?",
+                                message: `Set a new password for ${u.username}. An OTP will be emailed to the account owner before it changes.`,
+                                confirmLabel: "Continue",
+                                icon: "key",
+                            },
+                        ];
+                        if (canReset) {
+                            actions.push({
+                                label: "Edit Account",
+                                href: `/dashboard/users?edit=${u.user_id}`,
+                                title: "Edit account?",
+                                message: `Change the email or role of ${u.username}.`,
+                                confirmLabel: "Edit",
+                                icon: "edit",
+                            });
+                            if (!isMe) {
+                                // Kapareho ng Reset Password: magbubukas muna ng panel sa ilalim ng row,
+                                // at doon pipindutin ang "Send OTP".
+                                actions.push({
+                                    label: "Delete Account",
+                                    href: `/dashboard/users?rm=${u.user_id}`,
+                                    title: "Delete account?",
+                                    message: `Permanently delete ${u.username}. An OTP will be emailed to the account owner before it is deleted.`,
+                                    confirmLabel: "Continue",
+                                    icon: "delete",
+                                    tone: "danger",
+                                });
+                            }
+                        }
 
-                {/* All accounts */}
-                <section className={`${card} min-w-0 self-start overflow-hidden`}>
-                    <div className="flex items-center justify-between gap-3 p-5 md:px-6">
-                        <h2 className="text-lg font-semibold text-gray-900">All Accounts</h2>
-                        <span className="rounded-full bg-[#eef6f2] px-3 py-1 text-sm font-semibold text-[#15664f]">
-                            {users.length} account{users.length === 1 ? "" : "s"}
-                        </span>
-                    </div>
+                        // Isang panel lang sa ilalim ng row ang bukas sa isang pagkakataon
+                        const panel =
+                            u.user_id === otpUserId
+                                ? "otp"
+                                : u.user_id === delUserId
+                                    ? "del"
+                                    : canReset && !isMe && u.user_id === rmId
+                                        ? "rm"
+                                        : u.user_id === pwId
+                                            ? "pw"
+                                            : canReset && u.user_id === editId
+                                                ? "edit"
+                                                : null;
+                        const danger = panel === "del" || panel === "rm";
 
-                    <div className="border-t border-gray-100 p-3 md:p-0">
-                        <table className="block w-full text-left md:table md:table-auto">
-                            <thead className="hidden bg-[#f6faf8] text-sm uppercase tracking-wide text-gray-600 md:table-header-group">
-                                <tr>
-                                    <th className="px-4 py-3 font-semibold">Account</th>
-                                    <th className="px-4 py-3 font-semibold">Role</th>
-                                    <th className="px-4 py-3 font-semibold">Created</th>
-                                    <th className="w-20 px-4 py-3 text-center font-semibold">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="block md:table-row-group">
-                                {users.map((u) => {
-                                    const isMe = u.user_id === session.userId;
-                                    const actions: RowAction[] = [
-                                        {
-                                            label: "Reset Password",
-                                            href: `/dashboard/users?pw=${u.user_id}`,
-                                            title: "Reset password?",
-                                            message: `Set a new password for ${u.username}. An OTP will be emailed to the account owner before it changes.`,
-                                            confirmLabel: "Continue",
-                                            icon: "key",
-                                        },
-                                    ];
-                                    if (canReset) {
-                                        actions.push({
-                                            label: "Edit Account",
-                                            href: `/dashboard/users?edit=${u.user_id}`,
-                                            title: "Edit account?",
-                                            message: `Change the email or role of ${u.username}.`,
-                                            confirmLabel: "Edit",
-                                            icon: "edit",
-                                        });
-                                        if (!isMe) {
-                                            // Kapareho ng Reset Password: magbubukas muna ng panel sa ilalim ng row,
-                                            // at doon pipindutin ang "Send OTP".
-                                            actions.push({
-                                                label: "Delete Account",
-                                                href: `/dashboard/users?rm=${u.user_id}`,
-                                                title: "Delete account?",
-                                                message: `Permanently delete ${u.username}. An OTP will be emailed to the account owner before it is deleted.`,
-                                                confirmLabel: "Continue",
-                                                icon: "delete",
-                                                tone: "danger",
-                                            });
-                                        }
-                                    }
+                        return (
+                            <article
+                                key={u.user_id}
+                                className={`${card} flex min-w-0 flex-col p-5 ${panel ? (danger ? "ring-2 ring-red-200" : "ring-2 ring-[#15664f]/30") : ""}`}
+                            >
+                                {/* Itaas: larawan + ⋮ */}
+                                <div className="flex items-start justify-between gap-3">
+                                    {u.avatar ? (
+                                        // eslint-disable-next-line @next/next/no-img-element
+                                        <img src={u.avatar} alt="" className="h-14 w-14 shrink-0 rounded-full object-cover ring-2 ring-[#15664f]/30" />
+                                    ) : (
+                                        <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#eef6f2] text-lg font-semibold text-[#15664f]">
+                                            {u.username.charAt(0).toUpperCase()}
+                                        </span>
+                                    )}
+                                    <RowActionMenu actions={actions} label={`Actions for ${u.username}`} />
+                                </div>
 
-                                    // Isang panel lang sa ilalim ng row ang bukas sa isang pagkakataon
-                                    const panel =
-                                        u.user_id === otpUserId
-                                            ? "otp"
-                                            : u.user_id === delUserId
-                                                ? "del"
-                                                : canReset && !isMe && u.user_id === rmId
-                                                    ? "rm"
-                                                    : u.user_id === pwId
-                                                        ? "pw"
-                                                        : canReset && u.user_id === editId
-                                                            ? "edit"
-                                                            : null;
-                                    const danger = panel === "del" || panel === "rm";
+                                {/* Email (puwedeng bumaba sa "@") + You */}
+                                <div className="mb-4 mt-3 flex min-w-0 flex-wrap items-center gap-2">
+                                    <p className="min-w-0 font-semibold text-gray-900 [overflow-wrap:anywhere]">
+                                        {u.username.split("@")[0]}
+                                        {u.username.includes("@") && (
+                                            <>
+                                                <wbr />@{u.username.split("@").slice(1).join("@")}
+                                            </>
+                                        )}
+                                    </p>
+                                    {isMe && (
+                                        <span className="shrink-0 rounded-full bg-[#15664f] px-2 py-0.5 text-sm font-semibold text-white">You</span>
+                                    )}
+                                </div>
 
-                                    return (
-                                        <Fragment key={u.user_id}>
-                                            <tr className={`${tr} ${panel ? "md:bg-[#f6faf8]" : ""}`}>
-                                                <td className="flex items-center justify-between gap-3 px-4 py-2 md:table-cell md:py-3.5 md:align-middle">
-                                                    <div className="flex min-w-0 items-center gap-3">
-                                                        {/* Profile picture ng account (galing sa Settings); initial kapag wala pa */}
-                                                        {u.avatar ? (
-                                                            // eslint-disable-next-line @next/next/no-img-element
-                                                            <img
-                                                                src={u.avatar}
-                                                                alt=""
-                                                                className="h-11 w-11 shrink-0 rounded-full object-cover ring-2 ring-[#15664f]/30 md:h-9 md:w-9"
-                                                            />
-                                                        ) : (
-                                                            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#eef6f2] text-sm font-semibold text-[#15664f] md:h-9 md:w-9">
-                                                                {u.username.charAt(0).toUpperCase()}
-                                                            </span>
-                                                        )}
-                                                        <span className="min-w-0">
-                                                            <span className="flex min-w-0 flex-wrap items-center gap-2">
-                                                                {/* Puwedeng bumaba sa "@" lang, hindi sa gitna ng salita */}
-                                                                <span className="min-w-0 font-semibold text-gray-900 [overflow-wrap:anywhere] md:[overflow-wrap:normal]">
-                                                                    {u.username.split("@")[0]}
-                                                                    {u.username.includes("@") && (
-                                                                        <>
-                                                                            <wbr />@{u.username.split("@").slice(1).join("@")}
-                                                                        </>
-                                                                    )}
-                                                                </span>
-                                                                {isMe && (
-                                                                    <span className="shrink-0 rounded-full bg-[#15664f] px-2 py-0.5 text-sm font-semibold text-white">
-                                                                        You
-                                                                    </span>
-                                                                )}
-                                                            </span>
-                                                            {/* Mobile lang: role at petsa sa ilalim ng email */}
-                                                            <span className="mt-1 flex flex-wrap items-center gap-2 md:hidden">
-                                                                <RoleBadge role={u.role} />
-                                                                <span className="text-sm text-gray-600">Created {formatCreated(u.created_at)}</span>
-                                                            </span>
-                                                        </span>
-                                                    </div>
-                                                    {/* Mobile: ⋮ sa kanan ng card */}
-                                                    <span className="shrink-0 md:hidden">
-                                                        <RowActionMenu actions={actions} label={`Actions for ${u.username}`} />
-                                                    </span>
-                                                </td>
-                                                <td className="hidden px-4 py-3.5 align-middle text-sm md:table-cell">
-                                                    <RoleBadge role={u.role} />
-                                                </td>
-                                                <td className="hidden whitespace-nowrap px-4 py-3.5 align-middle text-sm text-gray-600 md:table-cell">
-                                                    {formatCreated(u.created_at)}
-                                                </td>
-                                                <td className="hidden px-4 py-3.5 text-center align-middle md:table-cell">
-                                                    <RowActionMenu actions={actions} label={`Actions for ${u.username}`} />
-                                                </td>
-                                            </tr>
+                                {/* Ibaba: role + petsa */}
+                                <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-3">
+                                    <RoleBadge role={u.role} />
+                                    <span className="inline-flex items-center gap-1.5 text-sm text-gray-600">
+                                        <CalendarDays className="h-4 w-4" />
+                                        {formatCreated(u.created_at)}
+                                    </span>
+                                </div>
 
-                                            {panel && (
-                                                <tr
-                                                    className={`mb-3 block rounded-lg border md:mb-0 md:table-row md:rounded-none md:border-0 ${danger ? "border-red-200 bg-red-50/70" : "border-[#cfe5d9] bg-[#eef6f2]"
-                                                        }`}
+                                {/* Panel ng Reset / Edit / Delete sa loob ng card */}
+                                {panel && (
+                                    <div
+                                        className={`mt-4 rounded-lg border p-3 ${danger ? "border-red-200 bg-red-50/70" : "border-[#cfe5d9] bg-[#eef6f2]"
+                                            }`}
+                                    >
+                                        <p className={`mb-2 text-sm font-semibold uppercase tracking-wide ${danger ? "text-red-700" : "text-[#15664f]"}`}>
+                                            {panel === "pw" && "Reset password"}
+                                            {panel === "otp" && "Enter reset OTP"}
+                                            {panel === "edit" && "Edit account"}
+                                            {panel === "rm" && "Delete account"}
+                                            {panel === "del" && "Enter deletion OTP"}
+                                        </p>
+                                        {panel === "pw" && (
+                                            /* RESET STEP 1: bagong password -> OTP sa may-ari */
+                                            <form action={resetUserPassword} className="flex flex-wrap items-center gap-3">
+                                                <input type="hidden" name="userId" value={u.user_id} />
+                                                {/* May Show password (mata) at Clear (X) */}
+                                                <PasswordInput
+                                                    name="password"
+                                                    placeholder="New password (8+ characters)"
+                                                    minLength={8}
+                                                    required
+                                                    autoFocus
+                                                    autoComplete="new-password"
+                                                    suppressHydrationWarning
+                                                    clearable
+                                                    wrapperClassName="w-full"
+                                                    className={`${smallInput} w-full`}
+                                                />
+                                                <ConfirmSubmit
+                                                    title="Send OTP to account owner?"
+                                                    message={`A 6-digit OTP will be emailed to ${u.username}. The password will only change after you enter the OTP they give you.`}
+                                                    confirmLabel="Send OTP"
+                                                    className={btnGreen}
                                                 >
-                                                    <td colSpan={4} className="block px-4 py-4 md:table-cell">
-                                                        <p
-                                                            className={`mb-2 text-sm font-semibold uppercase tracking-wide ${danger ? "text-red-700" : "text-[#15664f]"
-                                                                }`}
-                                                        >
-                                                            {panel === "pw" && "Reset password"}
-                                                            {panel === "otp" && "Enter reset OTP"}
-                                                            {panel === "edit" && "Edit account"}
-                                                            {panel === "rm" && "Delete account"}
-                                                            {panel === "del" && "Enter deletion OTP"}
-                                                        </p>
+                                                    <KeyRound className="h-3.5 w-3.5" />
+                                                    Send OTP
+                                                </ConfirmSubmit>
+                                                <Link href="/dashboard/users" className={btnCancel}>
+                                                    Cancel
+                                                </Link>
+                                            </form>
+                                        )}
 
-                                                        {panel === "pw" && (
-                                                            /* RESET STEP 1: bagong password -> OTP sa may-ari */
-                                                            <form action={resetUserPassword} className="flex flex-wrap items-center gap-3">
-                                                                <input type="hidden" name="userId" value={u.user_id} />
-                                                                {/* May Show password (mata) at Clear (X) */}
-                                                                <PasswordInput
-                                                                    name="password"
-                                                                    placeholder="New password (8+ characters)"
-                                                                    minLength={8}
-                                                                    required
-                                                                    autoFocus
-                                                                    autoComplete="new-password"
-                                                                    suppressHydrationWarning
-                                                                    clearable
-                                                                    wrapperClassName="w-full sm:w-80"
-                                                                    className={`${smallInput} w-full`}
-                                                                />
-                                                                <ConfirmSubmit
-                                                                    title="Send OTP to account owner?"
-                                                                    message={`A 6-digit OTP will be emailed to ${u.username}. The password will only change after you enter the OTP they give you.`}
-                                                                    confirmLabel="Send OTP"
-                                                                    className={btnGreen}
-                                                                >
-                                                                    <KeyRound className="h-3.5 w-3.5" />
-                                                                    Send OTP
-                                                                </ConfirmSubmit>
-                                                                <Link href="/dashboard/users" className={btnCancel}>
-                                                                    Cancel
-                                                                </Link>
-                                                            </form>
-                                                        )}
+                                        {panel === "otp" && (
+                                            /* RESET STEP 2: OTP */
+                                            <form action={verifyResetOtp} className="flex flex-wrap items-center gap-3">
+                                                <input type="hidden" name="userId" value={u.user_id} />
+                                                <OtpInput name="otp" autoFocus compact />
+                                                <ConfirmSubmit
+                                                    title="Verify OTP?"
+                                                    message={`The password of ${u.username} will be changed if the OTP is correct.`}
+                                                    confirmLabel="Verify"
+                                                    className={btnGreen}
+                                                >
+                                                    <ShieldCheck className="h-3.5 w-3.5" />
+                                                    Verify
+                                                </ConfirmSubmit>
+                                                <Link href="/dashboard/users" className={btnCancel}>
+                                                    Cancel
+                                                </Link>
+                                            </form>
+                                        )}
 
-                                                        {panel === "otp" && (
-                                                            /* RESET STEP 2: OTP */
-                                                            <form action={verifyResetOtp} className="flex flex-wrap items-center gap-3">
-                                                                <input type="hidden" name="userId" value={u.user_id} />
-                                                                <input
-                                                                    name="otp"
-                                                                    inputMode="numeric"
-                                                                    pattern="[0-9]{6}"
-                                                                    maxLength={6}
-                                                                    placeholder="6-digit OTP"
-                                                                    required
-                                                                    autoFocus
-                                                                    autoComplete="one-time-code"
-                                                                    suppressHydrationWarning
-                                                                    className={`${smallInput} w-40 border-amber-400 text-center tracking-widest`}
-                                                                />
-                                                                <ConfirmSubmit
-                                                                    title="Verify OTP?"
-                                                                    message={`The password of ${u.username} will be changed if the OTP is correct.`}
-                                                                    confirmLabel="Verify"
-                                                                    className={btnGreen}
-                                                                >
-                                                                    <ShieldCheck className="h-3.5 w-3.5" />
-                                                                    Verify
-                                                                </ConfirmSubmit>
-                                                                <Link href="/dashboard/users" className={btnCancel}>
-                                                                    Cancel
-                                                                </Link>
-                                                            </form>
-                                                        )}
+                                        {panel === "edit" && (
+                                            <form action={updateUser} className="flex flex-wrap items-center gap-3">
+                                                <input type="hidden" name="userId" value={u.user_id} />
+                                                <input
+                                                    name="username"
+                                                    type="email"
+                                                    defaultValue={u.username}
+                                                    required
+                                                    suppressHydrationWarning
+                                                    className={`${smallInput} w-full`}
+                                                />
+                                                <select required name="role" defaultValue={u.role} className={`${smallInput} w-full`}>
+                                                    {(session.role === "admin" || u.role === "admin") && (
+                                                        <option value="admin">Administrator</option>
+                                                    )}
+                                                    <option value="ittech">IT Technician</option>
+                                                    <option value="doctor">Doctor</option>
+                                                    <option value="nurse">Nurse</option>
+                                                    <option value="dentist">Dentist</option>
+                                                </select>
+                                                <ConfirmSubmit
+                                                    title="Save changes?"
+                                                    message={`Update the account ${u.username}?`}
+                                                    confirmLabel="Save"
+                                                    className={btnGreen}
+                                                >
+                                                    Save Changes
+                                                </ConfirmSubmit>
+                                                <Link href="/dashboard/users" className={btnCancel}>
+                                                    Cancel
+                                                </Link>
+                                            </form>
+                                        )}
 
-                                                        {panel === "edit" && (
-                                                            <form action={updateUser} className="flex flex-wrap items-center gap-3">
-                                                                <input type="hidden" name="userId" value={u.user_id} />
-                                                                <input
-                                                                    name="username"
-                                                                    type="email"
-                                                                    defaultValue={u.username}
-                                                                    required
-                                                                    suppressHydrationWarning
-                                                                    className={`${smallInput} w-full sm:w-72`}
-                                                                />
-                                                                <select required name="role" defaultValue={u.role} className={smallInput}>
-                                                                    {(session.role === "admin" || u.role === "admin") && (
-                                                                        <option value="admin">Administrator</option>
-                                                                    )}
-                                                                    <option value="ittech">IT Technician</option>
-                                                                    <option value="doctor">Doctor</option>
-                                                                    <option value="nurse">Nurse</option>
-                                                                    <option value="dentist">Dentist</option>
-                                                                </select>
-                                                                <ConfirmSubmit
-                                                                    title="Save changes?"
-                                                                    message={`Update the account ${u.username}?`}
-                                                                    confirmLabel="Save"
-                                                                    className={btnGreen}
-                                                                >
-                                                                    Save Changes
-                                                                </ConfirmSubmit>
-                                                                <Link href="/dashboard/users" className={btnCancel}>
-                                                                    Cancel
-                                                                </Link>
-                                                            </form>
-                                                        )}
+                                        {panel === "rm" && (
+                                            /* DELETE STEP 1: magpadala ng OTP sa may-ari (kapareho ng Reset Password) */
+                                            <form action={requestDeleteOtp} className="flex flex-wrap items-center gap-3">
+                                                <input type="hidden" name="userId" value={u.user_id} />
+                                                {/* Kumpirmasyon: i-type ang email ng account (kapareho ng format ng Reset Password) */}
+                                                <input
+                                                    name="confirmEmail"
+                                                    type="text"
+                                                    placeholder="Type the email to confirm"
+                                                    pattern={u.username.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}
+                                                    title={`Type ${u.username} exactly to confirm`}
+                                                    required
+                                                    autoFocus
+                                                    autoComplete="off"
+                                                    spellCheck={false}
+                                                    suppressHydrationWarning
+                                                    className={`${smallInput} w-full border-red-300 focus:border-red-600 focus:ring-red-200`}
+                                                />
+                                                <ConfirmSubmit
+                                                    title="Send deletion OTP?"
+                                                    tone="danger"
+                                                    message={`A 6-digit OTP will be emailed to ${u.username}. Enter it to permanently delete this account.`}
+                                                    confirmLabel="Send OTP"
+                                                    className={btnRed}
+                                                >
+                                                    <Mail className="h-3.5 w-3.5" />
+                                                    Send OTP
+                                                </ConfirmSubmit>
+                                                <Link href="/dashboard/users" className={btnCancel}>
+                                                    Cancel
+                                                </Link>
+                                            </form>
+                                        )}
 
-                                                        {panel === "rm" && (
-                                                            /* DELETE STEP 1: magpadala ng OTP sa may-ari (kapareho ng Reset Password) */
-                                                            <form action={requestDeleteOtp} className="flex flex-wrap items-center gap-3">
-                                                                <input type="hidden" name="userId" value={u.user_id} />
-                                                                {/* Kumpirmasyon: i-type ang email ng account (kapareho ng format ng Reset Password) */}
-                                                                <input
-                                                                    name="confirmEmail"
-                                                                    type="text"
-                                                                    placeholder="Type the email to confirm"
-                                                                    pattern={u.username.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}
-                                                                    title={`Type ${u.username} exactly to confirm`}
-                                                                    required
-                                                                    autoFocus
-                                                                    autoComplete="off"
-                                                                    spellCheck={false}
-                                                                    suppressHydrationWarning
-                                                                    className={`${smallInput} w-full border-red-300 focus:border-red-600 focus:ring-red-200 sm:w-80`}
-                                                                />
-                                                                <ConfirmSubmit
-                                                                    title="Send deletion OTP?"
-                                                                    message={`A 6-digit OTP will be emailed to ${u.username}. Enter it to permanently delete this account.`}
-                                                                    confirmLabel="Send OTP"
-                                                                    className={btnGreen}
-                                                                >
-                                                                    <Mail className="h-3.5 w-3.5" />
-                                                                    Send OTP
-                                                                </ConfirmSubmit>
-                                                                <Link href="/dashboard/users" className={btnCancel}>
-                                                                    Cancel
-                                                                </Link>
-                                                            </form>
-                                                        )}
-
-                                                        {panel === "del" && (
-                                                            /* DELETE STEP 2: OTP mula sa may-ari */
-                                                            <form action={confirmDeleteOtp} className="flex flex-wrap items-center gap-3">
-                                                                <input type="hidden" name="userId" value={u.user_id} />
-                                                                <input
-                                                                    name="otp"
-                                                                    inputMode="numeric"
-                                                                    pattern="[0-9]{6}"
-                                                                    maxLength={6}
-                                                                    placeholder="6-digit OTP"
-                                                                    required
-                                                                    autoFocus
-                                                                    autoComplete="one-time-code"
-                                                                    suppressHydrationWarning
-                                                                    className={`${smallInput} w-40 border-red-400 text-center tracking-widest focus:border-red-600 focus:ring-red-200`}
-                                                                />
-                                                                <ConfirmSubmit
-                                                                    title="Permanently delete account?"
-                                                                    message={`The account ${u.username} will be permanently deleted if the OTP is correct. This can't be undone.`}
-                                                                    confirmLabel="Delete"
-                                                                    className="inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg bg-red-600 px-3 text-sm font-semibold text-white hover:bg-red-700"
-                                                                >
-                                                                    <Trash2 className="h-3.5 w-3.5" />
-                                                                    Confirm Delete
-                                                                </ConfirmSubmit>
-                                                                <Link href="/dashboard/users" className={btnCancel}>
-                                                                    Cancel
-                                                                </Link>
-                                                            </form>
-                                                        )}
-                                                    </td>
-                                                </tr>
-                                            )}
-                                        </Fragment>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
-            </div>
+                                        {panel === "del" && (
+                                            /* DELETE STEP 2: OTP mula sa may-ari */
+                                            <form action={confirmDeleteOtp} className="flex flex-wrap items-center gap-3">
+                                                <input type="hidden" name="userId" value={u.user_id} />
+                                                <OtpInput name="otp" autoFocus compact />
+                                                <ConfirmSubmit
+                                                    title="Permanently delete account?"
+                                                    message={`The account ${u.username} will be permanently deleted if the OTP is correct. This can't be undone.`}
+                                                    confirmLabel="Delete"
+                                                    className={btnRed}
+                                                >
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                    Confirm Delete
+                                                </ConfirmSubmit>
+                                                <Link href="/dashboard/users" className={btnCancel}>
+                                                    Cancel
+                                                </Link>
+                                            </form>
+                                        )}
+                                    </div>
+                                )}
+                            </article>
+                        );
+                    })}
+                </div>
+            </section>
         </main>
     );
 }

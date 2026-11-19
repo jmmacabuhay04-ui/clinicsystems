@@ -22,8 +22,8 @@ export default function UserForm({ allowAdmin = false }: { allowAdmin?: boolean 
                 setSubmitKey((k) => k + 1);
                 formAction(formData);
             }}
-            // Pahalang ang mga field kapag buong lapad ang card; patayo ulit sa 2xl (nasa gilid na ang card)
-            className="grid items-end gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_200px_auto] 2xl:grid-cols-1"
+            // Nasa loob ng modal (New Account): patayo ang mga field
+            className="grid gap-4"
         >
             {state.error && (
                 <p className="col-span-full rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{state.error}</p>

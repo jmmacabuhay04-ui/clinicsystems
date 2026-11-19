@@ -20,9 +20,14 @@ export const TREND_SERIES = [
     { key: "dental" as const, label: "Dental Reports", color: "#f2b705" },
 ];
 
+// Aling linya ang ipapakita ayon sa role: Dentist = dental lang; Doctor = walang dental
+export function seriesFor(dentalOnly = false, noDental = false) {
+    return TREND_SERIES.filter((s) => (dentalOnly ? s.key === "dental" : noDental ? s.key !== "dental" : true));
+}
+
 // Sukat at posisyon ng chart (ginagamit din ng FitTrendChart para sa pag-click sa tuldok)
-export function trendGeometry(data: DayPoint[], W: number, H: number) {
-    const series = TREND_SERIES;
+export function trendGeometry(data: DayPoint[], W: number, H: number, dentalOnly = false, noDental = false) {
+    const series = seriesFor(dentalOnly, noDental);
     const small = W < 600;
     const L = small ? 28 : 38;
     const R = small ? 8 : 30;
@@ -34,7 +39,8 @@ export function trendGeometry(data: DayPoint[], W: number, H: number) {
 
     // Gilid ay 0, 2, 4, 6, ... (laging kita ang Outbreak line)
     const peak = Math.max(0, ...data.flatMap((d) => series.map((s) => d[s.key])));
-    const top = Math.max(OUTBREAK_PER_DAY + 2, Math.ceil((peak + 1) / 2) * 2);
+    // Dentist: walang Warning/Outbreak na guhit, kaya batay lang sa pinakamataas na bilang (min 6)
+    const top = Math.max(dentalOnly ? 6 : OUTBREAK_PER_DAY + 2, Math.ceil((peak + 1) / 2) * 2);
     const step = top <= 20 ? 2 : Math.ceil(top / 8 / 2) * 2;
     const yMax = Math.ceil(top / step) * step;
     const ticks = Array.from({ length: yMax / step + 1 }, (_, i) => i * step);
@@ -55,6 +61,8 @@ export function TrendSvg({
     className,
     linkBase,
     linkSeries = [],
+    dentalOnly = false,
+    noDental = false,
 }: {
     data: DayPoint[];
     W: number;
@@ -65,9 +73,13 @@ export function TrendSvg({
     linkBase?: string;
     /** Aling serye ang puwedeng i-click (ayon sa role) */
     linkSeries?: string[];
+    /** Dentist: Dental Reports lang ang linya, at walang Warning/Outbreak na guhit */
+    dentalOnly?: boolean;
+    /** Doctor: walang linya ng Dental Reports */
+    noDental?: boolean;
 }) {
-    const series = TREND_SERIES;
-    const { small, L, R, baseY, ticks, x, y } = trendGeometry(data, W, H);
+    const series = seriesFor(dentalOnly, noDental);
+    const { small, L, R, baseY, ticks, x, y } = trendGeometry(data, W, H, dentalOnly, noDental);
     const dotShift = (i: number, key: (typeof series)[number]["key"]) => {
         const v = data[i][key];
         if (v <= 0) return 0;
@@ -81,10 +93,12 @@ export function TrendSvg({
     const every = Math.max(1, Math.ceil(data.length / (small ? 5 : 7)));
     const fs = small ? 15 : 14; // laki ng text sa loob ng chart
 
-    const thresholds = [
-        { value: WARNING_PER_DAY, label: `Warning · ${WARNING_PER_DAY}`, color: "#f59e0b" },
-        { value: OUTBREAK_PER_DAY, label: `Outbreak · ${OUTBREAK_PER_DAY}`, color: "#dc2626" },
-    ];
+    const thresholds = dentalOnly
+        ? []
+        : [
+            { value: WARNING_PER_DAY, label: `Warning · ${WARNING_PER_DAY}`, color: "#f59e0b" },
+            { value: OUTBREAK_PER_DAY, label: `Outbreak · ${OUTBREAK_PER_DAY}`, color: "#dc2626" },
+        ];
 
     return (
         <svg viewBox={`0 0 ${W} ${H}`} className={className} role="img" aria-label="Clinic visits, health reports and dental reports per day">

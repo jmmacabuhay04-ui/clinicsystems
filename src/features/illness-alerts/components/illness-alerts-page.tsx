@@ -9,7 +9,7 @@ import DownloadReportButton from "./download-report-button";
 import PrintHeader from "@/components/layout/print-header";
 import ListPagination from "@/components/shared/list-pagination";
 import FitTrendChart from "./fit-trend-chart";
-import { OUTBREAK_PER_DAY, TREND_SERIES, TrendSvg, WARNING_PER_DAY, type DayPoint } from "./trend-svg";
+import { OUTBREAK_PER_DAY, TREND_SERIES, seriesFor, TrendSvg, WARNING_PER_DAY, type DayPoint } from "./trend-svg";
 
 type VisitRow = {
     record_id: number;
@@ -66,7 +66,7 @@ type Case = {
 };
 
 type Props = {
-    searchParams: Promise<{ week?: string; month?: string; from?: string; to?: string; page?: string; day?: string; series?: string }>;
+    searchParams: Promise<{ week?: string; month?: string; from?: string; to?: string; page?: string; day?: string; series?: string; who?: string }>;
 };
 
 // Number of sick PERSONS in ONE day
@@ -143,16 +143,28 @@ const statusStyles: Record<string, string> = {
 
 // Line chart bawat araw (Week: Mon–Sat, Month: buong buwan), may guhit ng Warning at Outbreak.
 // Dalawang laki: malapad sa desktop, at mas makitid/mataas sa phone para hindi lumiit ang text at guhit.
-function TrendLineChart({ data, linkBase, linkSeries }: { data: DayPoint[]; linkBase: string; linkSeries: string[] }) {
+function TrendLineChart({
+    data,
+    linkBase,
+    linkSeries,
+    dentalOnly = false,
+    noDental = false,
+}: {
+    data: DayPoint[];
+    linkBase: string;
+    linkSeries: string[];
+    dentalOnly?: boolean;
+    noDental?: boolean;
+}) {
     return (
         <>
             {/* Desktop: sinusukat ang taas para pumantay ang 0 ng graph sa guhit sa itaas ng Warning/Outbreak */}
-            <FitTrendChart data={data} alignId="illness-breakdown-divider" className="hidden sm:block" linkBase={linkBase} linkSeries={linkSeries} />
-            <TrendSvg data={data} W={340} H={330} gradientId="illness-area-sm" className="h-auto w-full sm:hidden" linkBase={linkBase} linkSeries={linkSeries} />
+            <FitTrendChart data={data} alignId="illness-breakdown-divider" className="hidden sm:block" linkBase={linkBase} linkSeries={linkSeries} dentalOnly={dentalOnly} noDental={noDental} />
+            <TrendSvg data={data} W={340} H={330} gradientId="illness-area-sm" className="h-auto w-full sm:hidden" linkBase={linkBase} linkSeries={linkSeries} dentalOnly={dentalOnly} noDental={noDental} />
 
             {/* Legend sa ibaba */}
             <div className="mt-auto flex flex-wrap items-center justify-center gap-x-6 gap-y-1 pt-2 text-sm text-gray-600">
-                {TREND_SERIES.map((s) => (
+                {seriesFor(dentalOnly, noDental).map((s) => (
                     <span key={s.key} className="inline-flex items-center gap-2">
                         <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color }} />
                         {s.label}
@@ -405,7 +417,21 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
     }
     const uniqueCases = cases.filter((c) => c.source === "visit" || !visitKeys.has(sameCase(c)));
     cases.length = 0;
-    cases.push(...uniqueCases);
+    // All / Student / Employee (pindutan sa itaas ng graph): sinasala na rito ang LAHAT ng record,
+    // kaya sumusunod ang mga card sa itaas, alert level, graph, Illness Breakdown, Case Log at Download Report.
+    const whoFilter = params.who === "student" || params.who === "employee" ? params.who : "";
+    const inWho = (t: string | null) => !whoFilter || (t === "employee" ? "employee" : "student") === whoFilter;
+    // Dentist: dental records LANG ang makikita sa buong page (walang clinic visit / case report)
+    const dentalOnly = seesDental && !seesHealth;
+    // Doctor: clinic visits at case reports LANG (walang dental records)
+    const noDental = seesHealth && !seesDental;
+    if (noDental) dentalRows.length = 0;
+    cases.push(...uniqueCases.filter((c) => !dentalOnly && inWho(c.patient_type)));
+    if (whoFilter) {
+        const kept = dentalRows.filter((r) => inWho(r.patient_type));
+        dentalRows.length = 0;
+        dentalRows.push(...kept);
+    }
 
     const totalCases = cases.length;
     const visitTotal = cases.filter((c) => c.source === "visit").length;
@@ -438,8 +464,10 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
     };
     const dayFilter = /^\d{4}-\d{2}-\d{2}$/.test(params.day ?? "") && params.day! >= rangeStart && params.day! <= rangeEnd ? params.day! : "";
     const seriesFilter = dayFilter && (params.series ?? "") in SERIES_SOURCE ? params.series! : "";
-    // Link ng kasalukuyang range (walang page/day)
-    const rangeHref = `/dashboard/illness-alerts?${isRange ? `from=${rangeFrom}&to=${rangeTo}` : isMonth ? `month=${monthParam}` : `week=${weekStart}`}`;
+    // Link ng kasalukuyang range (walang page/day/who)
+    const periodHref = `/dashboard/illness-alerts?${isRange ? `from=${rangeFrom}&to=${rangeTo}` : isMonth ? `month=${monthParam}` : `week=${weekStart}`}`;
+    // Pareho pero kasama ang napiling Student/Employee
+    const rangeHref = `${periodHref}${whoFilter ? `&who=${whoFilter}` : ""}`;
     const clickSeries = [...(seesHealth ? ["visits", "reports"] : []), ...(seesDental ? ["dental"] : [])];
     // Buong listahan (para sa Download Report); ang logCases ay may filter ng araw/serye
     const allLogCases = [...(seesHealth ? cases : []), ...(seesDental ? dentalCases : [])].sort(
@@ -448,6 +476,7 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
     const logCases = allLogCases
         .filter((c) => !dayFilter || keyOf(new Date(c.date)) === dayFilter)
         .filter((c) => !seriesFilter || c.source === SERIES_SOURCE[seriesFilter])
+        .filter((c) => inWho(c.patient_type))
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     // Clinic visit: papunta sa Clinic Visit tab ng record ng pasyente
     const visitHref = (c: Case) =>
@@ -479,17 +508,37 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
 
     // Group by normalized complaint. Bukod sa bilang ng cases, itinatala rin ang
     // mga natatanging estudyante para hindi lumampas sa 100% ang "of students".
-    const breakdownMap = new Map<string, { count: number; students: Set<string> }>();
-    for (const c of cases) {
-        const illness = normalizeComplaint(c.complaint);
-        const entry = breakdownMap.get(illness) ?? { count: 0, students: new Set<string>() };
-        entry.count += 1;
-        if (c.patient_type === "student" && c.id_number) entry.students.add(c.id_number);
-        breakdownMap.set(illness, entry);
-    }
-    const breakdown = [...breakdownMap.entries()]
-        .map(([illness, { count, students }]) => ({ illness, count, studentCount: students.size }))
-        .sort((a, b) => b.count - a.count);
+    const breakdownOf = (list: typeof cases) => {
+        const breakdownMap = new Map<string, { count: number; students: Set<string> }>();
+        for (const c of list) {
+            const illness = normalizeComplaint(c.complaint);
+            const entry = breakdownMap.get(illness) ?? { count: 0, students: new Set<string>() };
+            entry.count += 1;
+            if (c.patient_type === "student" && c.id_number) entry.students.add(c.id_number);
+            breakdownMap.set(illness, entry);
+        }
+        return [...breakdownMap.entries()]
+            .map(([illness, { count, students }]) => ({ illness, count, studentCount: students.size }))
+            .sort((a, b) => b.count - a.count);
+    };
+    // Lahat (para sa card na Top Illness at sa Download Report)
+    const breakdown = breakdownOf(cases);
+    // Ang nakikita sa Illness Breakdown sa page (sumusunod sa Student/Employee filter)
+    // Dentist: dental procedures ang breakdown
+    const dentalBreakdown = (() => {
+        const m = new Map<string, number>();
+        for (const r of dentalRows) {
+            const name = (r.procedure_name ?? "").trim() || "Dental";
+            m.set(name, (m.get(name) ?? 0) + 1);
+        }
+        return [...m.entries()].map(([illness, count]) => ({ illness, count, studentCount: 0 })).sort((a, b) => b.count - a.count);
+    })();
+    const shownBreakdown = dentalOnly
+        ? dentalBreakdown
+        : whoFilter
+            ? breakdownOf(cases.filter((c) => inWho(c.patient_type)))
+            : breakdown;
+    const shownTotal = shownBreakdown.reduce((n, b) => n + b.count, 0);
 
     // The thresholds count PERSONS, not rows. A student with both a clinic
     // visit and a case report on the same day is still one sick person.
@@ -557,17 +606,29 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
     }
 
     // Line chart: bawat araw (Week: Mon–Sat, Month: buong buwan)
-    const trendDays: DayPoint[] = [];
-    for (let k = rangeStart; k <= rangeEnd; k = addDays(k, 1)) {
-        const d = dayStats(k);
-        trendDays.push({
-            key: k,
-            label: shortDate(k),
-            visits: d.visitCount,
-            reports: d.reportCount,
-            dental: dentalRows.filter((r) => r.day === k).length,
-        });
-    }
+    // trendDays = lahat; shownTrendDays = may Student/Employee filter (graph sa page at sa Download Report)
+    const trendFor = (only: (t: string | null) => boolean) => {
+        const out: DayPoint[] = [];
+        for (let k = rangeStart; k <= rangeEnd; k = addDays(k, 1)) {
+            const day = cases.filter((c) => keyOf(new Date(c.date)) === k && only(c.patient_type));
+            out.push({
+                key: k,
+                label: shortDate(k),
+                visits: day.filter((c) => c.source === "visit").length,
+                reports: day.filter((c) => c.source === "report").length,
+                dental: dentalRows.filter((r) => r.day === k && only(r.patient_type)).length,
+            });
+        }
+        return out;
+    };
+    const trendDays = trendFor(() => true);
+    const shownTrendDays = whoFilter ? trendFor(inWho) : trendDays;
+    // Pindutan ng All / Student / Employee sa itaas ng graph
+    const WHO_TABS = [
+        { key: "", label: "All", active: "bg-[#15664f] text-white" },
+        { key: "student", label: "Student", active: "bg-[#15664f] text-white" },
+        { key: "employee", label: "Employee", active: "bg-amber-300 text-gray-900" },
+    ];
 
     // Busiest day decides the alert level
     const peak = daily.reduce((best, d) => (d.count > best.count ? d : best), daily[0]);
@@ -594,6 +655,39 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
         busiest.visitCount ? plural(busiest.visitCount, "visit") : "",
         busiest.reportCount ? plural(busiest.reportCount, "report") : "",
         busiest.dentalCount ? `${busiest.dentalCount} dental` : "",
+    ]
+        .filter(Boolean)
+        .join(" + ");
+
+    // ===== Download Report: sumusunod sa All / Student / Employee =====
+    const whoCases = cases.filter((c) => inWho(c.patient_type));
+    const whoDental = dentalCases.filter((c) => inWho(c.patient_type));
+    const printLogCases = allLogCases.filter((c) => inWho(c.patient_type));
+    const whoLabel = whoFilter === "student" ? "Students" : whoFilter === "employee" ? "Employees" : "All (Students and Employees)";
+    // Pinakamaraming tao sa isang araw, sa napiling grupo lang
+    let printBusiest = busiest;
+    if (whoFilter) {
+        printBusiest = { ...busiest, key: rangeStart, count: 0, visitCount: 0, reportCount: 0, dentalCount: 0 };
+        for (let k = rangeStart; k <= rangeEnd; k = addDays(k, 1)) {
+            const day = whoCases.filter((c) => keyOf(new Date(c.date)) === k);
+            const dental = whoDental.filter((c) => keyOf(new Date(c.date)) === k);
+            const people = new Set([...day, ...dental].map((c) => `${c.patient_type}:${c.id_number ?? "?"}`));
+            if (people.size > printBusiest.count) {
+                printBusiest = {
+                    ...printBusiest,
+                    key: k,
+                    count: people.size,
+                    visitCount: day.filter((c) => c.source === "visit").length,
+                    reportCount: day.filter((c) => c.source === "report").length,
+                    dentalCount: dental.length,
+                };
+            }
+        }
+    }
+    const printPeakDetail = [
+        printBusiest.visitCount ? plural(printBusiest.visitCount, "visit") : "",
+        printBusiest.reportCount ? plural(printBusiest.reportCount, "report") : "",
+        printBusiest.dentalCount ? `${printBusiest.dentalCount} dental` : "",
     ]
         .filter(Boolean)
         .join(" + ");
@@ -684,6 +778,45 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
         },
     ];
 
+    // Dentist: dental lang ang mga card
+    if (dentalOnly) {
+        const procCounts = new Map<string, number>();
+        for (const r of dentalRows) {
+            const name = (r.procedure_name ?? "").trim() || "Dental";
+            procCounts.set(name, (procCounts.get(name) ?? 0) + 1);
+        }
+        const topProc = [...procCounts.entries()].sort((a, b) => b[1] - a[1])[0];
+        const followUps = dentalRows.filter((r) => (r.status ?? "").toLowerCase() === "follow-up").length;
+        const completed = dentalRows.length - followUps;
+        const patients = new Set(dentalRows.map((r) => `${r.patient_type}:${r.id_number ?? "?"}`)).size;
+        stats.splice(
+            0,
+            stats.length,
+            {
+                ...stats[0],
+                label: `Dental Reports This ${unit}`,
+                value: String(dentalRows.length),
+                hint: `${completed} completed · ${followUps} follow-up`,
+            },
+            { ...stats[1], label: "Highest Patients in a Day" },
+            {
+                ...stats[2],
+                label: "Top Procedure",
+                value: topProc?.[0] ?? "—",
+                hint: topProc ? `${topProc[1]} record${topProc[1] === 1 ? "" : "s"}` : "No dental records yet",
+            },
+            {
+                ...stats[3],
+                label: "Patients Seen",
+                value: String(patients),
+                hint: `Students and employees this ${unit.toLowerCase()}`,
+                box: "bg-[#15664f]",
+                tint: "bg-[#15664f]/10 text-[#15664f]",
+                valueClass: "text-gray-900",
+            },
+        );
+    }
+
     const card = "rounded-xl border-2 border-[#cfe5d9] bg-white shadow-md shadow-[#15664f]/10";
 
     return (
@@ -756,12 +889,17 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                             {new Date().toLocaleString("en-US", { timeZone: "Asia/Manila", dateStyle: "medium", timeStyle: "short" })}
                         </span>
                     </div>
-                    <div className="flex gap-8">
+                    <div className={`flex gap-8 ${dentalOnly ? "hidden" : ""}`}>
                         <span className="flex-1">
                             <span className="font-semibold text-[#10523f]">Alert Level:</span> {current.tab}
                         </span>
                         <span className="flex-1">
                             <span className="font-semibold text-[#10523f]">Recommended Mode:</span> {current.mode}
+                        </span>
+                    </div>
+                    <div className="flex gap-8">
+                        <span className="flex-1">
+                            <span className="font-semibold text-[#10523f]">Patients:</span> {whoLabel}
                         </span>
                     </div>
                 </div>
@@ -770,9 +908,9 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                 {/* 1) Graph */}
                 <div className="avoid-break mt-3">
                     <h2 className="mb-1 text-base font-semibold text-[#10523f]">{byWeek ? "Monthly Case Trend" : "Daily Case Trend"}</h2>
-                    <TrendSvg data={trendDays} W={900} H={250} gradientId="illness-area-print" className="h-auto w-full" />
+                    <TrendSvg data={shownTrendDays} W={900} H={250} gradientId="illness-area-print" className="h-auto w-full" dentalOnly={dentalOnly} noDental={noDental} />
                     <div className="mt-1 flex flex-wrap justify-center gap-x-6 text-sm text-gray-700">
-                        {TREND_SERIES.map((s) => (
+                        {seriesFor(dentalOnly, noDental).map((s) => (
                             <span key={s.key} data-series={s.key} className="inline-flex items-center gap-2">
                                 <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color }} />
                                 {s.label}
@@ -789,9 +927,9 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                     <div className="flex gap-3">
                         {(
                             [
-                                { key: "visits", title: "Clinic Visits", head: "Illness", list: cases.filter((c) => c.source === "visit") },
-                                { key: "reports", title: "Health Reports", head: "Illness", list: cases.filter((c) => c.source === "report") },
-                                { key: "dental", title: "Dental Reports", head: "Procedure", list: dentalCases },
+                                { key: "visits", title: "Clinic Visits", head: "Illness", list: whoCases.filter((c) => c.source === "visit") },
+                                { key: "reports", title: "Health Reports", head: "Illness", list: whoCases.filter((c) => c.source === "report") },
+                                { key: "dental", title: "Dental Reports", head: "Procedure", list: whoDental },
                             ] as const
                         ).map((g) => {
                             // Bilang bawat sakit / procedure
@@ -865,7 +1003,7 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                                     { key: "all", label: "Total", source: null },
                                 ] as const
                             ).map((row) => {
-                                const list = row.source ? allLogCases.filter((c) => c.source === row.source) : allLogCases;
+                                const list = row.source ? printLogCases.filter((c) => c.source === row.source) : printLogCases;
                                 // Status: health = Pending / Referred / Resolved; dental = Completed / Follow-up
                                 const st = (v: string) => list.filter((c) => (c.status ?? "").toLowerCase() === v).length;
                                 const statuses =
@@ -896,14 +1034,14 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                     <p data-series="illness" className="mt-2 text-sm text-gray-700">
                         Highest persons in a day:{" "}
                         <span className="font-semibold">
-                            {busiest.count > 0 ? `${busiest.count} (${shortDate(busiest.key)}${peakDetail ? ` · ${peakDetail}` : ""})` : "0"}
+                            {printBusiest.count > 0 ? `${printBusiest.count} (${shortDate(printBusiest.key)}${printPeakDetail ? ` · ${printPeakDetail}` : ""})` : "0"}
                         </span>
                     </p>
                     {/* Top Illness: laging kasama sa report */}
                     <p className="mt-1 text-sm text-gray-700">
                         Top illness:{" "}
                         <span className="font-semibold">
-                            {breakdown[0] ? `${breakdown[0].illness} (${plural(breakdown[0].count, "case")})` : "—"}
+                            {shownBreakdown[0] ? `${shownBreakdown[0].illness} (${plural(shownBreakdown[0].count, "case")})` : "—"}
                         </span>
                     </p>
                     <p data-series="illness" className="mt-2 text-sm text-gray-600">
@@ -916,7 +1054,7 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                     Ayon sa role ang laman (hal. Dentist = dental lang) at sa napili sa Download. */}
                 <div className="mt-4">
                     <h2 className="mb-1 text-base font-semibold text-[#10523f]">Case Log</h2>
-                    {allLogCases.length === 0 ? (
+                    {printLogCases.length === 0 ? (
                         <p className="text-sm text-gray-700">No cases recorded.</p>
                     ) : (
                         <table className="w-full border-collapse text-sm">
@@ -932,7 +1070,7 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                                 </tr>
                             </thead>
                             <tbody>
-                                {allLogCases.map((c) => (
+                                {printLogCases.map((c) => (
                                     <tr
                                         key={c.key}
                                         data-series={c.source === "visit" ? "visits" : c.source === "report" ? "reports" : "dental"}
@@ -956,33 +1094,35 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                 </div>
             </section>
 
-            {/* Alert level banner */}
-            <section className={`rounded-xl border-2 p-5 shadow-sm md:p-6 ${current.banner}`}>
-                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                    <div className="flex items-start gap-4">
-                        <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${current.iconBg}`}>
-                            <Icon className={`h-6 w-6 ${current.iconColor}`} />
+            {/* Alert level banner (sakit lang; wala sa Dentist) */}
+            {!dentalOnly && (
+                <section className={`rounded-xl border-2 p-5 shadow-sm md:p-6 ${current.banner}`}>
+                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                        <div className="flex items-start gap-4">
+                            <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${current.iconBg}`}>
+                                <Icon className={`h-6 w-6 ${current.iconColor}`} />
+                            </div>
+                            <div className="min-w-0">
+                                <p className="text-lg font-semibold">{current.title}</p>
+                                <p className="mt-1 text-sm">{current.note}</p>
+                            </div>
                         </div>
-                        <div className="min-w-0">
-                            <p className="text-lg font-semibold">{current.title}</p>
-                            <p className="mt-1 text-sm">{current.note}</p>
-                        </div>
-                    </div>
 
-                    {/* Legend: which level is active */}
-                    <div className="flex shrink-0 flex-wrap gap-2">
-                        {(["safe", "warning", "outbreak"] as const).map((key) => (
-                            <span
-                                key={key}
-                                className={`rounded-full px-3 py-1 text-sm font-semibold ${level === key ? levels[key].pill : "bg-white/70 text-gray-600"
-                                    }`}
-                            >
-                                {levels[key].tab}
-                            </span>
-                        ))}
+                        {/* Legend: which level is active */}
+                        <div className="flex shrink-0 flex-wrap gap-2">
+                            {(["safe", "warning", "outbreak"] as const).map((key) => (
+                                <span
+                                    key={key}
+                                    className={`rounded-full px-3 py-1 text-sm font-semibold ${level === key ? levels[key].pill : "bg-white/70 text-gray-600"
+                                        }`}
+                                >
+                                    {levels[key].tab}
+                                </span>
+                            ))}
+                        </div>
                     </div>
-                </div>
-            </section>
+                </section>
+            )}
 
             {/* Stat cards */}
             {/* Mobile: 2 card bawat hilera, compact */}
@@ -1008,42 +1148,61 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
 
             <section className="grid gap-6 xl:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)]">
                 {/* Daily trend */}
-                <div className={`${card} flex min-w-0 flex-col p-3 sm:p-5 md:p-6`}>
-                    <h2 className="mb-3 px-1 text-lg font-semibold text-gray-900 sm:px-0">{byWeek ? "Monthly Case Trend" : "Daily Case Trend"}</h2>
-                    <TrendLineChart data={trendDays} linkBase={rangeHref} linkSeries={clickSeries} />
+                <div id="case-trend" className={`${card} flex min-w-0 scroll-mt-4 flex-col p-3 sm:p-5 md:p-6`}>
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2 px-1 sm:px-0">
+                        <h2 className="text-lg font-semibold text-gray-900">{byWeek ? "Monthly Case Trend" : "Daily Case Trend"}</h2>
+                        {/* All / Student / Employee: sinusunod ng graph, Illness Breakdown at Case Log */}
+                        <div className="inline-flex rounded-full border border-[#cfe5d9] bg-[#f6faf8] p-1" role="group" aria-label="Show cases of">
+                            {WHO_TABS.map((t) => (
+                                <Link
+                                    key={t.key || "all"}
+                                    href={`${periodHref}${t.key ? `&who=${t.key}` : ""}#case-trend`}
+                                    aria-current={whoFilter === t.key ? "true" : undefined}
+                                    className={`rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors ${whoFilter === t.key ? t.active : "text-gray-600 hover:bg-white hover:text-[#15664f]"
+                                        }`}
+                                >
+                                    {t.label}
+                                </Link>
+                            ))}
+                        </div>
+                    </div>
+                    <TrendLineChart data={shownTrendDays} linkBase={rangeHref} linkSeries={clickSeries} dentalOnly={dentalOnly} noDental={noDental} />
                 </div>
 
                 {/* Illness breakdown */}
                 <div className={`${card} flex min-w-0 flex-col p-4 md:p-5`}>
-                    <h2 className="mb-3 text-lg font-semibold text-gray-900">Illness Breakdown</h2>
+                    <h2 className="mb-3 text-lg font-semibold text-gray-900">
+                        {dentalOnly ? "Dental Procedures" : "Illness Breakdown"}
+                        {whoFilter && <span className="ml-1.5 text-sm font-medium text-gray-600">· {whoFilter === "student" ? "Students" : "Employees"}</span>}
+                    </h2>
 
-                    {breakdown.length === 0 ? (
+                    {shownBreakdown.length === 0 ? (
                         <p className="mb-4 py-6 text-center text-sm text-gray-600">No cases this {unit.toLowerCase()}.</p>
                     ) : (
                         <div className="mb-4 space-y-2.5">
-                            {breakdown.slice(0, TOP_ILLNESSES).map((b, i) => (
-                                <BreakdownRow key={b.illness} rank={i + 1} label={b.illness} count={b.count} total={totalCases} />
+                            {shownBreakdown.slice(0, TOP_ILLNESSES).map((b, i) => (
+                                <BreakdownRow key={b.illness} rank={i + 1} label={b.illness} count={b.count} total={shownTotal} />
                             ))}
                             {/* Lampas 10: ang iba ay naka-"Others" (i-click para makita) */}
-                            {breakdown.length > TOP_ILLNESSES && (
+                            {shownBreakdown.length > TOP_ILLNESSES && (
                                 <details className="group">
                                     <summary className="cursor-pointer list-none rounded-lg [&::-webkit-details-marker]:hidden">
                                         <BreakdownRow
                                             rank={TOP_ILLNESSES + 1}
                                             label="Others"
-                                            count={breakdown.slice(TOP_ILLNESSES).reduce((n, b) => n + b.count, 0)}
-                                            total={totalCases}
+                                            count={shownBreakdown.slice(TOP_ILLNESSES).reduce((n, b) => n + b.count, 0)}
+                                            total={shownTotal}
                                             others
                                         />
                                     </summary>
                                     <div className="mt-2.5 space-y-2.5 border-l-2 border-[#cfe5d9] pl-3">
-                                        {breakdown.slice(TOP_ILLNESSES).map((b, i) => (
+                                        {shownBreakdown.slice(TOP_ILLNESSES).map((b, i) => (
                                             <BreakdownRow
                                                 key={b.illness}
                                                 rank={TOP_ILLNESSES + i + 1}
                                                 label={b.illness}
                                                 count={b.count}
-                                                total={totalCases}
+                                                total={shownTotal}
                                             />
                                         ))}
                                     </div>
@@ -1054,20 +1213,39 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
 
                     {/* Nasa ibaba para pumantay sa taas ng Case Trend */}
                     <div id="illness-breakdown-divider" className="mt-auto grid grid-cols-2 gap-2 border-t border-gray-100 pt-3">
-                        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
-                            <p className="text-sm font-semibold text-amber-700">Warning</p>
-                            <p className="text-sm text-amber-900">
-                                <span className="font-bold">{WARNING_PER_DAY}+</span> persons/day
-                            </p>
-                        </div>
-                        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2">
-                            <p className="text-sm font-semibold text-red-700">Outbreak</p>
-                            <p className="text-sm text-red-900">
-                                <span className="font-bold">{OUTBREAK_PER_DAY}+</span> persons/day
-                            </p>
-                        </div>
+                        {dentalOnly ? (
+                            <>
+                                <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2">
+                                    <p className="text-sm font-semibold text-green-700">Completed</p>
+                                    <p className="text-sm text-green-900">
+                                        <span className="font-bold">{dentalRows.filter((r) => (r.status ?? "").toLowerCase() !== "follow-up").length}</span> records
+                                    </p>
+                                </div>
+                                <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+                                    <p className="text-sm font-semibold text-amber-700">Follow-up</p>
+                                    <p className="text-sm text-amber-900">
+                                        <span className="font-bold">{dentalRows.filter((r) => (r.status ?? "").toLowerCase() === "follow-up").length}</span> records
+                                    </p>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+                                    <p className="text-sm font-semibold text-amber-700">Warning</p>
+                                    <p className="text-sm text-amber-900">
+                                        <span className="font-bold">{WARNING_PER_DAY}+</span> persons/day
+                                    </p>
+                                </div>
+                                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2">
+                                    <p className="text-sm font-semibold text-red-700">Outbreak</p>
+                                    <p className="text-sm text-red-900">
+                                        <span className="font-bold">{OUTBREAK_PER_DAY}+</span> persons/day
+                                    </p>
+                                </div>
+                            </>
+                        )}
                     </div>
-                    {totalStudents > 0 && (
+                    {totalStudents > 0 && !dentalOnly && (
                         <p className="mt-2 text-sm text-gray-600">Out of {totalStudents} active students.</p>
                     )}
                 </div>

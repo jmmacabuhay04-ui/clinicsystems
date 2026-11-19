@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { LogOut } from "lucide-react";
+import { LogOut, Trash2 } from "lucide-react";
 
 type Props = {
     title: string;
@@ -11,6 +11,8 @@ type Props = {
     className?: string;
     icon?: React.ReactNode;
     disabled?: boolean;
+    /** "danger" = pula (hal. Delete). Kusang pula rin kapag may "Delete" sa confirmLabel. */
+    tone?: "default" | "danger";
     children: React.ReactNode;
 };
 
@@ -21,8 +23,10 @@ export default function ConfirmSubmit({
     className,
     icon,
     disabled,
+    tone,
     children,
 }: Props) {
+    const danger = tone ? tone === "danger" : /delete/i.test(confirmLabel);
     const [open, setOpen] = useState(false);
     const anchorRef = useRef<HTMLButtonElement>(null);
 
@@ -50,8 +54,11 @@ export default function ConfirmSubmit({
                 className="w-full max-w-md rounded-xl bg-white p-6 text-left shadow-xl"
             >
                 <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#15664f]/10 text-[#15664f]">
-                        {icon ?? <LogOut className="h-5 w-5" />}
+                    <div
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${danger ? "bg-red-100 text-red-600" : "bg-[#15664f]/10 text-[#15664f]"
+                            }`}
+                    >
+                        {icon ?? (danger ? <Trash2 className="h-5 w-5" /> : <LogOut className="h-5 w-5" />)}
                     </div>
                     <div className="min-w-0 flex-1">
                         <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
@@ -64,7 +71,7 @@ export default function ConfirmSubmit({
                         type="button"
                         onClick={() => setOpen(false)}
                         suppressHydrationWarning
-                        className="h-10 rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                        className="h-10 rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-600 hover:bg-gray-50"
                     >
                         Cancel
                     </button>
@@ -72,7 +79,8 @@ export default function ConfirmSubmit({
                         type="button"
                         onClick={handleConfirm}
                         suppressHydrationWarning
-                        className="h-10 rounded-lg bg-[#15664f] px-4 text-sm font-semibold text-white hover:bg-[#10523f]"
+                        className={`h-10 rounded-lg px-4 text-sm font-semibold text-white ${danger ? "bg-red-600 shadow-lg shadow-red-600/25 hover:bg-red-700" : "bg-[#15664f] hover:bg-[#10523f]"
+                            }`}
                     >
                         {confirmLabel}
                     </button>
