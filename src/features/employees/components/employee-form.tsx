@@ -1,5 +1,5 @@
 "use client";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { Briefcase, Camera, KeyRound, Phone, Save, ShieldCheck, UserRound, X } from "lucide-react";
 import { createEmployee, updateEmployee, type EmployeeState } from "@/features/employees/employee-actions";
 import ConfirmSubmit from "@/components/shared/confirm-submit";
@@ -16,6 +16,47 @@ const inputClass =
     "h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 hover:border-[#15664f]/50 focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20";
 
 const card = "rounded-xl border-2 border-[#cfe5d9] bg-white shadow-md shadow-[#15664f]/10";
+
+// Pulang error na kusang nawawala pagkalipas ng ilang segundo (default 3s).
+// May guhit sa ilalim na umiikli habang tumatakbo ang oras.
+// `trigger`: ipasa ang state ng form (bagong object bawat submit) para lumabas ulit
+// ang error kahit pareho ang mensahe.
+const TIMED_ERROR_CSS = `@keyframes te-shrink { from { transform: scaleX(1); } to { transform: scaleX(0); } }`;
+
+function TimedError({
+    message,
+    trigger,
+    seconds = 3,
+}: {
+    message: string | null | undefined;
+    trigger?: unknown;
+    seconds?: number;
+}) {
+    // Aling submit na ang naitago na (hindi setState sa loob mismo ng effect)
+    const [hiddenFor, setHiddenFor] = useState<unknown>(null);
+    const key = trigger ?? message;
+    const visible = Boolean(message) && hiddenFor !== key;
+
+    useEffect(() => {
+        if (!message) return;
+        const t = setTimeout(() => setHiddenFor(key), seconds * 1000);
+        return () => clearTimeout(t);
+    }, [key, message, seconds]);
+
+    if (!visible) return null;
+    return (
+        <div role="alert" className="relative overflow-hidden rounded-lg border border-red-200 bg-red-50 p-3 pb-4 text-sm text-red-700">
+            <style>{TIMED_ERROR_CSS}</style>
+            {message}
+            {/* Guhit sa ilalim: umiikli sa loob ng `seconds` */}
+            <span
+                aria-hidden
+                className="absolute inset-x-0 bottom-0 h-1 origin-left bg-red-400"
+                style={{ animation: `te-shrink ${seconds}s linear forwards` }}
+            />
+        </div>
+    );
+}
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
     return (
@@ -86,9 +127,8 @@ export default function EmployeeForm({ mode, employee, cancelHref, returnTo, ava
 
     return (
         <form action={formAction} className="space-y-6">
-            {state.error && (
-                <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{state.error}</p>
-            )}
+            {/* Error: kusang nawawala pagkalipas ng 3 segundo (may guhit sa ilalim) */}
+            <TimedError message={state.error} trigger={state} />
             {/* Na-save: ipakita nang 3 segundo, tapos kusang babalik */}
             {(state as { success?: string }).success && (state as { redirectTo?: string }).redirectTo && (
                 <RedirectNotice

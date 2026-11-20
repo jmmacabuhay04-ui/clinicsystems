@@ -227,3 +227,18 @@ select,
 textarea {
   font-family: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
 }
+
+/* Itago ang scrollbar ng buong page (gumagana pa rin ang pag-scroll) */
+html,
+body {
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* lumang Edge */
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
+  /* Chrome, Edge, Safari */
+}

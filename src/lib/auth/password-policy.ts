@@ -1,12 +1,13 @@
 // lib/password-policy.ts
-// Password complexity policy para sa buong system.
-// Use this everywhere a new password is set: student form, employee form,
-// student form, employee form, user management, password requests.
+// Password complexity policy para sa buong system (server-side, bago i-save sa database).
+// Ginagamit saanman may bagong password: Student/Employee account, Manage Accounts,
+// Reset Password, Change Password, Walk-in Reset at Password Requests.
+// Kapareho ng checklist sa screen: 8 characters, 1 uppercase letter, 1 number.
 
 export const PASSWORD_MIN_LENGTH = 8;
 
 export const PASSWORD_RULES_TEXT =
-    "At least 8 characters, with at least one letter and one number.";
+    "At least 8 characters, with at least 1 uppercase letter and 1 number.";
 // Mga password na bawal kahit pumasa sa haba.
 const BLOCKED_PASSWORDS = new Set([
     "password",
@@ -38,20 +39,20 @@ export function validatePasswordStrength(password: string): string | null {
     const value = password.trim();
 
     if (value.length < PASSWORD_MIN_LENGTH) {
-        return `Masyadong maikli ang password. ${PASSWORD_RULES_TEXT}`;
+        return "Password must be at least 8 characters.";
     }
 
     if (value.length > 72) {
         // bcrypt limit
-        return "Masyadong mahaba ang password. Hanggang 72 characters lang.";
+        return "Password is too long. Use 72 characters or fewer.";
     }
 
-    if (!/[A-Za-z]/.test(value)) {
-        return `Password needs at least one letter. ${PASSWORD_RULES_TEXT}`;
+    if (!/[A-Z]/.test(value)) {
+        return "Password needs at least 1 uppercase letter.";
     }
 
     if (!/[0-9]/.test(value)) {
-        return `Password needs at least one number. ${PASSWORD_RULES_TEXT}`;
+        return "Password needs at least 1 number.";
     }
 
     if (/\s/.test(value)) {
@@ -59,12 +60,12 @@ export function validatePasswordStrength(password: string): string | null {
     }
 
     if (BLOCKED_PASSWORDS.has(value.toLowerCase())) {
-        return "Masyadong karaniwan ang password na ito. Pumili ng iba.";
+        return "This password is too common. Please choose another one.";
     }
 
     // Lahat ng letra ay pareho (aaaaaaa1) o puro sunod-sunod (12345678abc)
     if (/^(.)\1+[0-9]*$/.test(value)) {
-        return "Masyadong simple ang password. Pumili ng iba.";
+        return "This password is too simple. Please choose another one.";
     }
 
     return null;
