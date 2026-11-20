@@ -1,5 +1,3 @@
-export const STAFF_ROLES = ["admin", "doctor", "dentist", "nurse"] as const;
-
 export const ROLE_LABELS: Record<string, string> = {
     admin: "Administrator",
     doctor: "Doctor",
@@ -52,16 +50,12 @@ export function canManageVisitors(role: string) {
 
 /** Only nurses create and edit student accounts. */
 export function canManageStudents(role: string) {
-    return role === "nurse";
+    return norm(role) === "nurse";
 }
 
 /** Admins manage staff accounts. */
 export function canManageAccounts(role: string) {
     return role === "ittech" || role === "admin";
-}
-/** Everyone else can read records but not change them. */
-export function isViewOnly(role: string) {
-    return !canManageRecords(role);
 }
 /** Admins and nurses manage clinic personnel records. */
 export const canManageStaff = (role: string) => role === "nurse";

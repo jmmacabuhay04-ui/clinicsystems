@@ -4,7 +4,7 @@ import { Plus, Search } from "lucide-react";
 import { getStudentFilterOptions, listStudents, STUDENTS_PAGE_SIZE } from "../service";
 import type { StudentFilters, StudentListRow as Row } from "../types";
 import { getSession } from "@/lib/auth/session";
-import { canManageRecords, canManageStudents } from "@/lib/permissions";
+import { canManageStudents } from "@/lib/permissions";
 import ConfirmLink from "@/components/shared/confirm-link";
 import FlashMessage from "@/components/shared/flash-message";
 import AutoSubmitSelect from "@/components/shared/auto-submit-select";
@@ -67,7 +67,7 @@ export default async function StudentsPage({ searchParams }: Props) {
     };
     const saved = params.saved ?? "";
     const page = Math.max(1, parseInt(params.page ?? "1", 10) || 1);
-    const canAdd = canManageRecords(session.role);
+    const canAdd = canManageStudents(session.role);
     const canEdit = canManageStudents(session.role);
 
     // Link na may parehong search/filters, iba lang ang page.

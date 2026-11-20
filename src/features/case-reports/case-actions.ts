@@ -67,19 +67,3 @@ export async function deleteCase(formData: FormData) {
   refresh();
 }
 
-export async function setCaseStatus(formData: FormData) {
-  const session = await getSession();
-  if (!session || !canManageRecords(session.role)) return;
-
-  const caseId = Number(formData.get("caseId"));
-  const status = String(formData.get("status") ?? "");
-
-  if (!caseId) return;
-  if (!["pending", "referred", "resolved"].includes(status)) return;
-
-  await prisma.$executeRaw`
-    UPDATE health_case_reports SET status = ${status} WHERE case_id = ${caseId}
-  `;
-
-  refresh();
-}

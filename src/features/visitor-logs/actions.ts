@@ -71,18 +71,3 @@ export async function setTimeOut(formData: FormData) {
     refresh();
 }
 
-export async function archiveVisitor(formData: FormData) {
-    const session = await getSession();
-    if (!session || !canManageVisitors(session.role)) return;
-
-    const visitorId = Number(formData.get("visitorId"));
-    if (!visitorId) return;
-
-    await prisma.$executeRaw`
-    UPDATE visitor_logs
-    SET archived_at = NOW(), archived_by = ${session.userId}
-    WHERE visitor_id = ${visitorId} AND archived_at IS NULL
-  `;
-
-    refresh();
-}

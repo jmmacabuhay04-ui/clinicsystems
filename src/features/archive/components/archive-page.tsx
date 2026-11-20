@@ -401,8 +401,8 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
     const canEditStaff = canManageStaff(session.role);
     // Bawat seksyon ay may sariling pahintulot (kapareho ng server action nito),
     // para walang Restore/Delete button na lumalabas pero hindi gumagana.
-    const canEditRecords = canManageRecords(session.role); // students, visits, health reports
-    const canEditEmployees = canManageStudents(session.role); // nurse lang
+    const canEditRecords = canManageRecords(session.role); // visits, health reports
+    const canEditEmployees = canManageStudents(session.role); // students at employees: nurse lang
     const canEditDental = canManageDental(session.role); // nurse, dentist
     const canEditSlips = canManageReferrals(session.role); // nurse, doctor, dentist
 
@@ -537,7 +537,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                 <InactiveBadge key="status" />,
                 formatDate(s.archived_at),
             ],
-            actions: canEditRecords ? (
+            actions: canEditEmployees ? (
                 <>
                     <RestoreForm
                         action={restoreStudent}
@@ -884,7 +884,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
             title: "Archived Students",
             icon: GraduationCap as IconType,
             empty: "No archived students.",
-            showActions: canEditRecords,
+            showActions: canEditEmployees,
             items: studentItems,
             columns: [
                 { label: "Student Number", nowrap: true, td: "font-medium text-gray-900" },

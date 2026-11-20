@@ -13,7 +13,10 @@ const IT_TECH_ALLOWED = [
 // Session expires after this many minutes of inactivity
 const IDLE_MINUTES = 30;
 
-type Renew = { cookie: string; payload: Record<string, unknown> } | null;
+type Renew = { cookie: string; payload: Record<string, unknown>; minutes: number } | null;
+
+// Employee portal: mas mahabang session (kapareho ng default na 480 minuto sa createEmployeeSession)
+const EMPLOYEE_MINUTES = 480;
 
 export async function proxy(req: NextRequest) {
     const { pathname } = req.nextUrl;
@@ -33,7 +36,7 @@ export async function proxy(req: NextRequest) {
             }
         }
 
-        renew = { cookie: "session", payload: staff as unknown as Record<string, unknown> };
+        renew = { cookie: "session", payload: staff as unknown as Record<string, unknown>, minutes: IDLE_MINUTES };
     }
 
     if (pathname.startsWith("/student/")) {
@@ -52,7 +55,7 @@ export async function proxy(req: NextRequest) {
             );
         }
 
-        renew = { cookie: "student_session", payload: student as unknown as Record<string, unknown> };
+        renew = { cookie: "student_session", payload: student as unknown as Record<string, unknown>, minutes: IDLE_MINUTES };
     }
 
     if (pathname.startsWith("/employee/")) {
@@ -70,25 +73,27 @@ export async function proxy(req: NextRequest) {
             );
         }
 
-        renew = { cookie: "employee_session", payload: employee as unknown as Record<string, unknown> };
+        renew = { cookie: "employee_session", payload: employee as unknown as Record<string, unknown>, minutes: EMPLOYEE_MINUTES };
     }
 
     const res = NextResponse.next();
 
-    // Sliding session: every page visit extends the session
-    if (renew) {
+    // Sliding session: bawat pagbukas ng page (GET) ay pinapahaba ang session.
+    // Hindi sa POST (server actions gaya ng Log out), para hindi maibalik ng proxy ang
+    // cookie na binubura ng logout.
+    if (renew && req.method === "GET") {
         try {
             const { exp, iat, ...payload } = renew.payload;
             void exp;
             void iat;
 
-            const token = await signToken(payload as never, IDLE_MINUTES);
+            const token = await signToken(payload as never, renew.minutes);
             res.cookies.set(renew.cookie, token, {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === "production",
                 sameSite: "lax",
                 path: "/",
-                maxAge: IDLE_MINUTES * 60,
+                maxAge: renew.minutes * 60,
             });
         } catch (err) {
             console.error("Session renew error:", err);

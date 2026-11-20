@@ -1,26 +1,19 @@
-import nodemailer from "nodemailer";
+import { sendMail } from "./mailer";
 
+/** Ipinapadala ang OTP ng Forgot Password sa email ng user. */
 export async function sendOtpEmail(to: string, code: string) {
-    const user = process.env.GMAIL_USER;
-    const pass = process.env.GMAIL_APP_PASSWORD;
-
-    if (!user || !pass) {
-        console.log("\n==============================================");
-        console.log(`OTP CODE for ${to}: ${code}`);
-        console.log("==============================================\n");
+    // Local (next dev) na walang Gmail settings: ipakita ang code sa terminal.
+    // Sa production, HINDI ini-print ang code (makikita ito sa logs ng Vercel); error na lang.
+    if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+        if (process.env.NODE_ENV !== "development") throw new Error("GMAIL_USER / GMAIL_APP_PASSWORD missing");
+        console.log(`\n=== PASSWORD RESET CODE for ${to}: ${code} ===\n`);
         return;
     }
 
-    const transporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: { user, pass },
-    });
-
-    await transporter.sendMail({
-        from: `"BCAS Clinic System" <${user}>`,
+    await sendMail(
         to,
-        subject: `Your BCAS Clinic password reset code: ${code}`,
-        html: `
+        `Your BCAS Clinic password reset code: ${code}`,
+        `
       <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto">
         <h2 style="color:#15664f">BCAS Clinic System</h2>
         <p>Use this code to reset your password:</p>
@@ -29,5 +22,5 @@ export async function sendOtpEmail(to: string, code: string) {
         <p style="color:#888;font-size:12px">If you didn't request this, you can ignore this email.</p>
       </div>
     `,
-    });
+    );
 }

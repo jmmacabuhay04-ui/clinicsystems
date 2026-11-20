@@ -4,19 +4,9 @@ import { ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import DentalForm, { type DentalValues, type PersonOption } from "./dental-form";
+import { canManageDental } from "@/lib/permissions";
 
 const BASE = "/dashboard/dental-records";
-
-/**
- * Dentist at Nurse LANG ang puwedeng gumawa, mag-edit, mag-archive o magbura
- * ng dental record. Hindi kasama ang Doctor. Sinusuri dito mismo (hindi lang
- * sa permissions) para siguradong hindi makakalusot.
- */
-function isDentalEditor(role: unknown) {
-    const r = String(role ?? "").trim().toLowerCase();
-    return r === "dentist" || r === "nurse";
-}
-
 
 type Row = {
     dental_id: number;
@@ -40,7 +30,7 @@ type Props = {
 export default async function EditDentalRecordPage({ searchParams }: Props) {
     const session = await getSession();
     if (!session) redirect("/login");
-    if (!isDentalEditor(session.role)) redirect(BASE);
+    if (!canManageDental(session.role)) redirect(BASE);
 
     const { record: recordParam = "", back = "" } = await searchParams;
     // Galing sa Dental Records tab ng health record: doon babalik

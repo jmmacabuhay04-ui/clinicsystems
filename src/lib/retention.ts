@@ -42,7 +42,6 @@ export function retentionText(kind: RecordKind = "student"): string {
     return `Archived records of this type can only be permanently deleted after ${years} years.`;
 }
 
-export const RETENTION_TEXT = `Archived records can only be permanently deleted after ${RETENTION_YEARS} years.`;
 
 /** The date a record becomes eligible for permanent deletion. */
 export function deletableOn(
@@ -68,18 +67,6 @@ export function canDeleteYet(
     const due = deletableOn(archivedAt, kind);
     if (!due) return false;
     return Date.now() >= due.getTime();
-}
-
-/** How many whole years are left, for a short label. */
-export function yearsLeft(
-    archivedAt: Date | string | null,
-    kind: RecordKind = "student"
-): number {
-    const due = deletableOn(archivedAt, kind);
-    if (!due) return retentionYears(kind);
-    const ms = due.getTime() - Date.now();
-    if (ms <= 0) return 0;
-    return Math.ceil(ms / (365.25 * 24 * 60 * 60 * 1000));
 }
 
 /** "Sep 25, 2031" - for the label that replaces the Delete button. */

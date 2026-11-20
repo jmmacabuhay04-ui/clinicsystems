@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { ArrowLeft, Plus, Search } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
-import { canViewDental } from "@/lib/permissions";
+import { canViewDental, canManageDental } from "@/lib/permissions";
 import ConfirmLink from "@/components/shared/confirm-link";
 import AutoSubmitSelect from "@/components/shared/auto-submit-select";
 import ListPagination from "@/components/shared/list-pagination";
@@ -13,16 +13,6 @@ import RowActionMenu, { type RowAction } from "@/components/shared/row-action-me
 import { PersonAvatar, addButtonClass, listCardClass, listSearchClass, listSelectClass } from "@/components/shared/list-ui";
 
 const BASE = "/dashboard/dental-records";
-
-/**
- * Dentist at Nurse LANG ang puwedeng gumawa, mag-edit, mag-archive o magbura
- * ng dental record. Hindi kasama ang Doctor. Sinusuri dito mismo (hindi lang
- * sa permissions) para siguradong hindi makakalusot.
- */
-function isDentalEditor(role: unknown) {
-    const r = String(role ?? "").trim().toLowerCase();
-    return r === "dentist" || r === "nurse";
-}
 
 const PAGE_SIZE = 20;
 
@@ -110,7 +100,7 @@ export default async function DentalRecordsPage({ searchParams, kind }: Props) {
     // Doctor: walang access sa dental records
     if (String(session.role ?? "").trim().toLowerCase() === "doctor") redirect("/dashboard");
 
-    const canEdit = isDentalEditor(session.role);
+    const canEdit = canManageDental(session.role);
     const isDentist = String(session.role ?? "").toLowerCase() === "dentist";
 
     const params = await searchParams;

@@ -1,7 +1,7 @@
 // Students service: business rules at permissions.
 // Tinatawag ng actions.ts at ng mga page; ang repository lang ang kumakausap sa DB.
 import bcrypt from "bcryptjs";
-import { canManageRecords } from "@/lib/permissions";
+import { canManageStudents } from "@/lib/permissions";
 import { canDeleteYet, formatDeletableOn, RETENTION_YEARS } from "@/lib/retention";
 import { logAccess } from "@/lib/access-log";
 import { studentRepository } from "./repository";
@@ -42,7 +42,7 @@ export function getActiveStudent(studentNumber: string) {
 // Ibinabalik ang error message (string) kapag may problema, o null kapag OK.
 
 export async function createStudent(actor: Actor, values: Record<string, string>) {
-    if (!canManageRecords(actor.role)) return "Only nurses can create student accounts.";
+    if (!canManageStudents(actor.role)) return "Only nurses can create student accounts.";
 
     const problem = validateStudent(values, true);
     if (problem) return problem;
@@ -74,7 +74,7 @@ export async function createStudent(actor: Actor, values: Record<string, string>
 }
 
 export async function updateStudent(actor: Actor, values: Record<string, string>) {
-    if (!canManageRecords(actor.role)) return "Only nurses can edit student accounts.";
+    if (!canManageStudents(actor.role)) return "Only nurses can edit student accounts.";
 
     const studentId = Number(values["studentId"] ?? "");
     if (!studentId) return "Invalid student.";
@@ -116,14 +116,14 @@ export async function updateStudent(actor: Actor, values: Record<string, string>
 }
 
 export async function archiveStudent(actor: Actor, studentId: number) {
-    if (!canManageRecords(actor.role) || !studentId) return;
+    if (!canManageStudents(actor.role) || !studentId) return;
 
     await studentRepository.archive(studentId, actor.userId);
     await logAccess(actor, "student_health_record", studentId, "update", "Student archived.");
 }
 
 export async function restoreStudent(actor: Actor, studentId: number) {
-    if (!canManageRecords(actor.role) || !studentId) return;
+    if (!canManageStudents(actor.role) || !studentId) return;
 
     await studentRepository.restore(studentId);
     await logAccess(
@@ -141,7 +141,7 @@ export type DeleteStudentResult =
     | { status: "deleted" };
 
 export async function deleteStudent(actor: Actor, studentId: number): Promise<DeleteStudentResult> {
-    if (!canManageRecords(actor.role) || !studentId) return { status: "skipped" };
+    if (!canManageStudents(actor.role) || !studentId) return { status: "skipped" };
 
     const target = await studentRepository.findArchiveInfo(studentId);
 

@@ -22,10 +22,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
                 role={session.role}
                 avatar={user?.avatar ?? null}
             />
-            {/* scrollbar-gutter: stable = laging may nakareserbang puwang para sa scrollbar.
-                Kaya hindi na gumagalaw (umuusog pakaliwa) ang page kapag may dropdown na nagpahaba
-                sa page at biglang lumabas ang scrollbar, hal. sa "Action Taken" ng Case Report. */}
-            <div className="min-w-0 flex-1 md:overflow-y-auto md:[scrollbar-gutter:stable]">{children}</div>
+            {/* Nag-i-scroll ang laman pero nakatago ang scrollbar (no-scrollbar sa globals.css).
+                Dahil walang scrollbar, hindi rin gumagalaw ang page kapag biglang humaba ito. */}
+            <div className="no-scrollbar min-w-0 flex-1 md:overflow-y-auto">{children}</div>
         </div>
     );
 }

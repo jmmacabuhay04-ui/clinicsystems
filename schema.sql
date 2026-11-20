@@ -1,16 +1,18 @@
+-- BCAS Clinic: buong database schema (tables, columns, indexes) na kailangan ng code.
+-- Ginawa mula sa lumang schema.sql + lahat ng prisma/sql/*.sql at prisma/migrations. Walang patient data.
+-- Para gumawa ng bagong database: psql "<DATABASE_URL>" -f schema.sql
+
 --
 -- PostgreSQL database dump
 --
 
-\restrict 6NZrd9ctryYFkV3C7YsJwasMIMTwjXJzFGZoZreNCcQH5l6suVmOU7xlI6rx0cY
 
--- Dumped from database version 18.6
--- Dumped by pg_dump version 18.6
+-- Dumped from database version 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
+-- Dumped by pg_dump version 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
-SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -78,6 +80,41 @@ ALTER SEQUENCE public.clinic_staff_staff_id_seq OWNED BY public.clinic_staff.sta
 
 
 --
+-- Name: delete_account_requests; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.delete_account_requests (
+    id integer NOT NULL,
+    target_user_id integer NOT NULL,
+    requested_by integer NOT NULL,
+    otp_hash text NOT NULL,
+    attempts integer DEFAULT 0 NOT NULL,
+    expires_at timestamp without time zone NOT NULL,
+    created_at timestamp without time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: delete_account_requests_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.delete_account_requests_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: delete_account_requests_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.delete_account_requests_id_seq OWNED BY public.delete_account_requests.id;
+
+
+--
 -- Name: dental_health_forms; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -139,6 +176,7 @@ CREATE TABLE public.dental_records (
     archived_by integer,
     created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     employee_id integer,
+    visit_time time without time zone,
     CONSTRAINT dental_records_patient_check CHECK (((student_id IS NULL) <> (employee_id IS NULL)))
 );
 
@@ -244,7 +282,9 @@ CREATE TABLE public.employee_health_records (
     recorded_by character varying(100),
     archived_at timestamp(3) without time zone,
     archived_by character varying(100),
-    created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    visit_time time without time zone,
+    notes text
 );
 
 
@@ -359,7 +399,8 @@ CREATE TABLE public.employees (
     created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     must_change_password boolean DEFAULT false NOT NULL,
     contact_number character varying(20),
-    email character varying(120)
+    email character varying(120),
+    avatar text
 );
 
 
@@ -400,7 +441,9 @@ CREATE TABLE public.health_case_reports (
     archived_at timestamp(3) without time zone,
     archived_by integer,
     created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    employee_id integer
+    employee_id integer,
+    action_taken character varying(255),
+    report_time time without time zone
 );
 
 
@@ -491,7 +534,9 @@ CREATE TABLE public.health_records (
     recorded_by integer,
     created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     archived_at timestamp(3) without time zone,
-    archived_by integer
+    archived_by integer,
+    visit_time time without time zone,
+    notes text
 );
 
 
@@ -891,7 +936,8 @@ CREATE TABLE public.students (
     archived_by integer,
     must_change_password boolean DEFAULT false NOT NULL,
     contact_number character varying(20),
-    email character varying(120)
+    email character varying(120),
+    avatar text
 );
 
 
@@ -998,6 +1044,13 @@ ALTER SEQUENCE public.visitor_logs_visitor_id_seq OWNED BY public.visitor_logs.v
 --
 
 ALTER TABLE ONLY public.clinic_staff ALTER COLUMN staff_id SET DEFAULT nextval('public.clinic_staff_staff_id_seq'::regclass);
+
+
+--
+-- Name: delete_account_requests id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.delete_account_requests ALTER COLUMN id SET DEFAULT nextval('public.delete_account_requests_id_seq'::regclass);
 
 
 --
@@ -1168,6 +1221,14 @@ ALTER TABLE ONLY public._prisma_migrations
 
 ALTER TABLE ONLY public.clinic_staff
     ADD CONSTRAINT clinic_staff_pkey PRIMARY KEY (staff_id);
+
+
+--
+-- Name: delete_account_requests delete_account_requests_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.delete_account_requests
+    ADD CONSTRAINT delete_account_requests_pkey PRIMARY KEY (id);
 
 
 --
@@ -1436,6 +1497,20 @@ CREATE INDEX idx_access_logs_record ON public.record_access_logs USING btree (re
 
 
 --
+-- Name: idx_delete_requests_requested_by; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_delete_requests_requested_by ON public.delete_account_requests USING btree (requested_by);
+
+
+--
+-- Name: idx_delete_requests_target; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_delete_requests_target ON public.delete_account_requests USING btree (target_user_id, requested_by);
+
+
+--
 -- Name: idx_emp_health_employee; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1612,5 +1687,4 @@ ALTER TABLE ONLY public.student_health_forms
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 6NZrd9ctryYFkV3C7YsJwasMIMTwjXJzFGZoZreNCcQH5l6suVmOU7xlI6rx0cY
 

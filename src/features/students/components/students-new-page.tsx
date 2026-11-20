@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { getSession } from "@/lib/auth/session";
-import { canManageRecords } from "@/lib/permissions";
+import { canManageStudents } from "@/lib/permissions";
 import StudentForm from "./student-form";
 import type { StudentValues } from "./student-form";
 
@@ -22,7 +22,7 @@ const empty: StudentValues = {
 export default async function NewStudentPage() {
     const session = await getSession();
     if (!session) redirect("/login");
-    if (!canManageRecords(session.role)) redirect(BASE);
+    if (!canManageStudents(session.role)) redirect(BASE);
 
     return (
         <main className="min-w-0 space-y-6 p-4 pb-0 md:p-8 md:pb-0">

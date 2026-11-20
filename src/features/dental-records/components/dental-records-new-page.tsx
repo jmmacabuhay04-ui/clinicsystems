@@ -5,19 +5,9 @@ import { getSession } from "@/lib/auth/session";
 import DentalForm, { type DentalValues, type PersonOption } from "./dental-form";
 import { prisma } from "@/lib/prisma";
 import { examinerName } from "@/features/dental-health-form/chart-data";
+import { canManageDental } from "@/lib/permissions";
 
 const BASE = "/dashboard/dental-records";
-
-/**
- * Dentist at Nurse LANG ang puwedeng gumawa, mag-edit, mag-archive o magbura
- * ng dental record. Hindi kasama ang Doctor. Sinusuri dito mismo (hindi lang
- * sa permissions) para siguradong hindi makakalusot.
- */
-function isDentalEditor(role: unknown) {
-    const r = String(role ?? "").trim().toLowerCase();
-    return r === "dentist" || r === "nurse";
-}
-
 
 type Props = {
     /** Galing sa ⋮ ng Dental Records: naka-pili na ang pasyente (?student= o ?employee=) */
@@ -27,7 +17,7 @@ type Props = {
 export default async function NewDentalRecordPage({ searchParams }: Props) {
     const session = await getSession();
     if (!session) redirect("/login");
-    if (!isDentalEditor(session.role)) redirect(BASE);
+    if (!canManageDental(session.role)) redirect(BASE);
 
     const params = await searchParams;
     const presetEmployee = (params.employee ?? "").trim().slice(0, 20);

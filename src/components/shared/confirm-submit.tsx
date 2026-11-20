@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { createPortal, useFormStatus } from "react-dom";
 import { LogOut, Trash2 } from "lucide-react";
 
 type Props = {
@@ -29,8 +29,12 @@ export default function ConfirmSubmit({
     const danger = tone ? tone === "danger" : /delete/i.test(confirmLabel);
     const [open, setOpen] = useState(false);
     const anchorRef = useRef<HTMLButtonElement>(null);
+    // Habang sine-save pa ang form: naka-disable ang button para hindi madoble ang record
+    // kapag napindot ulit (hal. mabagal ang internet o maraming sabay na user).
+    const { pending } = useFormStatus();
 
     function handleOpen() {
+        if (pending) return;
         const form = anchorRef.current?.closest("form");
         if (form && !form.reportValidity()) return;
         setOpen(true);
@@ -95,7 +99,8 @@ export default function ConfirmSubmit({
                 ref={anchorRef}
                 type="button"
                 onClick={handleOpen}
-                disabled={disabled}
+                disabled={disabled || pending}
+                aria-busy={pending || undefined}
                 suppressHydrationWarning
                 className={className}
             >

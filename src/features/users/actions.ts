@@ -69,37 +69,6 @@ export async function createUser(
     return { success: `Account "${email}" created.` };
 }
 
-export async function resetPassword(
-    _prev: CreateUserState,
-    formData: FormData
-): Promise<CreateUserState> {
-    const session = await getSession();
-    if (!session || session.role !== "admin") {
-        return { error: "Only admins can reset passwords." };
-    }
-
-    const userId = Number(formData.get("userId"));
-    const password = String(formData.get("password") ?? "");
-
-    if (!userId) return { error: "Invalid user." };
-
-    const passwordError = checkPassword(formData, password);
-    if (passwordError) return { error: passwordError };
-
-    const target = await prisma.user.findUnique({ where: { user_id: userId } });
-    if (!target) return { error: "That account no longer exists." };
-
-    const hashed = await bcrypt.hash(password, 12);
-
-    await prisma.user.update({
-        where: { user_id: userId },
-        data: { password: hashed },
-    });
-
-    revalidatePath("/dashboard/users");
-    return { success: `Password reset for "${target.username}".` };
-}
-
 /* ---------- Edit / Delete ---------- */
 
 const BACK = "/dashboard/users";
@@ -152,40 +121,3 @@ export async function updateUser(formData: FormData) {
     redirect(`${BACK}?reset=updated`);
 }
 
-export async function deleteUser(formData: FormData) {
-    const session = await requireManager();
-
-    const userId = Number(formData.get("userId"));
-    if (!userId) redirect(`${BACK}?reset=invalid`);
-
-    // Block deleting your own account (checks the common session field names)
-    const myId = Number(session.userId ?? 0);
-    if (myId && userId === myId) redirect(`${BACK}?reset=self`);
-
-    const target = await prisma.user.findUnique({ where: { user_id: userId } });
-    if (!target) redirect(`${BACK}?reset=notfound`);
-
-    // Fallback self-check by email, in case the session has no id field
-    const myName = String(session.username ?? "").toLowerCase();
-    if (myName && target.username.toLowerCase() === myName) redirect(`${BACK}?reset=self`);
-
-    // Security: Administrator lang ang puwedeng magbura ng Administrator account
-    if (target.role === "admin" && session.role !== "admin") redirect(`${BACK}?reset=adminonly`);
-
-    if (target.role === "admin") {
-        const admins = await prisma.user.count({ where: { role: "admin" } });
-        if (admins <= 1) redirect(`${BACK}?reset=lastadmin`);
-    }
-
-    let result = "deleted";
-    try {
-        await prisma.user.delete({ where: { user_id: userId } });
-    } catch (e) {
-        // P2003 = linked records (foreign key)
-        const code = (e as { code?: string } | null)?.code;
-        result = code === "P2003" ? "linked" : "deletefailed";
-    }
-
-    revalidatePath(BACK);
-    redirect(`${BACK}?reset=${result}`);
-}
