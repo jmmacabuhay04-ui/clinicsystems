@@ -8,7 +8,6 @@ import RedirectNotice from "@/components/shared/redirect-notice";
 import ConfirmLink from "@/components/shared/confirm-link";
 import BirthdateField from "@/components/shared/birthdate-field";
 import PasswordInput from "@/components/shared/password-input";
-import PasswordChecklist from "@/components/shared/password-checklist";
 import RecordAvatar from "@/components/shared/record-avatar";
 
 const initialState: StudentState = {};
@@ -319,7 +318,6 @@ export default function StudentForm({ mode, student, cancelHref, returnTo, avata
                                 className={inputClass}
                             />
                             {/* Requirement ng password (Edit: lalabas lang kapag nagta-type ng bago) */}
-                            {(mode === "create" || newPassword) && <PasswordChecklist password={newPassword} className="mt-2" />}
                         </Field>
                         <Field label={mode === "create" ? "Confirm Password *" : "Confirm New Password"}>
                             <PasswordInput

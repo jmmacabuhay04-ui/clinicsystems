@@ -2,12 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { startTransition, useActionState, useEffect, useState } from "react";
+import { startTransition, useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AlertCircle, ArrowRight, HeartHandshake, LockKeyhole, ShieldCheck, UserRound, UsersRound } from "lucide-react";
 import { login } from "@/features/auth/login-actions";
 import PasswordInput from "@/components/shared/password-input";
-import PasswordChecklist from "@/components/shared/password-checklist";
 
 // LOGIN PAGE NG SCHOOL CLINIC
 // Kaliwa: BCAS logo, "School Clinic", tagline at tatlong feature icon.
@@ -123,8 +122,6 @@ function LoadingScreen() {
 export default function LoginPage() {
     const router = useRouter();
     const [state, formAction, pending] = useActionState(login, undefined);
-    // Na-type na password (para sa checklist sa ilalim)
-    const [password, setPassword] = useState("");
     // Tama ang login: loading screen, saka lipat sa dashboard. Mali: walang loading, error lang sa form.
     const success = !!state?.to;
 
@@ -280,18 +277,9 @@ export default function LoginPage() {
                                     placeholder="Password"
                                     autoComplete="current-password"
                                     required
-                                    onChange={(e) => setPassword(e.target.value)}
                                     className={inputClass}
                                 />
                             </label>
-                            {/* Requirement ng password (walang special character) */}
-                            <PasswordChecklist password={password} className="-mt-1 px-2" />
-
-                            <div className="flex justify-end">
-                                <Link href="/forgot-password" className="text-sm font-semibold text-gray-600 hover:text-[#15664f] hover:underline">
-                                    Forgot password?
-                                </Link>
-                            </div>
 
                             <button
                                 type="submit"
@@ -308,6 +296,12 @@ export default function LoginPage() {
                                     </>
                                 )}
                             </button>
+
+                            <div className="flex justify-end">
+                                <Link href="/forgot-password" className="text-sm font-semibold text-gray-600 hover:text-[#15664f] hover:underline">
+                                    Forgot password?
+                                </Link>
+                            </div>
                         </form>
 
                         <div className="my-6 h-px bg-gray-200" />

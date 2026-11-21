@@ -845,6 +845,8 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                                     label: t.label,
                                     color: t.color,
                                 })),
+                                // Case Log na nakasunod sa napiling araw/serye ng listahan
+                                { key: "caselog", label: "Case Log (current filter)", color: "#15664f" },
                             ]}
                         />
                     </div>
@@ -862,8 +864,15 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                     #illness-report thead { display: table-header-group; }
                     /* Itago ang sidebar, header at lahat ng ibang bahagi ng page; ang report lang ang matitira */
                     aside, header, nav, [role="dialog"] { display: none !important; }
-                    main:has(> #illness-report) > :not(#illness-report) { display: none !important; }
-                    main:has(> #illness-report) { padding: 0 !important; }
+                    main:has(> #illness-report, > #illness-caselog) > :not(#illness-report):not(#illness-caselog) { display: none !important; }
+                    main:has(> #illness-report, > #illness-caselog) { padding: 0 !important; }
+                    /* Isa lang ang ipi-print: Report (Download Report) o Case Log (Download sa Case Log) */
+                    html.print-caselog #illness-report { display: none !important; }
+                    html:not(.print-caselog):not(.print-with-caselog) #illness-caselog { display: none !important; }
+                    html.print-with-caselog #illness-caselog { break-before: page; }
+                    #illness-caselog { font-size: 13px; }
+                    #illness-caselog tr { break-inside: avoid; }
+                    #illness-caselog thead { display: table-header-group; }
                     html, body, body [class*="overflow"], body [class*="h-screen"] { overflow: visible !important; height: auto !important; }
                     #illness-report { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
                     #illness-report .avoid-break { break-inside: avoid; }
@@ -1092,6 +1101,55 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
                         </table>
                     )}
                 </div>
+            </section>
+
+            {/* ===== CASE LOG NA IDA-DOWNLOAD (sa Download Report, kapag pinili) (sumusunod sa napiling araw/serye at sa All/Student/Employee) ===== */}
+            <section id="illness-caselog" className="hidden text-gray-900 print:block">
+                <PrintHeader />
+                <h1 className="mb-1 text-xl font-bold text-[#10523f]">
+                    {isRange ? "" : isMonth ? "Monthly " : "Weekly "}Case Log
+                </h1>
+                <p className="mb-3 text-sm text-gray-700">
+                    {periodLabel}
+                    {" · "}
+                    {dayFilter ? `${shortDate(dayFilter)}${seriesFilter ? ` · ${SERIES_LABEL[seriesFilter]}` : ""}` : "All cases"}
+                    {" · "}
+                    {logCases.length} case{logCases.length === 1 ? "" : "s"}
+                </p>
+                {logCases.length === 0 ? (
+                    <p className="text-sm text-gray-700">No cases recorded.</p>
+                ) : (
+                    <table className="w-full border-collapse text-sm">
+                        <thead>
+                            <tr className="bg-[#eef6f2] text-left">
+                                <th className="border border-gray-300 px-2 py-1">Date</th>
+                                <th className="border border-gray-300 px-2 py-1">ID</th>
+                                <th className="border border-gray-300 px-2 py-1">ID Number</th>
+                                <th className="border border-gray-300 px-2 py-1">Name</th>
+                                <th className="border border-gray-300 px-2 py-1">Patient</th>
+                                <th className="border border-gray-300 px-2 py-1">Reason / Procedure</th>
+                                <th className="border border-gray-300 px-2 py-1">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {logCases.map((c) => (
+                                <tr key={c.key} data-series={c.source === "visit" ? "visits" : c.source === "report" ? "reports" : "dental"}>
+                                    <td className="whitespace-nowrap border border-gray-300 px-2 py-1">{formatDay(c.date)}</td>
+                                    <td className="whitespace-nowrap border border-gray-300 px-2 py-1">{displayId(c)}</td>
+                                    <td className="whitespace-nowrap border border-gray-300 px-2 py-1">{c.id_number ?? "—"}</td>
+                                    <td className="border border-gray-300 px-2 py-1">
+                                        {[c.last_name, c.first_name].filter(Boolean).join(", ") || "—"}
+                                    </td>
+                                    <td className="border border-gray-300 px-2 py-1">
+                                        {c.patient_type === "employee" ? "Employee" : "Student"}
+                                    </td>
+                                    <td className="border border-gray-300 px-2 py-1">{caseLabel(c)}</td>
+                                    <td className="border border-gray-300 px-2 py-1 capitalize">{c.status ?? "—"}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
             </section>
 
             {/* Alert level banner (sakit lang; wala sa Dentist) */}

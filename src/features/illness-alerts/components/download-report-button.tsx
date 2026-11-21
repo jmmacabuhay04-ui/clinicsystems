@@ -46,6 +46,12 @@ export default function DownloadReportButton({ fileName, series }: { fileName: s
         //   - "Total" kapag hindi lahat ang napili
         //   (Laging kasama ang Illness Breakdown, pati sa Dentist)
         // Lahat ng uri sa report; itatago ang hindi napili O hindi pinapayagan sa role (hal. Dental sa Doctor)
+        // Case Log: sariling seksyon sa report. Kung Case Log lang ang napili, iyon lang ang iimprenta.
+        const caseLog = chosen.includes("caselog");
+        const recordsChosen = chosen.filter((k) => k !== "caselog");
+        const root = document.documentElement;
+        if (caseLog) root.classList.add(recordsChosen.length === 0 ? "print-caselog" : "print-with-caselog");
+
         const hide = ALL_KEYS.filter((k) => !chosen.includes(k));
         if (RECORD_KEYS.some((k) => !chosen.includes(k))) hide.push("all");
         const style = document.createElement("style");
@@ -54,10 +60,11 @@ export default function DownloadReportButton({ fileName, series }: { fileName: s
 
         // Ito ang magiging pangalan ng PDF file
         const previous = document.title;
-        const only = chosen.length < ALL_KEYS.length ? ` (${series.filter((s) => chosen.includes(s.key)).map((s) => s.label).join(", ")})` : "";
+        const only = chosen.length < ALL_KEYS.length + (series.some((s) => s.key === "caselog") ? 1 : 0) ? ` (${series.filter((s) => chosen.includes(s.key)).map((s) => s.label).join(", ")})` : "";
         document.title = `${fileName}${only}`;
 
         const restore = () => {
+            root.classList.remove("print-caselog", "print-with-caselog");
             document.title = previous;
             style.remove();
             window.removeEventListener("afterprint", restore);

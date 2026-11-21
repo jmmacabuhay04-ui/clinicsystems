@@ -2,7 +2,7 @@
 // Password complexity policy para sa buong system (server-side, bago i-save sa database).
 // Ginagamit saanman may bagong password: Student/Employee account, Manage Accounts,
 // Reset Password, Change Password, Walk-in Reset at Password Requests.
-// Kapareho ng checklist sa screen: 8 characters, 1 uppercase letter, 1 number.
+// Mga patakaran: 8 characters, 1 uppercase letter, 1 number.
 
 export const PASSWORD_MIN_LENGTH = 8;
 
