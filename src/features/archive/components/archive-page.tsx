@@ -30,6 +30,16 @@ import { deleteCase, restoreCase } from "@/features/case-reports/case-actions";
 import { deleteDental, restoreDental } from "@/features/dental-records/actions";
 import { deleteSlip, restoreSlip } from "@/features/referral-slips/actions";
 import { deleteStaff, restoreStaff } from "@/features/clinic-staff/actions";
+import {
+    restoreStudentForm,
+    restoreEmployeeForm,
+    restoreDentalForm,
+    restoreDeclarationForm,
+    deleteStudentForm,
+    deleteEmployeeForm,
+    deleteDentalForm,
+    deleteDeclarationForm,
+} from "@/features/health-forms/archive-actions";
 import { deleteEmployee, restoreEmployee } from "@/features/employee-health-records/employee-actions";
 import {
     deleteEmployeeRecord,
@@ -278,6 +288,14 @@ type Column = {
     nowrap?: boolean;
     /** Tailwind classes para sa cell (kulay, bigat ng font, nowrap) */
     td?: string;
+};
+
+type ArchivedHealthForm = {
+    form_id: number;
+    id_number: string;
+    last_name: string;
+    first_name: string;
+    archived_at: Date;
 };
 
 type Item = {
@@ -787,22 +805,16 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
             title: name,
             sub: f.student_number,
             fields: [
-                { label: "Type", value: <span className="capitalize">{f.slip_type}</span> },
                 { label: "Teacher", value: f.teacher_name ?? "—" },
                 { label: "Reason", value: f.reason },
                 { label: "Slip Date", value: formatDate(f.slip_date) },
-                { label: "Status", value: <span className="capitalize">{f.status}</span> },
-                { label: "Archived On", value: formatDate(f.archived_at) },
             ],
             cells: [
                 f.student_number,
                 name,
-                f.slip_type,
                 f.teacher_name ?? "—",
                 f.reason,
                 formatDate(f.slip_date),
-                f.status,
-                formatDate(f.archived_at),
             ],
             actions: canEditSlips ? (
                 <>
@@ -826,6 +838,91 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
             ) : undefined,
         };
     });
+
+    /* ---------------- Health forms (Student, Employee, Dental, Health Declaration) ---------------- */
+    const [studentForms, employeeForms, dentalForms, declarationForms] = await Promise.all([
+        prisma.$queryRaw<ArchivedHealthForm[]>`
+      SELECT f.form_id, s.student_number AS id_number, s.last_name, s.first_name, f.archived_at
+      FROM student_health_forms f
+      JOIN students s ON s.student_id = f.student_id
+      WHERE f.archived_at IS NOT NULL
+        AND (${q}::text = '' OR s.student_number ILIKE ${like}
+             OR s.last_name ILIKE ${like} OR s.first_name ILIKE ${like})
+      ORDER BY f.archived_at DESC
+    `,
+        prisma.$queryRaw<ArchivedHealthForm[]>`
+      SELECT f.form_id, e.employee_number AS id_number, e.last_name, e.first_name, f.archived_at
+      FROM employee_health_forms f
+      JOIN employees e ON e.employee_id = f.employee_id
+      WHERE f.archived_at IS NOT NULL
+        AND (${q}::text = '' OR e.employee_number ILIKE ${like}
+             OR e.last_name ILIKE ${like} OR e.first_name ILIKE ${like})
+      ORDER BY f.archived_at DESC
+    `,
+        prisma.$queryRaw<ArchivedHealthForm[]>`
+      SELECT f.form_id, s.student_number AS id_number, s.last_name, s.first_name, f.archived_at
+      FROM dental_health_forms f
+      JOIN students s ON s.student_id = f.student_id
+      WHERE f.archived_at IS NOT NULL
+        AND (${q}::text = '' OR s.student_number ILIKE ${like}
+             OR s.last_name ILIKE ${like} OR s.first_name ILIKE ${like})
+      ORDER BY f.archived_at DESC
+    `,
+        prisma.$queryRaw<ArchivedHealthForm[]>`
+      SELECT d.declaration_id AS form_id, s.student_number AS id_number, s.last_name, s.first_name, d.archived_at
+      FROM health_declarations d
+      JOIN students s ON s.student_id = d.student_id
+      WHERE d.archived_at IS NOT NULL
+        AND (${q}::text = '' OR s.student_number ILIKE ${like}
+             OR s.last_name ILIKE ${like} OR s.first_name ILIKE ${like})
+      ORDER BY d.archived_at DESC
+    `,
+    ]);
+
+    const formItems = (
+        rows: ArchivedHealthForm[],
+        label: string,
+        restore: FormAction,
+        remove: FormAction,
+        kind: RecordKind,
+        canEdit: boolean,
+    ): Item[] =>
+        rows.map((f) => {
+            const name = `${f.last_name}, ${f.first_name}`;
+            return {
+                key: `${label}-${f.form_id}`,
+                title: name,
+                sub: f.id_number,
+                fields: [{ label: "Archived On", value: formatDate(f.archived_at) }],
+                cells: [f.id_number, name, formatDate(f.archived_at)],
+                actions: canEdit ? (
+                    <>
+                        <RestoreForm
+                            action={restore}
+                            name="formId"
+                            value={f.form_id}
+                            title={`Restore ${label}`}
+                            message={`Restore the ${label} of ${name}? It will show again on its form page.`}
+                        />
+                        <DeleteForm
+                            action={remove}
+                            kind={kind}
+                            name="formId"
+                            value={f.form_id}
+                            archivedAt={f.archived_at}
+                            title={`Delete ${label}`}
+                            message={`Permanently delete the ${label} of ${name}? This cannot be undone.`}
+                        />
+                    </>
+                ) : undefined,
+            };
+        });
+
+    const formColumns: Column[] = [
+        { label: "ID Number", nowrap: true, td: "font-medium text-gray-900" },
+        { label: "Name", td: "font-semibold text-gray-900" },
+        { label: "Archived On", nowrap: true, td: "whitespace-nowrap text-gray-600" },
+    ];
 
     /* ---------------- Clinic staff ---------------- */
     const staffItems: Item[] = staff.map((st) => ({
@@ -881,7 +978,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
         {
             key: "students",
             label: "Students",
-            title: "Archived Students",
+            title: "Students",
             icon: GraduationCap as IconType,
             empty: "No archived students.",
             showActions: canEditEmployees,
@@ -898,7 +995,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
         {
             key: "employees",
             label: "Employees",
-            title: "Archived Employees",
+            title: "Employees",
             icon: Briefcase as IconType,
             empty: "No archived employees.",
             showActions: canEditEmployees,
@@ -915,7 +1012,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
         {
             key: "student-visits",
             label: "Student Visits",
-            title: "Archived Visit Records — Students",
+            title: "Visit Records — Students",
             icon: Stethoscope as IconType,
             empty: "No archived visit records.",
             showActions: canEditRecords,
@@ -930,7 +1027,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
         {
             key: "employee-visits",
             label: "Employee Visits",
-            title: "Archived Visit Records — Employees",
+            title: "Visit Records — Employees",
             icon: Stethoscope as IconType,
             empty: "No archived employee visit records.",
             showActions: canEditRecords,
@@ -945,7 +1042,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
         {
             key: "cases",
             label: "Health Report",
-            title: "Archived Health Reports",
+            title: "Health Reports",
             icon: ClipboardList as IconType,
             empty: "No archived case reports.",
             showActions: canEditRecords,
@@ -960,7 +1057,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
         {
             key: "dental",
             label: "Dental Report",
-            title: "Archived Dental Reports",
+            title: "Dental Reports",
             icon: ToothIcon as IconType,
             empty: "No archived dental records.",
             showActions: canEditDental,
@@ -975,7 +1072,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
         {
             key: "slips",
             label: "Referral Slips",
-            title: "Archived Referral Slips",
+            title: "Referral Slips",
             icon: FileText as IconType,
             empty: "No archived referral slips.",
             showActions: canEditSlips,
@@ -983,18 +1080,15 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
             columns: [
                 { label: "Student Number", nowrap: true, td: "font-medium text-gray-900" },
                 { label: "Name", td: "font-semibold text-gray-900" },
-                { label: "Type", td: "capitalize text-gray-600" },
                 { label: "Teacher", td: "text-gray-600" },
                 { label: "Reason", td: "text-gray-900" },
                 { label: "Slip Date", nowrap: true, td: "whitespace-nowrap text-gray-600" },
-                { label: "Status", td: "capitalize text-gray-600" },
-                { label: "Archived On", nowrap: true, td: "whitespace-nowrap text-gray-600" },
             ],
         },
         {
             key: "staff",
             label: "Clinic Staff",
-            title: "Archived Clinic Staff",
+            title: "Clinic Staff",
             icon: UserCog as IconType,
             empty: "No archived clinic staff.",
             showActions: canEditStaff,
@@ -1006,6 +1100,46 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                 { label: "License / PRC No.", nowrap: true, td: "whitespace-nowrap text-gray-600" },
                 { label: "Archived On", nowrap: true, td: "whitespace-nowrap text-gray-600" },
             ],
+        },
+        {
+            key: "student-forms",
+            label: "Student Forms",
+            title: "Student Health Forms",
+            icon: ClipboardList as IconType,
+            empty: "No archived student health forms.",
+            showActions: canEditRecords,
+            items: formItems(studentForms, "student health form", restoreStudentForm, deleteStudentForm, "student_form", canEditRecords),
+            columns: formColumns,
+        },
+        {
+            key: "employee-forms",
+            label: "Employee Forms",
+            title: "Employee Health Forms",
+            icon: ClipboardList as IconType,
+            empty: "No archived employee health forms.",
+            showActions: canEditRecords,
+            items: formItems(employeeForms, "employee health form", restoreEmployeeForm, deleteEmployeeForm, "employee_form", canEditRecords),
+            columns: formColumns,
+        },
+        {
+            key: "dental-forms",
+            label: "Dental Forms",
+            title: "Dental Health Forms",
+            icon: ClipboardList as IconType,
+            empty: "No archived dental health forms.",
+            showActions: canEditDental,
+            items: formItems(dentalForms, "dental health form", restoreDentalForm, deleteDentalForm, "dental_form", canEditDental),
+            columns: formColumns,
+        },
+        {
+            key: "declarations",
+            label: "Health Declarations",
+            title: "Health Declarations",
+            icon: ClipboardList as IconType,
+            empty: "No archived health declarations.",
+            showActions: canEditRecords,
+            items: formItems(declarationForms, "health declaration", restoreDeclarationForm, deleteDeclarationForm, "health_declaration", canEditRecords),
+            columns: formColumns,
         },
     ];
 
@@ -1048,7 +1182,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
             )}
 
             {/* Retention + total */}
-            <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto]">
+            <div className="grid gap-4">
                 <div className={`${card} flex items-center gap-4 p-5`}>
                     <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#eef6f2] text-[#15664f]">
                         <ShieldCheck className="h-5 w-5" />
@@ -1059,16 +1193,6 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                             Records can only be permanently deleted after the retention period. Until then, the Delete
                             button shows the date it becomes available.
                         </p>
-                    </div>
-                </div>
-                <div className="relative flex items-center gap-3 overflow-hidden rounded-2xl border border-[#dcebe3] bg-white p-4 shadow-sm md:min-w-[220px]">
-                    <span aria-hidden className="absolute inset-x-0 top-0 h-1 bg-[#f2b705]" />
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#f2b705]/15 text-[#a67c00]">
-                        <Archive className="h-5 w-5" />
-                    </span>
-                    <div>
-                        <p className="text-sm font-medium text-gray-600">{q ? "Matching Items" : "Total Archived"}</p>
-                        <p className="text-[1.75rem] font-bold leading-tight text-gray-900">{total}</p>
                     </div>
                 </div>
             </div>

@@ -6,12 +6,12 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { canManageRecords } from "@/lib/permissions";
 import {
-    ALL_ROS_KEYS,
-    FAMILY_HISTORY,
-    OTHER_FIELDS,
-    PAST_HISTORY,
-    PHYSICAL_EXAM_KEYS,
-    PSYCHOLOGICAL,
+  ALL_ROS_KEYS,
+  FAMILY_HISTORY,
+  OTHER_FIELDS,
+  PAST_HISTORY,
+  PHYSICAL_EXAM_KEYS,
+  PSYCHOLOGICAL,
 } from "./form-data";
 
 const BASE = "/dashboard/employee-health-form";
@@ -19,63 +19,63 @@ const BASE = "/dashboard/employee-health-form";
 export type HealthFormState = { error?: string };
 
 export async function saveEmployeeHealthForm(
-    _prev: HealthFormState,
-    formData: FormData
+  _prev: HealthFormState,
+  formData: FormData
 ): Promise<HealthFormState> {
-    const session = await getSession();
-    if (!session) return { error: "Session expired. Please sign in again." };
-    if (!canManageRecords(session.role)) {
-        return { error: "You do not have permission to edit this form." };
-    }
+  const session = await getSession();
+  if (!session) return { error: "Session expired. Please sign in again." };
+  if (!canManageRecords(session.role)) {
+    return { error: "You do not have permission to edit this form." };
+  }
 
-    const get = (key: string) => String(formData.get(key) ?? "").trim();
+  const get = (key: string) => String(formData.get(key) ?? "").trim();
 
-    const employeeNumber = get("employeeNumber");
-    if (!employeeNumber) return { error: "Missing employee." };
+  const employeeNumber = get("employeeNumber");
+  if (!employeeNumber) return { error: "Missing employee." };
 
-    const found = await prisma.$queryRaw<{ employee_id: number }[]>`
+  const found = await prisma.$queryRaw<{ employee_id: number }[]>`
     SELECT employee_id FROM employees WHERE employee_number = ${employeeNumber} LIMIT 1
   `;
-    const employee = found[0];
-    if (!employee) return { error: "Employee not found." };
+  const employee = found[0];
+  if (!employee) return { error: "Employee not found." };
 
-    const past: Record<string, string> = {};
-    for (const item of PAST_HISTORY) {
-        const answer = get(`past_${item.key}`);
-        if (answer) past[item.key] = answer;
-    }
+  const past: Record<string, string> = {};
+  for (const item of PAST_HISTORY) {
+    const answer = get(`past_${item.key}`);
+    if (answer) past[item.key] = answer;
+  }
 
-    const family: Record<string, { answer: string; relation: string }> = {};
-    for (const item of FAMILY_HISTORY) {
-        const answer = get(`fam_${item.key}`);
-        const relation = get(`famrel_${item.key}`);
-        if (answer || relation) family[item.key] = { answer, relation };
-    }
+  const family: Record<string, { answer: string; relation: string }> = {};
+  for (const item of FAMILY_HISTORY) {
+    const answer = get(`fam_${item.key}`);
+    const relation = get(`famrel_${item.key}`);
+    if (answer || relation) family[item.key] = { answer, relation };
+  }
 
-    const psychological: Record<string, { answer: string; details: string }> = {};
-    for (const item of PSYCHOLOGICAL) {
-        const answer = get(`psy_${item.key}`);
-        const details = get(`psydet_${item.key}`);
-        if (answer || details) psychological[item.key] = { answer, details };
-    }
+  const psychological: Record<string, { answer: string; details: string }> = {};
+  for (const item of PSYCHOLOGICAL) {
+    const answer = get(`psy_${item.key}`);
+    const details = get(`psydet_${item.key}`);
+    if (answer || details) psychological[item.key] = { answer, details };
+  }
 
-    const ros: Record<string, { answer: string; age: string }> = {};
-    for (const key of ALL_ROS_KEYS) {
-        const answer = get(`ros_${key}`);
-        const age = get(`rosage_${key}`);
-        if (answer || age) ros[key] = { answer, age };
-    }
+  const ros: Record<string, { answer: string; age: string }> = {};
+  for (const key of ALL_ROS_KEYS) {
+    const answer = get(`ros_${key}`);
+    const age = get(`rosage_${key}`);
+    if (answer || age) ros[key] = { answer, age };
+  }
 
-    const otherMedical: Record<string, string> = {};
-    for (const key of OTHER_FIELDS) {
-        const value = get(key);
-        if (value) otherMedical[key] = value;
-    }
+  const otherMedical: Record<string, string> = {};
+  for (const key of OTHER_FIELDS) {
+    const value = get(key);
+    if (value) otherMedical[key] = value;
+  }
 
-    const nullable = (key: string) => get(key) || null;
+  const nullable = (key: string) => get(key) || null;
 
-    try {
-        await prisma.$executeRaw`
+  try {
+    await prisma.$executeRaw`
       INSERT INTO employee_health_forms
         (employee_id, sex, date_of_birth, birthplace, nationality, religion,
          address, contact_number,
@@ -103,6 +103,8 @@ export async function saveEmployeeHealthForm(
          ${nullable("consentName")}, ${nullable("consentDate")}::date,
          ${session.username}, CURRENT_TIMESTAMP)
       ON CONFLICT (employee_id) DO UPDATE SET
+        archived_at = NULL,
+        archived_by = NULL,
         sex = EXCLUDED.sex,
         date_of_birth = EXCLUDED.date_of_birth,
         birthplace = EXCLUDED.birthplace,
@@ -135,38 +137,38 @@ export async function saveEmployeeHealthForm(
         updated_by = EXCLUDED.updated_by,
         updated_at = CURRENT_TIMESTAMP
     `;
-    } catch (err) {
-        console.error("Save employee health form error:", err);
-        return { error: "Could not save the form. Please try again." };
-    }
+  } catch (err) {
+    console.error("Save employee health form error:", err);
+    return { error: "Could not save the form. Please try again." };
+  }
 
-    revalidatePath(BASE);
-    redirect(`${BASE}?employee=${encodeURIComponent(employeeNumber)}&saved=1`);
+  revalidatePath(BASE);
+  redirect(`${BASE}?employee=${encodeURIComponent(employeeNumber)}&saved=1`);
 }
 
 export async function addPhysicalExam(formData: FormData) {
-    const session = await getSession();
-    if (!session || !canManageRecords(session.role)) return;
+  const session = await getSession();
+  if (!session || !canManageRecords(session.role)) return;
 
-    const get = (key: string) => String(formData.get(key) ?? "").trim();
+  const get = (key: string) => String(formData.get(key) ?? "").trim();
 
-    const employeeNumber = get("employeeNumber");
-    const examDate = get("examDate");
-    if (!employeeNumber || !examDate) return;
+  const employeeNumber = get("employeeNumber");
+  const examDate = get("examDate");
+  if (!employeeNumber || !examDate) return;
 
-    const rows = await prisma.$queryRaw<{ employee_id: number }[]>`
+  const rows = await prisma.$queryRaw<{ employee_id: number }[]>`
     SELECT employee_id FROM employees WHERE employee_number = ${employeeNumber} LIMIT 1
   `;
-    const employeeId = rows[0]?.employee_id;
-    if (!employeeId) return;
+  const employeeId = rows[0]?.employee_id;
+  if (!employeeId) return;
 
-    const findings: Record<string, string> = {};
-    for (const key of PHYSICAL_EXAM_KEYS) {
-        const value = get(`pe_${key}`);
-        if (value) findings[key] = value;
-    }
+  const findings: Record<string, string> = {};
+  for (const key of PHYSICAL_EXAM_KEYS) {
+    const value = get(`pe_${key}`);
+    if (value) findings[key] = value;
+  }
 
-    await prisma.$executeRaw`
+  await prisma.$executeRaw`
     INSERT INTO employee_physical_exams
       (employee_id, exam_date, findings, physician_signature, recorded_by)
     VALUES
@@ -174,40 +176,40 @@ export async function addPhysicalExam(formData: FormData) {
        ${get("physicianSignature") || null}, ${session.username})
   `;
 
-    revalidatePath(BASE);
+  revalidatePath(BASE);
 }
 
 export async function deletePhysicalExam(formData: FormData) {
-    const session = await getSession();
-    if (!session || !canManageRecords(session.role)) return;
+  const session = await getSession();
+  if (!session || !canManageRecords(session.role)) return;
 
-    const examId = Number(formData.get("examId"));
-    if (!examId) return;
+  const examId = Number(formData.get("examId"));
+  if (!examId) return;
 
-    await prisma.$executeRaw`
+  await prisma.$executeRaw`
     DELETE FROM employee_physical_exams WHERE exam_id = ${examId}
   `;
 
-    revalidatePath(BASE);
+  revalidatePath(BASE);
 }
 
 export async function addLabExam(formData: FormData) {
-    const session = await getSession();
-    if (!session || !canManageRecords(session.role)) return;
+  const session = await getSession();
+  if (!session || !canManageRecords(session.role)) return;
 
-    const get = (key: string) => String(formData.get(key) ?? "").trim();
+  const get = (key: string) => String(formData.get(key) ?? "").trim();
 
-    const employeeNumber = get("employeeNumber");
-    const examDate = get("examDate");
-    if (!employeeNumber || !examDate) return;
+  const employeeNumber = get("employeeNumber");
+  const examDate = get("examDate");
+  if (!employeeNumber || !examDate) return;
 
-    const rows = await prisma.$queryRaw<{ employee_id: number }[]>`
+  const rows = await prisma.$queryRaw<{ employee_id: number }[]>`
     SELECT employee_id FROM employees WHERE employee_number = ${employeeNumber} LIMIT 1
   `;
-    const employeeId = rows[0]?.employee_id;
-    if (!employeeId) return;
+  const employeeId = rows[0]?.employee_id;
+  if (!employeeId) return;
 
-    await prisma.$executeRaw`
+  await prisma.$executeRaw`
     INSERT INTO employee_lab_exams
       (employee_id, exam_date, findings, recommendations, physician_signature, recorded_by)
     VALUES
@@ -216,19 +218,19 @@ export async function addLabExam(formData: FormData) {
        ${session.username})
   `;
 
-    revalidatePath(BASE);
+  revalidatePath(BASE);
 }
 
 export async function deleteLabExam(formData: FormData) {
-    const session = await getSession();
-    if (!session || !canManageRecords(session.role)) return;
+  const session = await getSession();
+  if (!session || !canManageRecords(session.role)) return;
 
-    const labId = Number(formData.get("labId"));
-    if (!labId) return;
+  const labId = Number(formData.get("labId"));
+  if (!labId) return;
 
-    await prisma.$executeRaw`
+  await prisma.$executeRaw`
     DELETE FROM employee_lab_exams WHERE lab_id = ${labId}
   `;
 
-    revalidatePath(BASE);
-}
+  revalidatePath(BASE);
+} 

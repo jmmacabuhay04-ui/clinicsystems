@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Pencil } from "lucide-react";
+import { Pencil, Archive } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { canManageRecords, canViewHealthRecords } from "@/lib/permissions";
@@ -10,6 +10,7 @@ import ConfirmLink from "@/components/shared/confirm-link";
 import PrintHeader from "@/components/layout/print-header";
 import FlashMessage from "@/components/shared/flash-message";
 import PersonPicker, { BackToList } from "@/components/shared/person-picker";
+import { archiveHealthForm } from "@/features/health-forms/archive-actions";
 
 const BASE = "/dashboard/health-declaration";
 
@@ -25,6 +26,7 @@ type StudentRow = {
 };
 
 type DeclarationRow = {
+    declaration_id: number;
     school_year: string | null;
     grade_section: string | null;
     residence_address: string | null;
@@ -108,7 +110,7 @@ export default async function HealthDeclarationPage({ searchParams }: Props) {
 
     const students = await prisma.$queryRaw<StudentRow[]>`
     SELECT s.student_id, s.student_number, s.last_name, s.first_name, s.middle_name, s.grade_level, s.program,
-           EXISTS (SELECT 1 FROM health_declarations f WHERE f.student_id = s.student_id) AS has_form
+           EXISTS (SELECT 1 FROM health_declarations f WHERE f.student_id = s.student_id AND f.archived_at IS NULL) AS has_form
     FROM students s
     WHERE s.archived_at IS NULL
       AND (
@@ -128,7 +130,7 @@ export default async function HealthDeclarationPage({ searchParams }: Props) {
     let form: DeclarationRow | undefined;
     if (selected) {
         const rows = await prisma.$queryRaw<DeclarationRow[]>`
-      SELECT * FROM health_declarations WHERE student_id = ${selected.student_id} LIMIT 1
+      SELECT * FROM health_declarations WHERE student_id = ${selected.student_id} AND archived_at IS NULL LIMIT 1
     `;
         form = rows[0];
     }
@@ -171,6 +173,7 @@ export default async function HealthDeclarationPage({ searchParams }: Props) {
                             <Pencil className="h-4 w-4" />
                             {form ? "Edit Form" : "Fill Out Form"}
                         </ConfirmLink>
+
                     </div>
                 )}
             </div>
@@ -192,6 +195,9 @@ export default async function HealthDeclarationPage({ searchParams }: Props) {
                         heading="Students"
                         activeKey={studentNumber}
                         confirmTitle="View health declaration"
+                        editParam="student"
+                        archiveAction={archiveHealthForm}
+                        archiveKind="declaration"
                         emptyText="No students found."
                         items={students.map((s) => ({
                             key: s.student_number,

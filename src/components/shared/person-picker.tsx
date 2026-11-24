@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ChevronRight, Search } from "lucide-react";
-import ConfirmLink from "@/components/shared/confirm-link";
+import RowActionMenu, { type RowAction } from "@/components/shared/row-action-menu";
 import SearchInput from "@/components/shared/search-input";
 
 // Listahan ng mga tao sa mga form page (Student/Employee Health Form, Dental Health Form,
@@ -32,6 +32,12 @@ type Props = {
     subLabel?: string;
     /** Salita para sa may form, hal. "On file" o "Submitted" */
     onFileLabel?: string;
+    /** Server action ng Archive (sa ⋮ menu). Kapag wala, walang Archive option. */
+    archiveAction?: (formData: FormData) => void | Promise<void>;
+    /** Uri ng form para sa archive: student, employee, dental, o declaration */
+    archiveKind?: "student" | "employee" | "dental" | "declaration";
+    /** Pangalan ng query param ng edit page, hal. "student" o "employee" */
+    editParam?: string;
 };
 
 export default function PersonPicker({
@@ -45,6 +51,9 @@ export default function PersonPicker({
     status = "",
     subLabel = "ID / Details",
     onFileLabel = "On file",
+    archiveAction,
+    archiveKind,
+    editParam = "student",
 }: Props) {
     const onFile = items.filter((i) => i.hasForm).length;
     const filters = [
@@ -113,7 +122,7 @@ export default function PersonPicker({
                                     <p className="truncate text-sm text-gray-600">{item.sub}</p>
                                     <StatusBadge hasForm={item.hasForm} onFileLabel={onFileLabel} />
                                 </div>
-                                <OpenButton item={item} confirmTitle={confirmTitle} />
+                                <OpenButton item={item} confirmTitle={confirmTitle} archiveAction={archiveAction} archiveKind={archiveKind} editParam={editParam} base={base} />
                             </li>
                         ))}
                     </ul>
@@ -145,7 +154,7 @@ export default function PersonPicker({
                                             <StatusBadge hasForm={item.hasForm} onFileLabel={onFileLabel} />
                                         </td>
                                         <td className="px-5 py-3 text-right">
-                                            <OpenButton item={item} confirmTitle={confirmTitle} />
+                                            <OpenButton item={item} confirmTitle={confirmTitle} archiveAction={archiveAction} archiveKind={archiveKind} editParam={editParam} base={base} />
                                         </td>
                                     </tr>
                                 ))}
@@ -173,21 +182,55 @@ function StatusBadge({ hasForm, onFileLabel }: { hasForm: boolean; onFileLabel: 
     );
 }
 
-function OpenButton({ item, confirmTitle }: { item: PickerItem; confirmTitle: string }) {
-    return (
-        <ConfirmLink
-            href={item.href}
-            title={confirmTitle}
-            message={item.message}
-            className={`inline-flex h-9 shrink-0 items-center gap-1 rounded-lg px-3 text-sm font-semibold ${item.hasForm
-                ? "border border-[#15664f] bg-white text-[#15664f] hover:bg-[#eef6f2]"
-                : "bg-[#15664f] text-white hover:bg-[#10523f]"
-                }`}
-        >
-            {item.hasForm ? "View" : "Open"}
-            <ChevronRight className="h-4 w-4" />
-        </ConfirmLink>
-    );
+function OpenButton({
+    item,
+    confirmTitle,
+    archiveAction,
+    archiveKind,
+    editParam,
+    base,
+}: {
+    item: PickerItem;
+    confirmTitle: string;
+    archiveAction?: (formData: FormData) => void | Promise<void>;
+    archiveKind?: "student" | "employee" | "dental" | "declaration";
+    editParam: string;
+    base: string;
+}) {
+    const editHref = `${base}/edit?${editParam}=${encodeURIComponent(item.key)}`;
+    const actions: RowAction[] = [
+        {
+            label: "Open form",
+            href: editHref,
+            title: item.hasForm ? "Edit form" : "Fill out form",
+            message: `${item.hasForm ? "Edit" : "Fill out"} the form of ${item.name} (${item.key})?`,
+            confirmLabel: item.hasForm ? "Edit" : "Continue",
+            icon: "edit",
+        },
+    ];
+    if (item.hasForm) {
+        actions.push({
+            label: "View form",
+            href: item.href,
+            title: confirmTitle,
+            message: item.message,
+            icon: "view",
+        });
+    }
+    // Archive: kapareho ng format ng records (⋮ menu na may confirmation)
+    if (item.hasForm && archiveAction && archiveKind) {
+        actions.push({
+            label: "Archive form",
+            href: item.href,
+            title: "Archive health form",
+            message: `Archive the health form of ${item.name} (${item.key})? It will move to Archive Records. You can restore it there.`,
+            confirmLabel: "Archive",
+            icon: "archive",
+            formAction: archiveAction,
+            fields: { kind: archiveKind, personNumber: item.key },
+        });
+    }
+    return <RowActionMenu actions={actions} />;
 }
 
 // "Back to list" na link sa itaas ng form kapag may napiling tao

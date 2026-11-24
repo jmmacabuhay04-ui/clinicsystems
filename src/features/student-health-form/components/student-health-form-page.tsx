@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { FileHeart, Pencil } from "lucide-react";
+import { FileHeart, Pencil, Archive } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { canManageRecords, canViewHealthRecords } from "@/lib/permissions";
@@ -15,6 +15,7 @@ import ConfirmLink from "@/components/shared/confirm-link";
 import PrintHeader from "@/components/layout/print-header";
 import FlashMessage from "@/components/shared/flash-message";
 import PersonPicker, { BackToList } from "@/components/shared/person-picker";
+import { archiveHealthForm } from "@/features/health-forms/archive-actions";
 
 const BASE = "/dashboard/student-health-form";
 
@@ -32,6 +33,7 @@ type StudentRow = {
 };
 
 type FormRow = {
+    form_id: number;
     sex: string | null;
     date_of_birth: Date | null;
     birthplace: string | null;
@@ -126,7 +128,7 @@ export default async function StudentHealthFormPage({ searchParams }: Props) {
     const students = await prisma.$queryRaw<StudentRow[]>`
     SELECT s.student_id, s.student_number, s.last_name, s.first_name, s.middle_name,
            s.grade_level, s.program, s.date_of_birth, s.gender,
-           EXISTS (SELECT 1 FROM student_health_forms f WHERE f.student_id = s.student_id) AS has_form
+           EXISTS (SELECT 1 FROM student_health_forms f WHERE f.student_id = s.student_id AND f.archived_at IS NULL) AS has_form
     FROM students s
     WHERE s.archived_at IS NULL
       AND (
@@ -146,7 +148,7 @@ export default async function StudentHealthFormPage({ searchParams }: Props) {
     let form: FormRow | undefined;
     if (selected) {
         const rows = await prisma.$queryRaw<FormRow[]>`
-      SELECT * FROM student_health_forms WHERE student_id = ${selected.student_id} LIMIT 1
+      SELECT * FROM student_health_forms WHERE student_id = ${selected.student_id} AND archived_at IS NULL LIMIT 1
     `;
         form = rows[0];
     }
@@ -191,6 +193,7 @@ export default async function StudentHealthFormPage({ searchParams }: Props) {
                             <Pencil className="h-4 w-4" />
                             {form ? "Edit Form" : "Fill Out Form"}
                         </ConfirmLink>
+
                     </div>
                 )}
             </div>
@@ -212,6 +215,9 @@ export default async function StudentHealthFormPage({ searchParams }: Props) {
                         heading="Students"
                         activeKey={studentNumber}
                         confirmTitle="View health form"
+                        editParam="student"
+                        archiveAction={archiveHealthForm}
+                        archiveKind="student"
                         emptyText="No students found."
                         items={students.map((s) => ({
                             key: s.student_number,

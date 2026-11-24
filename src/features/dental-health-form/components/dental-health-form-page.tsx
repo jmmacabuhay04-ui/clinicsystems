@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { Pencil } from "lucide-react";
+import { Pencil, Archive } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { canManageDentalForm, canViewDental } from "@/lib/permissions";
@@ -10,6 +10,7 @@ import ConfirmLink from "@/components/shared/confirm-link";
 import PrintHeader from "@/components/layout/print-header";
 import FlashMessage from "@/components/shared/flash-message";
 import PersonPicker, { BackToList } from "@/components/shared/person-picker";
+import { archiveHealthForm } from "@/features/health-forms/archive-actions";
 
 const BASE = "/dashboard/dental-health-form";
 
@@ -27,6 +28,7 @@ type StudentRow = {
 };
 
 type FormRow = {
+    form_id: number;
     level: string | null;
     section: string | null;
     age: number | null;
@@ -104,7 +106,7 @@ export default async function DentalHealthFormPage({ searchParams }: Props) {
 
     const students = await prisma.$queryRaw<StudentRow[]>`
     SELECT s.student_id, s.student_number, s.last_name, s.first_name, s.middle_name, s.grade_level, s.program, s.date_of_birth, s.gender,
-           EXISTS (SELECT 1 FROM dental_health_forms f WHERE f.student_id = s.student_id) AS has_form
+           EXISTS (SELECT 1 FROM dental_health_forms f WHERE f.student_id = s.student_id AND f.archived_at IS NULL) AS has_form
     FROM students s
     WHERE s.archived_at IS NULL
       AND (
@@ -133,11 +135,10 @@ export default async function DentalHealthFormPage({ searchParams }: Props) {
     let form: FormRow | undefined;
     if (selected) {
         const rows = await prisma.$queryRaw<FormRow[]>`
-      SELECT level, section, age, sex, chart, periodontal, occlusion, treatment,
+      SELECT form_id, level, section, age, sex, chart, periodontal, occlusion, treatment,
              remarks, exam_date, examined_by, updated_by, updated_at
       FROM dental_health_forms
-      WHERE student_id = ${selected.student_id}
-      LIMIT 1
+      WHERE student_id = ${selected.student_id} AND archived_at IS NULL LIMIT 1
     `;
         form = rows[0];
     }
@@ -194,6 +195,7 @@ export default async function DentalHealthFormPage({ searchParams }: Props) {
                                 {form ? "Edit Form" : "Fill Out Form"}
                             </ConfirmLink>
                         )}
+
                     </div>
                 )}
             </div>
@@ -214,6 +216,9 @@ export default async function DentalHealthFormPage({ searchParams }: Props) {
                         heading="Students"
                         activeKey={studentNumber}
                         confirmTitle="View dental health record"
+                        editParam="student"
+                        archiveAction={archiveHealthForm}
+                        archiveKind="dental"
                         emptyText="No students found."
                         items={students.map((s) => ({
                             key: s.student_number,

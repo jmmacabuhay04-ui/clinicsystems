@@ -14,7 +14,11 @@ export type RecordKind =
     | "dental"
     | "case_report"
     | "referral_slip"
-    | "staff";
+    | "staff"
+    | "student_form"
+    | "employee_form"
+    | "dental_form"
+    | "health_declaration";
 
 /** Years a person's record is held before it can be deleted for good. */
 export const RETENTION_YEARS = 5;
@@ -29,6 +33,10 @@ export const RETENTION_BY_KIND: Record<RecordKind, number> = {
     case_report: RETENTION_YEARS,
     referral_slip: RETENTION_YEARS,
     staff: RETENTION_YEARS,
+    student_form: RETENTION_YEARS,
+    employee_form: RETENTION_YEARS,
+    dental_form: RETENTION_YEARS,
+    health_declaration: RETENTION_YEARS,
 };
 
 /** Years kept for one kind of record. Defaults to the person period. */

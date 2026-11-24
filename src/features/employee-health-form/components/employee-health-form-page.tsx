@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2, Archive } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { canManageRecords, canViewHealthRecords } from "@/lib/permissions";
@@ -16,6 +16,7 @@ import ConfirmLink from "@/components/shared/confirm-link";
 import PrintHeader from "@/components/layout/print-header";
 import FlashMessage from "@/components/shared/flash-message";
 import PersonPicker, { BackToList } from "@/components/shared/person-picker";
+import { archiveHealthForm } from "@/features/health-forms/archive-actions";
 
 const BASE = "/dashboard/employee-health-form";
 
@@ -33,6 +34,7 @@ type EmployeeRow = {
 };
 
 type FormRow = {
+    form_id: number;
     sex: string | null;
     date_of_birth: Date | null;
     birthplace: string | null;
@@ -141,7 +143,7 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
 
     const employees = await prisma.$queryRaw<EmployeeRow[]>`
     SELECT e.employee_id, e.employee_number, e.last_name, e.first_name, e.middle_name, e.department, e.position, e.date_of_birth, e.gender,
-           EXISTS (SELECT 1 FROM employee_health_forms f WHERE f.employee_id = e.employee_id) AS has_form
+           EXISTS (SELECT 1 FROM employee_health_forms f WHERE f.employee_id = e.employee_id AND f.archived_at IS NULL) AS has_form
     FROM employees e
     WHERE e.archived_at IS NULL
       AND (
@@ -164,7 +166,7 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
 
     if (selected) {
         const rows = await prisma.$queryRaw<FormRow[]>`
-      SELECT * FROM employee_health_forms WHERE employee_id = ${selected.employee_id} LIMIT 1
+      SELECT * FROM employee_health_forms WHERE employee_id = ${selected.employee_id} AND archived_at IS NULL LIMIT 1
     `;
         form = rows[0];
 
@@ -224,6 +226,7 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
                             <Pencil className="h-4 w-4" />
                             {form ? "Edit Form" : "Fill Out Form"}
                         </ConfirmLink>
+
                     </div>
                 )}
             </div>
@@ -245,6 +248,9 @@ export default async function EmployeeHealthFormPage({ searchParams }: Props) {
                         heading="Employees"
                         activeKey={employeeNumber}
                         confirmTitle="View health form"
+                        editParam="employee"
+                        archiveAction={archiveHealthForm}
+                        archiveKind="employee"
                         emptyText="No employees found."
                         items={employees.map((e) => ({
                             key: e.employee_number,
