@@ -28,7 +28,7 @@ type Row = {
 
 const BASE = "/dashboard/activities";
 const PAGE_SIZE = 20;
-const KIND_LABELS: Record<string, string> = { clinic: "New Clinic Visit", dental: "New Dental Visit", report: "Case Report Created" };
+const KIND_LABELS: Record<string, string> = { clinic: "New Clinic Visit", dental: "New Dental Visit", report: "New Case Report" };
 
 function ToothIcon({ className }: { className?: string }) {
     return (
@@ -41,9 +41,9 @@ function ToothIcon({ className }: { className?: string }) {
 // Kapareho ng icon at kulay sa Recent Activities ng Dashboard
 function ActivityLabel({ kind }: { kind: Row["kind"] }) {
     const meta = {
-        clinic: { Icon: Stethoscope, tile: "bg-[#eef6f2] text-[#15664f]" },
-        dental: { Icon: ToothIcon, tile: "bg-cyan-50 text-cyan-700" },
-        report: { Icon: ClipboardList, tile: "bg-amber-100 text-amber-700" },
+        clinic: { Icon: Stethoscope, tile: "bg-green-100 text-green-700" },
+        dental: { Icon: ToothIcon, tile: "bg-yellow-100 text-yellow-700" },
+        report: { Icon: ClipboardList, tile: "bg-blue-100 text-blue-700" },
     }[kind];
     return (
         <span className="flex items-center gap-2.5">

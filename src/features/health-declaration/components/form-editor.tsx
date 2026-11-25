@@ -48,7 +48,7 @@ export default function HealthDeclarationEditor({
     const t = values.text;
 
     return (
-        <form action={formAction} className="space-y-6">
+        <form action={formAction} className="space-y-6" noValidate>
             {state.error && (
                 <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
                     {state.error}

@@ -107,14 +107,20 @@ export default function PortalAvatarForm({
     // Nadadagdagan bawat save para lumabas ulit ang 3-second message.
     const [flashKey, setFlashKey] = useState(0);
 
-    // Kapag nag-success ang save, ituring na naka-save na ang preview
-    useEffect(() => {
+    // Kapag nag-success ang save, ituring na naka-save na ang preview.
+    // Sa render mismo inaayos (hindi sa effect) para walang cascading re-render.
+    const [handledState, setHandledState] = useState(state);
+    if (state !== handledState) {
+        setHandledState(state);
         if (state.success) {
             setSaved(preview);
             setData("");
-            if (fileRef.current) fileRef.current.value = "";
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }
+
+    // Linisin ang file input (DOM lang, kaya nasa effect)
+    useEffect(() => {
+        if (state.success && fileRef.current) fileRef.current.value = "";
     }, [state]);
 
     // Isara ang camera kapag nag-click sa labas ng buong header row
@@ -369,4 +375,4 @@ export default function PortalAvatarForm({
             )}
         </div>
     );
-}
+}     

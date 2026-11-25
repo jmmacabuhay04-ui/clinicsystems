@@ -44,6 +44,24 @@ const STATUSES = [
     { value: "resolved", label: "Resolved", dot: "bg-green-500", checked: "peer-checked:border-green-300 peer-checked:bg-green-100 peer-checked:text-green-700" },
 ];
 
+// BMI = timbang (kg) / (taas (m))². Walang lumalabas kapag kulang o mali ang weight/height.
+function computeBmi(weightKg: string, heightCm: string): string {
+    const w = parseFloat(weightKg);
+    const h = parseFloat(heightCm) / 100;
+    if (!w || !h || w <= 0 || h <= 0) return "";
+    return (w / (h * h)).toFixed(1);
+}
+
+// BMI category (WHO): <18.5 Underweight, 18.5–24.9 Normal, 25–29.9 Overweight, ≥30 Obese
+function bmiCategory(bmi: string): string {
+    const v = parseFloat(bmi);
+    if (!bmi || Number.isNaN(v)) return "";
+    if (v < 18.5) return "Underweight";
+    if (v < 25) return "Normal";
+    if (v < 30) return "Overweight";
+    return "Obese";
+}
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
     return (
         <label className="block space-y-1.5">
@@ -103,6 +121,9 @@ export default function RecordForm({
     const idValue = v.studentNumber ?? v.employeeNumber ?? studentNumber;
     const height = v.height ?? v.heightCm ?? "";
     const weight = v.weight ?? v.weightKg ?? "";
+    const [bmiWeight, setBmiWeight] = useState(String(weight));
+    const [bmiHeight, setBmiHeight] = useState(String(height));
+    const bmi = computeBmi(bmiWeight, bmiHeight);
     const people = isStudent ? students : employees;
     const [notesLength, setNotesLength] = useState((v.notes ?? "").length);
 
@@ -250,6 +271,7 @@ export default function RecordForm({
                                 type="number"
                                 step="0.1"
                                 defaultValue={weight}
+                                onChange={(e) => setBmiWeight(e.target.value)}
                                 placeholder="54"
                                 suppressHydrationWarning
                                 className={inputClass}
@@ -262,10 +284,17 @@ export default function RecordForm({
                                 type="number"
                                 step="0.1"
                                 defaultValue={height}
+                                onChange={(e) => setBmiHeight(e.target.value)}
                                 placeholder="165"
                                 suppressHydrationWarning
                                 className={inputClass}
                             />
+                        </Field>
+                        <Field label="BMI (kg/m²)">
+                            <input readOnly value={bmi} placeholder="Auto" className={`${inputClass} bg-gray-50`} />
+                        </Field>
+                        <Field label="BMI Category">
+                            <input readOnly value={bmiCategory(bmi)} placeholder="Auto" className={`${inputClass} bg-gray-50`} />
                         </Field>
                     </div>
 

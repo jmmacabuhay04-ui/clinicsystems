@@ -574,9 +574,9 @@ function RecentActivity({
     compact?: boolean;
 }) {
     const meta = {
-        clinic: { icon: Stethoscope, tile: "bg-[#eef6f2] text-[#15664f]", label: "New Clinic Visit" },
-        dental: { icon: ToothIcon, tile: "bg-cyan-50 text-cyan-700", label: "New Dental Visit" },
-        report: { icon: ClipboardList, tile: "bg-amber-100 text-amber-700", label: "Case Report Created" },
+        clinic: { icon: Stethoscope, tile: "bg-green-100 text-green-700", label: "New Clinic Visit" },
+        dental: { icon: ToothIcon, tile: "bg-yellow-100 text-yellow-700", label: "New Dental Visit" },
+        report: { icon: ClipboardList, tile: "bg-blue-100 text-blue-700", label: "New Case Report" },
     } as const;
 
     return (
