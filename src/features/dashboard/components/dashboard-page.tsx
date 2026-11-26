@@ -1195,8 +1195,9 @@ export default async function DashboardPage({
     if (isItTech) {
         return (
             <main data-keep-shape className="min-w-0 space-y-6 p-4 pb-8 md:p-8">
-                <div className="flex justify-end">
+                <div className="flex items-center justify-end gap-3">
                     <NotificationBell items={[passwordRequestBell]} />
+                    <UserMenu displayName={displayName} roleName={roleName} avatar={me?.avatar} initials={(baseName || "U").charAt(0).toUpperCase()} />
                 </div>
                 {banner}
             </main>
