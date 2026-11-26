@@ -301,10 +301,16 @@ export default async function ReferralSlipsPage({ searchParams }: Props) {
                                                 {s.slip_type !== "gate" && (
                                                     <p className="text-sm text-gray-600">
                                                         Teacher: <span className="font-semibold text-gray-900">{s.teacher_name ?? "—"}</span>
-                                                        {s.subject ? <span> · {s.subject}</span> : null}
                                                     </p>
                                                 )}
-                                                <p className="break-words text-sm text-gray-900">{s.reason || "—"}</p>
+                                                {s.slip_type !== "gate" && (
+                                                    <p className="text-sm text-gray-600">
+                                                        Subject: <span className="font-semibold text-gray-900">{s.subject || "—"}</span>
+                                                    </p>
+                                                )}
+                                                <p className="text-sm text-gray-600">
+                                                    Reason: <span className="break-words font-semibold text-gray-900">{s.reason || "—"}</span>
+                                                </p>
                                             </div>
 
                                             {/* Ibaba: oras (at petsa kapag hindi ngayong araw) at mga button */}

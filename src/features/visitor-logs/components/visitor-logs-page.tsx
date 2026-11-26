@@ -1,12 +1,13 @@
 import TabSelect from "@/components/shared/tab-select";
 import { redirect } from "next/navigation";
-import { CalendarDays, DoorOpen, Files, LogIn, LogOut, UserCheck, Users } from "lucide-react";
+import { Archive, CalendarDays, DoorOpen, Files, LogIn, LogOut, UserCheck, Users } from "lucide-react";
+import ConfirmButton from "@/components/shared/confirm-button";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { canManageVisitors } from "@/lib/permissions";
 import VisitorForm from "./visitor-form";
 import SlipDatePicker from "@/features/referral-slips/components/slip-date-picker";
-import { setTimeOut } from "@/features/visitor-logs/actions";
+import { archiveVisitor, setTimeOut } from "@/features/visitor-logs/actions";
 
 type VisitorRow = {
     visitor_id: number;
@@ -217,7 +218,6 @@ export default async function VisitorRecordingPage({ searchParams }: Props) {
                                                 </span>
                                                 <div className="min-w-0">
                                                     <p className="break-words font-semibold capitalize text-gray-900">{v.visitor_name}</p>
-                                                    {v.relation && <p className="text-sm text-gray-600">{v.relation}</p>}
                                                 </div>
                                             </div>
                                             <span
@@ -230,9 +230,13 @@ export default async function VisitorRecordingPage({ searchParams }: Props) {
                                         </div>
 
                                         {/* Gitna: purpose */}
-                                        <div className="mt-3 rounded-lg bg-[#f6faf8] px-3 py-2">
-                                            <p className="text-sm text-gray-600">Purpose</p>
-                                            <p className="break-words text-sm text-gray-900">{v.purpose || "—"}</p>
+                                        <div className="mt-3 space-y-1 rounded-lg bg-[#f6faf8] px-3 py-2">
+                                            <p className="text-sm text-gray-600">
+                                                Purpose: <span className="break-words font-semibold text-gray-900">{v.purpose || "—"}</span>
+                                            </p>
+                                            <p className="text-sm text-gray-600">
+                                                Relation: <span className="break-words font-semibold text-gray-900">{v.relation || "—"}</span>
+                                            </p>
                                         </div>
 
                                         {/* Ibaba: Time In → Time Out (at petsa kapag hindi ngayong araw), Time Out button */}
@@ -249,19 +253,35 @@ export default async function VisitorRecordingPage({ searchParams }: Props) {
                                                     {v.time_out ? to12Hour(v.time_out) : "—"}
                                                 </span>
                                             </p>
-                                            {isInside && canEdit && (
-                                                <form action={setTimeOut}>
-                                                    <input type="hidden" name="visitorId" value={v.visitor_id} />
-                                                    <input type="hidden" name="timeOut" value={timeNow} />
-                                                    <button
-                                                        type="submit"
-                                                        className="inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-md bg-[#15664f] px-3 text-sm font-semibold text-white hover:bg-[#10523f]"
-                                                    >
-                                                        <LogOut className="h-3.5 w-3.5" />
-                                                        Time Out
-                                                    </button>
-                                                </form>
-                                            )}
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                {tab === "all" && canEdit && (
+                                                    <form action={archiveVisitor}>
+                                                        <input type="hidden" name="visitorId" value={v.visitor_id} />
+                                                        <ConfirmButton
+                                                            title="Archive visitor"
+                                                            confirmLabel="Archive"
+                                                            message={`Archive the visit of ${v.visitor_name}?`}
+                                                            className="inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-md border border-amber-300 bg-white px-3 text-sm font-semibold text-amber-700 hover:bg-amber-50"
+                                                        >
+                                                            <Archive className="h-3.5 w-3.5" />
+                                                            Archive
+                                                        </ConfirmButton>
+                                                    </form>
+                                                )}
+                                                {isInside && canEdit && (
+                                                    <form action={setTimeOut}>
+                                                        <input type="hidden" name="visitorId" value={v.visitor_id} />
+                                                        <input type="hidden" name="timeOut" value={timeNow} />
+                                                        <button
+                                                            type="submit"
+                                                            className="inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-md bg-[#15664f] px-3 text-sm font-semibold text-white hover:bg-[#10523f]"
+                                                        >
+                                                            <LogOut className="h-3.5 w-3.5" />
+                                                            Time Out
+                                                        </button>
+                                                    </form>
+                                                )}
+                                            </div>
                                         </div>
                                     </li>
                                 );

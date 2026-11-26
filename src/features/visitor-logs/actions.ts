@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { canManageVisitors } from "@/lib/permissions";
+import { RETENTION_YEARS } from "@/lib/retention";
 
 const BASE = "/dashboard/visitor-recording";
 
@@ -54,6 +55,58 @@ export async function logVisitor(
     return { success: `${name} has been logged in.` };
 }
 
+// Ibalik ang archived na visitor log sa listahan
+export async function restoreVisitor(formData: FormData) {
+    const session = await getSession();
+    if (!session || !canManageVisitors(session.role)) return;
+
+    const visitorId = Number(formData.get("visitorId"));
+    if (!visitorId) return;
+
+    await prisma.$executeRaw`
+    UPDATE visitor_logs SET archived_at = NULL, archived_by = NULL
+    WHERE visitor_id = ${visitorId} AND archived_at IS NOT NULL
+  `;
+
+    refresh();
+    revalidatePath("/dashboard/archive-records");
+}
+
+// Permanenteng burahin, pero kapag lumampas na sa retention (5 taon)
+export async function deleteVisitor(formData: FormData) {
+    const session = await getSession();
+    if (!session || !canManageVisitors(session.role)) return;
+
+    const visitorId = Number(formData.get("visitorId"));
+    if (!visitorId) return;
+
+    await prisma.$executeRaw`
+    DELETE FROM visitor_logs
+    WHERE visitor_id = ${visitorId} AND archived_at IS NOT NULL
+      AND archived_at < NOW() - (${RETENTION_YEARS} || ' years')::interval
+  `;
+
+    refresh();
+    revalidatePath("/dashboard/archive-records");
+}
+
+// Archive ng visitor log (hindi na makikita sa listahan; makikita sa Archive Records)
+export async function archiveVisitor(formData: FormData) {
+    const session = await getSession();
+    if (!session || !canManageVisitors(session.role)) return;
+
+    const visitorId = Number(formData.get("visitorId"));
+    if (!visitorId) return;
+
+    await prisma.$executeRaw`
+    UPDATE visitor_logs
+    SET archived_at = NOW(), archived_by = ${session.userId}
+    WHERE visitor_id = ${visitorId} AND archived_at IS NULL
+  `;
+
+    refresh();
+}
+
 export async function setTimeOut(formData: FormData) {
     const session = await getSession();
     if (!session || !canManageVisitors(session.role)) return;
@@ -70,4 +123,3 @@ export async function setTimeOut(formData: FormData) {
 
     refresh();
 }
-

@@ -4,6 +4,7 @@ import {
     Archive,
     Briefcase,
     ClipboardList,
+    DoorOpen,
     FileText,
     GraduationCap,
     Layers,
@@ -19,7 +20,7 @@ import {
 import { prisma } from "@/lib/prisma";
 import { InactiveBadge } from "@/components/shared/list-ui";
 import { getSession } from "@/lib/auth/session";
-import { canManageDental, canManageRecords, canManageReferrals, canManageStaff, canManageStudents } from "@/lib/permissions";
+import { canManageDental, canManageRecords, canManageReferrals, canManageStaff, canManageStudents, canManageVisitors } from "@/lib/permissions";
 
 import ConfirmButton from "@/components/shared/confirm-button";
 import TabSelect from "@/components/shared/tab-select";
@@ -29,6 +30,7 @@ import { deleteStudent, restoreStudent } from "@/features/students/actions";
 import { deleteCase, restoreCase } from "@/features/case-reports/case-actions";
 import { deleteDental, restoreDental } from "@/features/dental-records/actions";
 import { deleteSlip, restoreSlip } from "@/features/referral-slips/actions";
+import { deleteVisitor, restoreVisitor } from "@/features/visitor-logs/actions";
 import { deleteStaff, restoreStaff } from "@/features/clinic-staff/actions";
 import {
     restoreStudentForm,
@@ -131,6 +133,17 @@ type ArchivedSlip = {
     reason: string;
     slip_date: Date;
     status: string;
+    archived_at: Date;
+};
+
+type ArchivedVisitor = {
+    visitor_id: number;
+    visitor_name: string;
+    relation: string | null;
+    purpose: string;
+    visit_date: Date;
+    time_in: string;
+    time_out: string | null;
     archived_at: Date;
 };
 
@@ -423,8 +436,9 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
     const canEditEmployees = canManageStudents(session.role); // students at employees: nurse lang
     const canEditDental = canManageDental(session.role); // nurse, dentist
     const canEditSlips = canManageReferrals(session.role); // nurse, doctor, dentist
+    const canEditVisitors = canManageVisitors(session.role); // nurse, doctor, dentist
 
-    const [students, employees, records, employeeRecords, cases, dental, slips, staff] =
+    const [students, employees, records, employeeRecords, cases, dental, slips, visitors, staff] =
         await Promise.all([
             prisma.$queryRaw<ArchivedStudent[]>`
       SELECT s.student_id, s.student_number, s.last_name, s.first_name,
@@ -514,6 +528,13 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
              OR s.last_name ILIKE ${like} OR s.first_name ILIKE ${like})
       ORDER BY f.archived_at DESC
     `,
+            prisma.$queryRaw<ArchivedVisitor[]>`
+      SELECT visitor_id, visitor_name, relation, purpose, visit_date, time_in, time_out, archived_at
+      FROM visitor_logs
+      WHERE archived_at IS NOT NULL
+        AND (${q}::text = '' OR visitor_name ILIKE ${like} OR COALESCE(relation, '') ILIKE ${like})
+      ORDER BY archived_at DESC
+    `,
             prisma.$queryRaw<ArchivedStaff[]>`
       SELECT staff_id, full_name, position, email, license_no, archived_at
       FROM clinic_staff
@@ -532,6 +553,7 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
         cases.length +
         dental.length +
         slips.length +
+        visitors.length +
         staff.length;
 
     /* ---------------- Students ---------------- */
@@ -839,6 +861,48 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
         };
     });
 
+    /* ---------------- Visitor logs ---------------- */
+    const visitorItems: Item[] = visitors.map((v) => {
+        const dateLabel = formatDate(v.visit_date);
+        return {
+            key: v.visitor_id,
+            title: v.visitor_name,
+            sub: v.relation ?? "Visitor",
+            fields: [
+                { label: "Purpose", value: v.purpose },
+                { label: "Visit Date", value: dateLabel },
+                { label: "Time", value: `${v.time_in}${v.time_out ? ` – ${v.time_out}` : ""}` },
+            ],
+            cells: [
+                v.visitor_name,
+                v.relation ?? "—",
+                v.purpose,
+                dateLabel,
+                `${v.time_in}${v.time_out ? ` – ${v.time_out}` : ""}`,
+            ],
+            actions: canEditVisitors ? (
+                <>
+                    <RestoreForm
+                        action={restoreVisitor}
+                        name="visitorId"
+                        value={v.visitor_id}
+                        title="Restore visitor"
+                        message={`Restore the visit of ${v.visitor_name}?`}
+                    />
+                    <DeleteForm
+                        action={deleteVisitor}
+                        kind="visitor"
+                        name="visitorId"
+                        value={v.visitor_id}
+                        archivedAt={v.archived_at}
+                        title="Delete visitor"
+                        message={`Permanently delete the visit of ${v.visitor_name}? This cannot be undone.`}
+                    />
+                </>
+            ) : undefined,
+        };
+    });
+
     /* ---------------- Health forms (Student, Employee, Dental, Health Declaration) ---------------- */
     const [studentForms, employeeForms, dentalForms, declarationForms] = await Promise.all([
         prisma.$queryRaw<ArchivedHealthForm[]>`
@@ -1083,6 +1147,22 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                 { label: "Teacher", td: "text-gray-600" },
                 { label: "Reason", td: "text-gray-900" },
                 { label: "Slip Date", nowrap: true, td: "whitespace-nowrap text-gray-600" },
+            ],
+        },
+        {
+            key: "visitors",
+            label: "Visitors",
+            title: "Visitor Recording",
+            icon: DoorOpen as IconType,
+            empty: "No archived visitors.",
+            showActions: canEditVisitors,
+            items: visitorItems,
+            columns: [
+                { label: "Name", td: "font-semibold text-gray-900" },
+                { label: "Relation", td: "text-gray-600" },
+                { label: "Purpose", td: "text-gray-900" },
+                { label: "Visit Date", nowrap: true, td: "whitespace-nowrap text-gray-600" },
+                { label: "Time", nowrap: true, td: "whitespace-nowrap text-gray-600" },
             ],
         },
         {
