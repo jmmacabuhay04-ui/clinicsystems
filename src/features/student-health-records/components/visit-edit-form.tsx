@@ -17,6 +17,24 @@ const inputClass =
     "h-12 w-full rounded-lg border border-gray-300 bg-white px-4 text-sm text-gray-900 outline-none focus:border-[#15664f] focus:ring-2 focus:ring-[#15664f]/20";
 const cardClass = "rounded-xl border-2 border-[#cfe5d9] bg-white p-6 shadow-md shadow-[#15664f]/10 md:p-8";
 
+// BMI = timbang (kg) / (taas (m))². Walang lumalabas kapag kulang o mali ang weight/height.
+function computeBmi(weightKg: string, heightCm: string): string {
+    const w = parseFloat(weightKg);
+    const h = parseFloat(heightCm) / 100;
+    if (!w || !h || w <= 0 || h <= 0) return "";
+    return (w / (h * h)).toFixed(1);
+}
+
+// BMI category (WHO): <18.5 Underweight, 18.5–24.9 Normal, 25–29.9 Overweight, ≥30 Obese
+function bmiCategory(bmi: string): string {
+    const v = parseFloat(bmi);
+    if (!bmi || Number.isNaN(v)) return "";
+    if (v < 18.5) return "Underweight";
+    if (v < 25) return "Normal";
+    if (v < 30) return "Overweight";
+    return "Obese";
+}
+
 const COMMON_REASONS = [
     "Fever",
     "Headache",
@@ -103,6 +121,10 @@ export default function VisitEditForm({ record, cancelHref }: { record: VisitEdi
     const height = sv.height ?? sv.heightCm ?? record.height;
     const weight = sv.weight ?? sv.weightKg ?? record.weight;
     const [notesLength, setNotesLength] = useState((v.notes ?? "").length);
+    // Kontrolado ang weight/height para mag-update ang BMI habang nagta-type
+    const [bmiWeight, setBmiWeight] = useState(weight == null ? "" : String(weight));
+    const [bmiHeight, setBmiHeight] = useState(height == null ? "" : String(height));
+    const bmi = computeBmi(bmiWeight, bmiHeight);
 
     return (
         <form action={formAction} className="space-y-5">
@@ -232,7 +254,8 @@ export default function VisitEditForm({ record, cancelHref }: { record: VisitEdi
                                 name={isStudent ? "weight" : "weightKg"}
                                 type="number"
                                 step="0.1"
-                                defaultValue={weight}
+                                value={bmiWeight}
+                                onChange={(e) => setBmiWeight(e.target.value)}
                                 placeholder="54"
                                 suppressHydrationWarning
                                 className={inputClass}
@@ -243,11 +266,18 @@ export default function VisitEditForm({ record, cancelHref }: { record: VisitEdi
                                 name={isStudent ? "height" : "heightCm"}
                                 type="number"
                                 step="0.1"
-                                defaultValue={height}
+                                value={bmiHeight}
+                                onChange={(e) => setBmiHeight(e.target.value)}
                                 placeholder="165"
                                 suppressHydrationWarning
                                 className={inputClass}
                             />
+                        </Field>
+                        <Field label="BMI (kg/m²)">
+                            <input readOnly value={bmi} placeholder="Auto" className={`${inputClass} bg-gray-50`} />
+                        </Field>
+                        <Field label="BMI Category">
+                            <input readOnly value={bmiCategory(bmi)} placeholder="Auto" className={`${inputClass} bg-gray-50`} />
                         </Field>
                     </div>
 

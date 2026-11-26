@@ -22,7 +22,7 @@ import { archiveCase } from "@/features/case-reports/case-actions";
 import { archiveRecord } from "@/features/student-health-records/record-actions";
 import { archiveStudent } from "@/features/students/actions";
 import { PAST_HISTORY } from "@/features/student-health-form/form-data";
-import { formatDate, show } from "../format";
+import { bmiLabel, formatDate, show } from "../format";
 
 const BASE = "/dashboard/student-health-records";
 const CASES = "/dashboard/health-case-reports";
@@ -997,6 +997,7 @@ export default function StudentRecordView({
                                     value={!hasForm ? "—" : conditions.length ? conditions.join(", ") : "None"}
                                 />
                                 <InfoRow label="Height / Weight" value={`${show(latestVitals?.height_cm, " cm")} / ${show(latestVitals?.weight_kg, " kg")}`} />
+                                <InfoRow label="BMI Category" value={bmiLabel(latestVitals?.height_cm, latestVitals?.weight_kg)} />
                                 <InfoRow label="Blood Pressure" value={show(latestVitals?.blood_pressure)} />
                                 <InfoRow label="Last Check-up" value={latest ? formatDate(latest.date) : "—"} />
                             </dl>

@@ -22,7 +22,7 @@ import { archiveCase } from "@/features/case-reports/case-actions";
 import { archiveEmployeeRecord } from "@/features/employee-health-records/record-actions";
 import { archiveEmployee } from "@/features/employee-health-records/employee-actions";
 import { PAST_HISTORY } from "@/features/employee-health-form/form-data";
-import { formatDate, show } from "@/features/student-health-records/format";
+import { bmiLabel, formatDate, show } from "@/features/student-health-records/format";
 
 const BASE = "/dashboard/employee-health-records";
 const CASES = "/dashboard/health-case-reports";
@@ -995,6 +995,7 @@ export default function EmployeeRecordView({
                                     value={!hasForm ? "—" : conditions.length ? conditions.join(", ") : "None"}
                                 />
                                 <InfoRow label="Height / Weight" value={`${show(latestVitals?.height_cm, " cm")} / ${show(latestVitals?.weight_kg, " kg")}`} />
+                                <InfoRow label="BMI Category" value={bmiLabel(latestVitals?.height_cm, latestVitals?.weight_kg)} />
                                 <InfoRow label="Blood Pressure" value={show(latestVitals?.blood_pressure)} />
                                 <InfoRow label="Last Check-up" value={latest ? formatDate(latest.date) : "—"} />
                             </dl>
