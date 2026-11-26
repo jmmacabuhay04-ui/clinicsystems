@@ -680,7 +680,6 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
                                     </div>
                                     <p className="mt-1 text-sm text-gray-600">
                                         {c.complaint}
-                                        {c.tooth ? ` · Tooth ${c.tooth}` : ""}
                                     </p>
                                     <p className="text-sm text-gray-600">{formatDate(c.report_date)}</p>
                                 </li>
@@ -689,7 +688,17 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
 
                         {/* DESKTOP: table */}
                         <div className="hidden overflow-x-auto md:block">
-                            <table className="w-full text-left text-sm">
+                            {/* Fixed layout + fixed column widths: hindi na gumagalaw ang table kapag nagpalit ng report o filter */}
+                            <table className="w-full table-fixed text-left text-sm">
+                                <colgroup>
+                                    <col className="w-[11%]" />
+                                    <col className="w-[11%]" />
+                                    <col className="w-[21%]" />
+                                    <col className="w-[10%]" />
+                                    <col className="w-[27%]" />
+                                    <col className="w-[13%]" />
+                                    <col className="w-[7%]" />
+                                </colgroup>
                                 <thead className="border-y border-gray-200 bg-[#f6faf8] text-gray-600">
                                     <tr>
                                         <th className="whitespace-nowrap px-5 py-3 font-semibold">Report ID</th>
@@ -718,7 +727,6 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
                                             </td>
                                             <td className="px-5 py-4 text-gray-600">
                                                 {c.complaint}
-                                                {c.tooth && <span className="block text-sm text-gray-500">Tooth {c.tooth}</span>}
                                             </td>
                                             <td className="px-5 py-4">
                                                 <StatusBadge status={c.status} />
