@@ -81,7 +81,7 @@ const navItems: NavEntry[] = [
         icon: ClipboardCheck,
         section: "Health Records",
         children: [
-            { href: "/dashboard/student-health-records", label: "Student Health Records", icon: Stethoscope, roles: ["admin", "doctor", "nurse", "dentist"] },
+            { href: "/dashboard/student-health-records", label: "Student Health Records", icon: Stethoscope, roles: ["admin", "doctor", "nurse", "dentist", "academic_head"] },
             { href: "/dashboard/employee-health-records", label: "Employee Health Records", icon: Stethoscope, roles: ["admin", "doctor", "nurse", "dentist"] },
             // Dental records: makikita sa Dental Records tab ng health record ng pasyente at sa Dental Case Reports
         ],
@@ -105,10 +105,10 @@ const navItems: NavEntry[] = [
         icon: ClipboardList,
         section: "Health Records",
         children: [
-            { href: "/dashboard/health-case-reports", label: "Report", icon: ClipboardList, roles: ["admin", "nurse", "doctor", "dentist"] }, // Dentist: Dental tab lang
+            { href: "/dashboard/health-case-reports", label: "Report", icon: ClipboardList, roles: ["admin", "nurse", "doctor", "dentist", "academic_head"] }, // Dentist: Dental tab lang
         ],
     },
-    { href: "/dashboard/illness-alerts", label: "Illness Alerts", icon: BarChart3, roles: ["admin", "nurse", "doctor", "dentist"], section: "Health Records" },
+    { href: "/dashboard/illness-alerts", label: "Illness Alerts", icon: BarChart3, roles: ["admin", "nurse", "doctor", "dentist", "academic_head"], section: "Health Records" },
     { href: "/dashboard/visitor-recording", label: "Visitor Recording", icon: Users, roles: ["admin", "nurse", "doctor", "dentist"], section: "Clinic" },
     { href: "/dashboard/referral-slips", label: "Referral Slips", icon: FileCheck, roles: ["admin", "nurse", "dentist", "doctor"], section: "Clinic" },
     { href: "/dashboard/archive-records", label: "Archive Records", icon: Archive, roles: ["admin", "nurse"], section: "Clinic" },

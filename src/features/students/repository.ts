@@ -2,6 +2,7 @@
 // Walang permission check o validation dito; puro query lang.
 import { prisma } from "@/lib/prisma";
 import type { StudentDetailRow, StudentFilters, StudentInput, StudentListRow } from "./types";
+import { CATEGORY_REGEX } from "@/lib/academic";
 
 export const studentRepository = {
   /** Isang page ng active (hindi archived) students, may search at filters. */
@@ -13,6 +14,15 @@ export const studentRepository = {
       FROM students
       WHERE archived_at IS NULL
         AND (${f.grade}::text = '' OR LOWER(TRIM(grade_level)) = LOWER(TRIM(${f.grade})))
+        AND (
+          ${f.category ?? ""}::text = ''
+          OR (CASE ${f.category ?? ""}::text
+                WHEN 'elementary' THEN grade_level ~* ${CATEGORY_REGEX.elementary}
+                WHEN 'junior_high' THEN grade_level ~* ${CATEGORY_REGEX.junior_high}
+                WHEN 'senior_high' THEN grade_level ~* ${CATEGORY_REGEX.senior_high}
+                WHEN 'college' THEN grade_level ~* ${CATEGORY_REGEX.college}
+                ELSE false END)
+        )
         AND (${f.program}::text = '' OR LOWER(TRIM(program)) = LOWER(TRIM(${f.program})))
         AND (
           ${f.q}::text = ''
@@ -36,6 +46,15 @@ export const studentRepository = {
       FROM students
       WHERE archived_at IS NULL
         AND (${f.grade}::text = '' OR LOWER(TRIM(grade_level)) = LOWER(TRIM(${f.grade})))
+        AND (
+          ${f.category ?? ""}::text = ''
+          OR (CASE ${f.category ?? ""}::text
+                WHEN 'elementary' THEN grade_level ~* ${CATEGORY_REGEX.elementary}
+                WHEN 'junior_high' THEN grade_level ~* ${CATEGORY_REGEX.junior_high}
+                WHEN 'senior_high' THEN grade_level ~* ${CATEGORY_REGEX.senior_high}
+                WHEN 'college' THEN grade_level ~* ${CATEGORY_REGEX.college}
+                ELSE false END)
+        )
         AND (${f.program}::text = '' OR LOWER(TRIM(program)) = LOWER(TRIM(${f.program})))
         AND (
           ${f.q}::text = ''

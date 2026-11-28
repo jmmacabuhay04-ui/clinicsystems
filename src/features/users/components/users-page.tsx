@@ -12,6 +12,7 @@ import ConfirmSubmit from "@/components/shared/confirm-submit";
 import FlashMessage from "@/components/shared/flash-message";
 import { canCreateAccounts } from "@/lib/permissions";
 import RoleBadge from "@/components/shared/role-badge";
+import { ACADEMIC_CATEGORIES, ACADEMIC_CATEGORY_LABELS } from "@/lib/academic";
 import RowActionMenu, { type RowAction } from "@/components/shared/row-action-menu";
 import PasswordInput from "@/components/shared/password-input";
 import OtpInput from "@/components/shared/otp-input";
@@ -88,7 +89,7 @@ export default async function UsersPage({ searchParams }: Props) {
     const delUserId = Number(del) || 0;
 
     const users = await prisma.user.findMany({
-        select: { user_id: true, username: true, role: true, created_at: true, avatar: true },
+        select: { user_id: true, username: true, role: true, created_at: true, avatar: true, academic_category: true },
         orderBy: { user_id: "asc" },
     });
 
@@ -100,13 +101,14 @@ export default async function UsersPage({ searchParams }: Props) {
         acc[u.role] = (acc[u.role] ?? 0) + 1;
         return acc;
     }, {});
-    const ROLE_ORDER = ["admin", "ittech", "doctor", "nurse", "dentist"];
+    const ROLE_ORDER = ["admin", "ittech", "doctor", "nurse", "dentist", "academic_head"];
     const ROLE_LABEL: Record<string, string> = {
         admin: "Administrator",
         ittech: "IT Technician",
         doctor: "Doctor",
         nurse: "Nurse",
         dentist: "Dentist",
+        academic_head: "Academic Head",
     };
     const ROLE_ICON: Record<string, React.ReactNode> = {
         admin: <ShieldCheck />,
@@ -114,6 +116,7 @@ export default async function UsersPage({ searchParams }: Props) {
         doctor: <Stethoscope />,
         nurse: <HeartPulse />,
         dentist: <ToothIcon />,
+        academic_head: <Users />,
     };
     const roleFilter = roleParam && ROLE_ORDER.includes(roleParam) ? roleParam : "";
     // Mga card na ipapakita (ayon sa napiling role)
@@ -400,6 +403,14 @@ export default async function UsersPage({ searchParams }: Props) {
                                                     <option value="doctor">Doctor</option>
                                                     <option value="nurse">Nurse</option>
                                                     <option value="dentist">Dentist</option>
+                                                    <option value="academic_head">Academic Head</option>
+                                                </select>
+                                                {/* Category para sa Academic Head lang (ignored kapag ibang role) */}
+                                                <select name="academicCategory" defaultValue={u.academic_category ?? ""} className={`${smallInput} w-full`}>
+                                                    <option value="">Academic category (Academic Head only)</option>
+                                                    {ACADEMIC_CATEGORIES.map((c) => (
+                                                        <option key={c} value={c}>{ACADEMIC_CATEGORY_LABELS[c]}</option>
+                                                    ))}
                                                 </select>
                                                 <ConfirmSubmit
                                                     title="Save changes?"

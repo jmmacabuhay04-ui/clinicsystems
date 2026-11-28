@@ -2,7 +2,8 @@ import { redirect } from "next/navigation";
 import { Search } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
-import { canManageRecords, canManageStudents, canViewHealthRecords, canViewDental, canManageDental } from "@/lib/permissions";
+import { canManageRecords, canManageStudents, canViewHealthRecords, canViewDental, canManageDental, isAcademicHead } from "@/lib/permissions";
+import { categoryOfGrade, isAcademicCategory, type AcademicCategory } from "@/lib/academic";
 import AutoSubmitSelect from "@/components/shared/auto-submit-select";
 import ListPagination from "@/components/shared/list-pagination";
 import { logAccess } from "@/lib/access-log";
@@ -14,6 +15,7 @@ import StudentRecordView, {
     type DentalRow,
     type RecordRow,
     type RecordTab,
+    type CertificateRow,
     type StudentExtras,
 } from "./student-record-view";
 import SearchInput from "@/components/shared/search-input";
@@ -59,12 +61,38 @@ const BASE = "/dashboard/student-health-records";
 
 
 
+/** Mga program na may estudyante sa category (ayon sa grade_level ng bawat estudyante). */
+async function programsInCategory(category: AcademicCategory): Promise<Set<string>> {
+    const pairs = await prisma.$queryRaw<{ grade_level: string | null; program: string }[]>`
+        SELECT DISTINCT grade_level, program FROM students
+        WHERE archived_at IS NULL AND program IS NOT NULL AND TRIM(program) <> ''
+    `;
+    return new Set(
+        pairs
+            .filter((r) => categoryOfGrade(r.grade_level) === category)
+            .map((r) => r.program.trim().toUpperCase())
+    );
+}
+
 export default async function StudentHealthRecordsPage({ searchParams }: Props) {
     const session = await getSession();
     if (!session) redirect("/login");
     // Health records: Admin, Nurse at Doctor.
     // Dentist: makikita ang listahan at ang file ng pasyente, pero Dental Records at Archive Logs lang.
-    const dentalOnly = !canViewHealthRecords(session.role);
+    // Academic Head: read-only, student health records lang ng sariling category (elementary, junior high, senior high, college).
+    const academic = isAcademicHead(session.role);
+    let academicCategory: AcademicCategory | null = null;
+    if (academic) {
+        const me = await prisma.user.findUnique({
+            where: { user_id: Number(session.userId) },
+            select: { academic_category: true },
+        });
+        academicCategory = isAcademicCategory(me?.academic_category) ? me.academic_category : null;
+        if (!academicCategory) redirect("/dashboard");
+    }
+    const academicPrograms: Set<string> | null =
+        academic && academicCategory ? await programsInCategory(academicCategory) : null;
+    const dentalOnly = academic ? false : !canViewHealthRecords(session.role);
     if (dentalOnly && !canViewDental(session.role)) redirect("/dashboard");
 
     const canEdit = canManageRecords(session.role);
@@ -75,14 +103,22 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
         q: (params.q ?? "").trim(),
         grade: (params.grade ?? "").trim(),
         program: (params.program ?? "").trim(),
+        category: academicCategory ?? "",
     };
     const selectedNumber = (params.student ?? "").trim();
     // ?view=history (from the dashboard View button) shows only the Visit History table.
     const historyOnly = (params.view ?? "") === "history";
     // ?record=123 (galing sa dashboard): iyon lang na record ang ipapakita
     const recordId = Number(params.record) || 0;
+    // Medical certificate: nurse at doctor (upload/view); archive/delete nurse lang
+    const isNurse = session.role === "nurse" || session.role === "doctor";
     const tab: RecordTab =
-        params.tab === "cases" || params.tab === "dental" || params.tab === "archive" ? params.tab : "history";
+        params.tab === "cases" ||
+            (params.tab === "dental" && (canViewDental(session.role) || academic)) ||
+            (!academic && params.tab === "archive") ||
+            (isNurse && params.tab === "certificate")
+            ? params.tab
+            : "history";
     const requestedPage = Math.max(1, parseInt(params.page ?? "1", 10) || 1);
 
     // Link pabalik sa listahan na may parehong search/filters/page.
@@ -106,8 +142,10 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
       LIMIT 1
     `;
         const selected = rows[0];
+        // Academic Head: hindi makikita ang estudyanteng wala sa category niya
+        const outOfCategory = academic && categoryOfGrade(selected?.grade_level) !== academicCategory;
 
-        if (!selected) {
+        if (!selected || outOfCategory) {
             return (
                 <main className="min-w-0 space-y-6 p-4 pb-8 md:p-8">
                     <RedirectNotice
@@ -209,25 +247,63 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
             })),
         ].sort((a, b) => new Date(b.archived_at).getTime() - new Date(a.archived_at).getTime());
 
+        // Medical certificate ng estudyante (nurse lang): lahat ng na-upload, pinakabago muna
+        const certificatesAll = isNurse
+            ? await prisma.$queryRaw<CertificateRow[]>`
+        SELECT id, file_name, created_at, archived_at, source
+        FROM student_medical_certificates
+        WHERE student_id = ${selected.student_id}
+        ORDER BY created_at DESC, id DESC
+      `
+            : undefined;
+        // Clinic-issued certificate: doctor lang ang makakakita; nurse, hindi.
+        const certificates =
+            session.role === "doctor"
+                ? certificatesAll
+                : certificatesAll?.filter((c) => c.source !== "clinic");
+
+        // Naka-archive na medical certificate: lumalabas din sa Archive Logs
+        const archivedWithCerts: ArchivedItem[] = [
+            ...archived,
+            ...(certificates ?? [])
+                .filter((c) => c.archived_at)
+                .map((c) => ({
+                    key: `cert-${c.id}`,
+                    kind: "certificate" as const,
+                    date: c.created_at,
+                    complaint: c.file_name,
+                    archived_at: c.archived_at as Date,
+                    caseNumber: null,
+                    certId: c.id,
+                })),
+        ].sort((a, b) => new Date(b.archived_at).getTime() - new Date(a.archived_at).getTime());
+
         return (
-            <StudentRecordView
-                student={selected}
-                extras={extrasRows[0] ?? { avatar: null, address: null, past_history: null }}
-                records={records}
-                cases={cases}
-                archived={archived}
-                dental={dental}
-                showDental={canViewDental(session.role) /* hindi para sa Doctor */}
-                canEditDental={canManageDental(session.role) /* Dentist at Nurse lang */}
-                tab={tab}
-                historyOnly={historyOnly}
-                recordId={recordId}
-                backHref={historyOnly ? "/dashboard" : listHref(requestedPage)}
-                canEdit={canEdit}
-                canEditStudent={canAddStudent}
-                hidePersonal={session.role === "admin"}
-                dentalOnly={dentalOnly}
-            />
+            <>
+                <StudentRecordView
+                    student={selected}
+                    extras={extrasRows[0] ?? { avatar: null, address: null, past_history: null }}
+                    records={records}
+                    cases={cases}
+                    archived={archivedWithCerts}
+                    dental={dental}
+                    showDental={canViewDental(session.role) || academic /* hindi para sa Doctor; kasama ang Academic Head */}
+                    canEditDental={canManageDental(session.role) /* Dentist at Nurse lang */}
+                    tab={tab}
+                    historyOnly={historyOnly}
+                    recordId={recordId}
+                    certificates={certificates}
+                    certificatesManage={session.role === "doctor"}
+                    certificatesDelete={session.role === "nurse"}
+                    certificatesIssue={session.role === "doctor"}
+                    backHref={historyOnly ? "/dashboard" : listHref(requestedPage)}
+                    canEdit={canEdit}
+                    canEditStudent={canAddStudent}
+                    hidePersonal={session.role === "admin"}
+                    hideArchiveTab={academic}
+                    dentalOnly={dentalOnly}
+                />
+            </>
         );
     }
 
@@ -280,19 +356,21 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
                 <form
                     method="get"
                     action={BASE}
+                    noValidate
+                    suppressHydrationWarning
                     className="grid gap-3 p-4 sm:grid-cols-2 md:p-5 lg:grid-cols-[12rem_12rem_minmax(0,1fr)]"
                 >
                     <AutoSubmitSelect
                         name="grade"
                         defaultValue={filters.grade}
-                        options={options.grades}
+                        options={academic ? options.grades.filter((g) => categoryOfGrade(g) === academicCategory) : options.grades}
                         allLabel="All Grade Levels"
                         className={listSelectClass}
                     />
                     <AutoSubmitSelect
                         name="program"
                         defaultValue={filters.program}
-                        options={options.programs}
+                        options={academicPrograms ? options.programs.filter((p) => academicPrograms.has(p.toUpperCase())) : options.programs}
                         allLabel="All Programs"
                         className={listSelectClass}
                     />

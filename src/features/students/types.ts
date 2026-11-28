@@ -59,4 +59,6 @@ export type StudentFilters = {
     q: string;
     grade: string;
     program: string;
+    /** Academic Head: limitado sa category niya (elementary, junior_high, senior_high, college). "" = lahat. */
+    category?: string;
 };

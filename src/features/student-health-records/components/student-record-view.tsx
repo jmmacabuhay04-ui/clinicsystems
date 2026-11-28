@@ -23,6 +23,11 @@ import { archiveRecord } from "@/features/student-health-records/record-actions"
 import { archiveStudent } from "@/features/students/actions";
 import { PAST_HISTORY } from "@/features/student-health-form/form-data";
 import { bmiLabel, formatDate, show } from "../format";
+import MedicalCertificateUpload from "@/features/medical-certificates/components/medical-certificate-upload";
+import MedicalCertificateActions from "@/features/medical-certificates/components/medical-certificate-actions";
+import { FileText } from "lucide-react";
+import { fileNameMatchesStudent } from "@/features/medical-certificates/match";
+import MedicalCertificateIssue from "@/features/medical-certificates/components/medical-certificate-issue";
 
 const BASE = "/dashboard/student-health-records";
 const CASES = "/dashboard/health-case-reports";
@@ -83,12 +88,14 @@ export type CaseRow = {
 
 export type ArchivedItem = {
     key: string;
-    kind: "visit" | "case" | "dental";
+    kind: "visit" | "case" | "dental" | "certificate";
     date: Date;
     /** Complaint (visit/case) o procedure (dental) */
     complaint: string;
     archived_at: Date;
     caseNumber: string | null;
+    /** Id ng medical certificate (kind certificate lang) */
+    certId?: number;
 };
 
 // One row of the merged Visit History table. A clinic visit and a health
@@ -106,7 +113,9 @@ type VisitItem = {
     status: string | null;
 };
 
-export type RecordTab = "history" | "cases" | "dental" | "archive";
+export type RecordTab = "history" | "cases" | "dental" | "archive" | "certificate";
+
+export type CertificateRow = { id: number; file_name: string; created_at: Date; archived_at: Date | null; source: string };
 
 /** Isang dental record ng pasyente (para sa Dental Records tab). */
 export type DentalRow = {
@@ -133,11 +142,21 @@ type Props = {
     historyOnly: boolean;
     /** Galing sa dashboard: ang record na ipapakita lang */
     recordId?: number;
+    /** Medical Certificate ng estudyante (nurse lang; undefined = walang tab) */
+    certificates?: CertificateRow[];
+    /** Nurse lang ang puwedeng mag-archive at mag-delete */
+    certificatesManage?: boolean;
+    /** Delete ng certificate: nurse lang */
+    certificatesDelete?: boolean;
+    /** Doctor lang ang puwedeng mag-issue ng clinic certificate */
+    certificatesIssue?: boolean;
     backHref: string;
     canEdit: boolean;
     canEditStudent: boolean;
     /** Admin: pangalan lang ang ipapakita (walang personal na detalye) */
     hidePersonal?: boolean;
+    /** Itago ang Archive Logs tab (Academic Head) */
+    hideArchiveTab?: boolean;
     /** Dentist: Dental Records tab lang ang makikita (walang health history / case reports) */
     dentalOnly?: boolean;
 };
@@ -220,6 +239,71 @@ function VisitActions({ v, padded }: { v: VisitItem; padded?: boolean }) {
 }
 
 /** Label sa kaliwa, value sa kanan (gaya ng nasa design). */
+// Listahan ng medical certificate (aktibo o naka-archive) na may View, Download, at Archive/Restore.
+function CertificateRows({
+    studentId,
+    rows,
+    studentName,
+    archived = false,
+    canManage = true,
+    canDelete = true,
+}: {
+    studentId: number;
+    rows: CertificateRow[];
+    studentName: { first: string; last: string };
+    archived?: boolean;
+    canManage?: boolean;
+    canDelete?: boolean;
+}) {
+    return (
+        <ul className="divide-y divide-gray-100">
+            {rows.map((c, i) => {
+                const when = archived && c.archived_at ? c.archived_at : c.created_at;
+                const date = new Date(when).toLocaleDateString("en-PH", {
+                    timeZone: "Asia/Manila",
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                });
+                return (
+                    <li key={c.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex min-w-0 items-center gap-3">
+                            <div
+                                className={`shrink-0 rounded-full p-2 ${archived ? "bg-gray-200 text-gray-500" : "bg-[#e8f3ef] text-[#15664f]"}`}
+                            >
+                                <FileText className="h-4 w-4" />
+                            </div>
+                            <div className="min-w-0">
+                                <p className="truncate text-sm font-medium text-gray-900">{c.file_name}</p>
+                                <p className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                                    <span>
+                                        {archived ? "Archived" : c.source === "clinic" ? "Issued" : "Uploaded"} {date}
+                                    </span>
+                                    {c.source === "clinic" && (
+                                        <span className="rounded-full bg-amber-100 px-2 py-0.5 font-semibold text-amber-800">Clinic</span>
+                                    )}
+                                    {!archived && i === 0 && (
+                                        <span className="rounded-full bg-[#e8f3ef] px-2 py-0.5 font-semibold text-[#15664f]">Latest</span>
+                                    )}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex shrink-0 flex-wrap items-center gap-4 sm:justify-end">
+                            <MedicalCertificateActions
+                                studentId={studentId}
+                                certId={c.id}
+                                archived={archived}
+                                canManage={canManage}
+                                allowDelete={canDelete && c.source !== "clinic" && !fileNameMatchesStudent(c.file_name, studentName.first, studentName.last)}
+                            />
+                        </div>
+                    </li>
+                );
+            })}
+        </ul>
+    );
+}
+
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
     return (
         <div className="grid grid-cols-[8.5rem_1fr] gap-3 py-1.5 text-sm">
@@ -552,7 +636,7 @@ function ArchiveTable({ items, showRestoreLink = true }: { items: ArchivedItem[]
                     <li key={a.key} className="rounded-lg border border-gray-300 p-3">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                             <span className="text-sm font-semibold text-gray-600">
-                                {a.kind === "visit" ? "Clinic Visit" : a.kind === "dental" ? "Dental Record" : `Case ${a.caseNumber}`}
+                                {a.kind === "visit" ? "Clinic Visit" : a.kind === "dental" ? "Dental Record" : a.kind === "certificate" ? "Medical Certificate" : `Case ${a.caseNumber}`}
                             </span>
                             <span className="text-sm text-gray-600">Archived {formatDate(a.archived_at)}</span>
                         </div>
@@ -578,7 +662,7 @@ function ArchiveTable({ items, showRestoreLink = true }: { items: ArchivedItem[]
                             <tr key={a.key} className="border-t border-gray-100">
                                 <td className="whitespace-nowrap px-4 py-3 text-gray-900">{formatDate(a.archived_at)}</td>
                                 <td className="whitespace-nowrap px-4 py-3 text-gray-600">
-                                    {a.kind === "visit" ? "Clinic Visit" : a.kind === "dental" ? "Dental Record" : `Case ${a.caseNumber}`}
+                                    {a.kind === "visit" ? "Clinic Visit" : a.kind === "dental" ? "Dental Record" : a.kind === "certificate" ? "Medical Certificate" : `Case ${a.caseNumber}`}
                                 </td>
                                 <td className="whitespace-nowrap px-4 py-3 text-gray-900">{formatDate(a.date)}</td>
                                 <td className="px-4 py-3 text-gray-900">{a.complaint}</td>
@@ -612,10 +696,15 @@ export default function StudentRecordView({
     tab: rawTab,
     historyOnly,
     recordId = 0,
+    certificates,
+    certificatesManage = true,
+    certificatesDelete = true,
+    certificatesIssue = false,
     backHref,
     canEdit,
     canEditStudent,
     hidePersonal = false,
+    hideArchiveTab = false,
     dentalOnly = false,
 }: Props) {
     // Walang dental access (hal. Doctor): huwag ipakita ang Dental Records tab
@@ -626,7 +715,7 @@ export default function StudentRecordView({
         ? requestedTab === "archive"
             ? "archive"
             : "dental"
-        : hidePersonal && requestedTab === "archive"
+        : (hidePersonal || hideArchiveTab) && requestedTab === "archive"
             ? "history"
             : requestedTab;
     // Clinic visits and case reports shown as one timeline, newest first.
@@ -864,11 +953,13 @@ export default function StudentRecordView({
             ? archived
             : archived.filter((a) => a.kind !== "dental");
 
+    const activeCerts = certificates?.filter((c) => !c.archived_at) ?? [];
     const allTabs: { key: RecordTab; label: string; count: number }[] = [
         { key: "history", label: "Clinic Visit", count: clinicVisits.length },
         { key: "cases", label: "Case Reports", count: cases.length },
         ...(showDental ? [{ key: "dental" as const, label: "Dental Records", count: dental.length }] : []),
-        ...(hidePersonal ? [] : [{ key: "archive" as const, label: "Archive Logs", count: archivedShown.length }]),
+        ...(certificates ? [{ key: "certificate" as const, label: "Medical Certificate", count: activeCerts.length }] : []),
+        ...(hidePersonal || hideArchiveTab ? [] : [{ key: "archive" as const, label: "Archive Logs", count: archivedShown.length }]),
     ];
     // Dentist: Dental Records lang
     const tabs = dentalOnly ? allTabs.filter((t) => t.key === "dental" || t.key === "archive") : allTabs;
@@ -1147,6 +1238,51 @@ export default function StudentRecordView({
                         </div>
                     </section>
                 </>
+            )}
+
+            {tab === "certificate" && certificates && (
+                <section className="space-y-6">
+                    <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border-2 border-[#cfe5d9] bg-white p-5 shadow-md shadow-[#15664f]/10">
+                        <div className="flex min-w-0 items-center gap-3">
+                            <div className="shrink-0 rounded-full bg-[#e8f3ef] p-2.5 text-[#15664f]">
+                                <FileText className="h-5 w-5" />
+                            </div>
+                            <div className="min-w-0">
+                                <h2 className="text-lg font-semibold text-[#10523f]">Medical Certificate</h2>
+                                <p className="text-sm text-gray-600">
+                                    Certificates issued outside the school. {activeCerts.length} active
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-4">
+                            {certificatesIssue && (
+                                <MedicalCertificateIssue
+                                    studentId={student.student_id}
+                                    studentLabel={`${student.first_name} ${student.last_name} (${student.student_number})`}
+                                />
+                            )}
+                            <MedicalCertificateUpload
+                                studentId={student.student_id}
+                                studentLabel={`${student.first_name} ${student.last_name} (${student.student_number})`}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="overflow-hidden rounded-xl border-2 border-[#cfe5d9] bg-white shadow-md shadow-[#15664f]/10">
+                        {activeCerts.length === 0 ? (
+                            <p className="p-8 text-center text-sm text-gray-600">No medical certificate uploaded yet.</p>
+                        ) : (
+                            <CertificateRows
+                                studentId={student.student_id}
+                                rows={activeCerts}
+                                studentName={{ first: student.first_name, last: student.last_name }}
+                                canManage={certificatesManage}
+                                canDelete={certificatesDelete}
+                            />
+                        )}
+                    </div>
+
+                </section>
             )}
 
             {tab === "archive" && (

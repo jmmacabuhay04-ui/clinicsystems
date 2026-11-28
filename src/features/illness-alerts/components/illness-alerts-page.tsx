@@ -3,7 +3,8 @@ import { redirect } from "next/navigation";
 import { AlertTriangle, CalendarDays, CheckCircle2, School, ShieldAlert, Thermometer, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
-import { canViewDental, canViewHealthRecords } from "@/lib/permissions";
+import { canViewDental, canViewHealthRecords, isAcademicHead } from "@/lib/permissions";
+import { academicGradeRegex } from "@/lib/academic-scope";
 import DateRangePicker from "./date-range-picker";
 import DownloadReportButton from "./download-report-button";
 import PrintHeader from "@/components/layout/print-header";
@@ -229,8 +230,12 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
     //   - Health records (clinic visit, case report) sa Case Log: Admin, Nurse, Doctor
     //   - Dental reports sa Case Log: Admin, Nurse, Dentist
     // Ang alert level, graph at Illness Breakdown ay bilang lang (walang pangalan), kaya kita ng lahat.
-    const seesHealth = canViewHealthRecords(session.role);
-    const seesDental = canViewDental(session.role);
+    // Academic Head: health data lang ng students sa sariling category (read-only)
+    const gradeRe = await academicGradeRegex(session);
+    const seesHealth = canViewHealthRecords(session.role) || isAcademicHead(session.role);
+    const seesDental = canViewDental(session.role) || isAcademicHead(session.role);
+    // Academic Head: Student lang (walang Employee sa graph, Case Log, at Download)
+    const studentOnly = isAcademicHead(session.role);
     if (!seesHealth && !seesDental) redirect("/dashboard");
 
     const params = await searchParams;
@@ -297,7 +302,8 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
 
     const [studentRows, visits, employeeVisits, reports, dentalRows] = await Promise.all([
         prisma.$queryRaw<{ total: bigint }[]>`
-      SELECT COUNT(*) AS total FROM students WHERE archived_at IS NULL
+      SELECT COUNT(*) AS total FROM students
+      WHERE archived_at IS NULL AND (${gradeRe}::text IS NULL OR grade_level ~* ${gradeRe})
     `,
         prisma.$queryRaw<VisitRow[]>`
       SELECT r.record_id, r.visit_date, r.complaint, r.attending_staff,
@@ -305,6 +311,7 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
       FROM health_records r
       JOIN students s ON s.student_id = r.student_id
       WHERE r.archived_at IS NULL
+        AND (${gradeRe}::text IS NULL OR s.grade_level ~* ${gradeRe})
         AND r.visit_date BETWEEN CAST(${rangeStart} AS DATE) AND CAST(${rangeEnd} AS DATE)
       ORDER BY r.visit_date, r.record_id
     `,
@@ -315,6 +322,7 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
       FROM employee_health_records r
       JOIN employees e ON e.employee_id = r.employee_id
       WHERE r.archived_at IS NULL
+        AND ${gradeRe}::text IS NULL
         AND r.visit_date BETWEEN CAST(${rangeStart} AS DATE) AND CAST(${rangeEnd} AS DATE)
       ORDER BY r.visit_date, r.record_id
     `,
@@ -328,6 +336,7 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
       LEFT JOIN students  s ON s.student_id  = c.student_id
       LEFT JOIN employees e ON e.employee_id = c.employee_id
       WHERE c.archived_at IS NULL
+        AND (${gradeRe}::text IS NULL OR s.grade_level ~* ${gradeRe})
         AND c.report_date BETWEEN CAST(${rangeStart} AS DATE) AND CAST(${rangeEnd} AS DATE)
       ORDER BY c.report_date, c.case_id
     `,
@@ -343,6 +352,7 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
       LEFT JOIN students  s ON s.student_id  = d.student_id
       LEFT JOIN employees e ON e.employee_id = d.employee_id
       WHERE d.archived_at IS NULL
+        AND (${gradeRe}::text IS NULL OR s.grade_level ~* ${gradeRe})
         AND d.visit_date BETWEEN CAST(${rangeStart} AS DATE) AND CAST(${rangeEnd} AS DATE)
       ORDER BY d.visit_date, d.dental_id
     `,
@@ -419,7 +429,7 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
     cases.length = 0;
     // All / Student / Employee (pindutan sa itaas ng graph): sinasala na rito ang LAHAT ng record,
     // kaya sumusunod ang mga card sa itaas, alert level, graph, Illness Breakdown, Case Log at Download Report.
-    const whoFilter = params.who === "student" || params.who === "employee" ? params.who : "";
+    const whoFilter = studentOnly ? "student" : params.who === "student" || params.who === "employee" ? params.who : "";
     const inWho = (t: string | null) => !whoFilter || (t === "employee" ? "employee" : "student") === whoFilter;
     // Dentist: dental records LANG ang makikita sa buong page (walang clinic visit / case report)
     const dentalOnly = seesDental && !seesHealth;
@@ -628,7 +638,7 @@ export default async function IllnessAlertsPage({ searchParams }: Props) {
         { key: "", label: "All", active: "bg-[#15664f] text-white" },
         { key: "student", label: "Student", active: "bg-[#15664f] text-white" },
         { key: "employee", label: "Employee", active: "bg-amber-300 text-gray-900" },
-    ];
+    ].filter((t) => !studentOnly || t.key === "student");
 
     // Busiest day decides the alert level
     const peak = daily.reduce((best, d) => (d.count > best.count ? d : best), daily[0]);

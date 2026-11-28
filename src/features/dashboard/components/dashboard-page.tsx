@@ -517,12 +517,14 @@ function VisitReasons({
     showClinic,
     showDental,
     showReports,
+    accent = "green",
 }: {
     reasons: Reason[];
     range: ReasonRange;
     showClinic: boolean;
     showDental: boolean;
     showReports: boolean;
+    accent?: "green" | "yellow";
 }) {
     const kinds = [
         ...(showClinic ? (["clinic"] as const) : []),
@@ -546,6 +548,7 @@ function VisitReasons({
             <ReasonTabs
                 reasons={reasons.map(({ label, clinic, dental, reports, direct }) => ({ label, clinic, dental, reports, direct }))}
                 kinds={[...kinds]}
+                accent={accent}
                 emptyText={`No visits ${RANGE_LABEL[range].toLowerCase()} yet.`}
             />
         </CardShell>
@@ -1289,6 +1292,8 @@ export default async function DashboardPage({
     // NOTE: adjust the href values below to match your actual routes.
     // Add Student / Add Employee: nurse lang (wala sa doctor at dentist)
     const canAddPeople = role === "nurse";
+    // Walang Quick Actions ang admin (view-only) at ang Academic Head (read-only)
+    const showQuick = role !== "admin" && role !== "academic_head";
     const quickActions: QuickAction[] = [
         ...(canAddPeople
             ? [
@@ -1362,6 +1367,19 @@ export default async function DashboardPage({
                     icon: ToothIcon,
                     cardClass:
                         "border-gray-100 bg-white hover:border-[#15664f]/30 hover:bg-[#eef6f2] hover:shadow-md hover:shadow-[#15664f]/10",
+                    iconClass: TILE_ICON,
+                },
+            ]
+            : []),
+        // Doctor: mag-issue ng clinic medical certificate (pipili muna ng estudyante)
+        ...(isDoctor
+            ? [
+                {
+                    label: "Issue Certificate",
+                    description: "Find a student to issue a clinic certificate",
+                    href: "/dashboard/student-health-records",
+                    icon: FileText,
+                    cardClass: "border-gray-100 bg-white hover:border-[#15664f]/30 hover:bg-[#eef6f2] hover:shadow-md hover:shadow-[#15664f]/10",
                     iconClass: TILE_ICON,
                 },
             ]
@@ -1459,7 +1477,7 @@ export default async function DashboardPage({
                 - Doctor: pending case reports
                 - Nurse: pending case reports + dental follow-ups + password requests
                 - Dentist: dental follow-ups */}
-            {role !== "admin" && (
+            {role !== "admin" && role !== "academic_head" && (
                 <NotificationBell
                     items={[
                         ...(!isDentist
@@ -1549,7 +1567,7 @@ export default async function DashboardPage({
 
             {/* Chart | Visit Reasons | Quick Actions (gaya ng reference) */}
             <section
-                className={`grid gap-5 lg:grid-cols-2 ${role !== "admin" && quickActions.length > 0
+                className={`grid gap-5 lg:grid-cols-2 ${showQuick && quickActions.length > 0
                     ? "xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,0.85fr)]"
                     : "xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]"
                     }`}
@@ -1567,9 +1585,10 @@ export default async function DashboardPage({
                     showClinic={!isDentist}
                     showDental={!isDoctor}
                     showReports={!isDentist}
+                    accent={isDentist ? "yellow" : "green"}
                 />
                 {/* Walang Quick Actions ang admin (view-only) */}
-                {role !== "admin" && quickActions.length > 0 && (
+                {showQuick && quickActions.length > 0 && (
                     <QuickActionsSection actions={quickActions} className="lg:col-span-2 xl:col-span-1" />
                 )}
             </section>

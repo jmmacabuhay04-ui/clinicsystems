@@ -17,6 +17,7 @@ model User {
   two_factor           Boolean              @default(false)
   full_name            String?              @db.VarChar(100)
   must_change_password Boolean              @default(false)
+  academic_category    String?              @db.VarChar(20)
   avatar               String?
   avatar_url           String?
   reset_tokens         PasswordResetToken[]

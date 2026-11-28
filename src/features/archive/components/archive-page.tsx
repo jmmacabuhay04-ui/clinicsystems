@@ -31,6 +31,8 @@ import { deleteCase, restoreCase } from "@/features/case-reports/case-actions";
 import { deleteDental, restoreDental } from "@/features/dental-records/actions";
 import { deleteSlip, restoreSlip } from "@/features/referral-slips/actions";
 import { deleteVisitor, restoreVisitor } from "@/features/visitor-logs/actions";
+import { deleteMedicalCertificate, restoreMedicalCertificate } from "@/features/medical-certificates/actions";
+import { deletableOn } from "@/lib/retention";
 import { deleteStaff, restoreStaff } from "@/features/clinic-staff/actions";
 import {
     restoreStudentForm,
@@ -134,6 +136,16 @@ type ArchivedSlip = {
     slip_date: Date;
     status: string;
     archived_at: Date;
+};
+
+type ArchivedCertificate = {
+    id: number;
+    file_name: string;
+    created_at: Date;
+    archived_at: Date;
+    student_number: string;
+    last_name: string;
+    first_name: string;
 };
 
 type ArchivedVisitor = {
@@ -437,8 +449,9 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
     const canEditDental = canManageDental(session.role); // nurse, dentist
     const canEditSlips = canManageReferrals(session.role); // nurse, doctor, dentist
     const canEditVisitors = canManageVisitors(session.role); // nurse, doctor, dentist
+    const canEditCerts = session.role === "nurse"; // medical certificate: nurse lang
 
-    const [students, employees, records, employeeRecords, cases, dental, slips, visitors, staff] =
+    const [students, employees, records, employeeRecords, cases, dental, slips, visitors, staff, certificates] =
         await Promise.all([
             prisma.$queryRaw<ArchivedStudent[]>`
       SELECT s.student_id, s.student_number, s.last_name, s.first_name,
@@ -543,6 +556,16 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
              OR position ILIKE ${like} OR COALESCE(email, '') ILIKE ${like})
       ORDER BY archived_at DESC
     `,
+            prisma.$queryRaw<ArchivedCertificate[]>`
+      SELECT c.id, c.file_name, c.created_at, c.archived_at,
+             s.student_number, s.last_name, s.first_name
+      FROM student_medical_certificates c
+      JOIN students s ON s.student_id = c.student_id
+      WHERE c.archived_at IS NOT NULL
+        AND (${q}::text = '' OR s.last_name ILIKE ${like} OR s.first_name ILIKE ${like}
+             OR s.student_number ILIKE ${like} OR c.file_name ILIKE ${like})
+      ORDER BY c.archived_at DESC
+    `,
         ]);
 
     const total =
@@ -554,7 +577,8 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
         dental.length +
         slips.length +
         visitors.length +
-        staff.length;
+        staff.length +
+        certificates.length;
 
     /* ---------------- Students ---------------- */
     const studentItems: Item[] = students.map((s) => {
@@ -903,6 +927,45 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
         };
     });
 
+    /* ---------------- Medical certificates (nurse lang; retention 5 taon) ---------------- */
+    const certificateItems: Item[] = certificates.map((c) => {
+        const name = `${c.last_name}, ${c.first_name}`;
+        const archivedLabel = formatDate(c.archived_at);
+        const deleteOn = deletableOn(c.archived_at, "certificate");
+        const deleteLabel = deleteOn ? formatDate(deleteOn) : "—";
+        return {
+            key: c.id,
+            title: c.file_name,
+            sub: c.student_number,
+            fields: [
+                { label: "Student", value: name },
+                { label: "Archived On", value: archivedLabel },
+                { label: "Delete After", value: deleteLabel },
+            ],
+            cells: [c.student_number, name, c.file_name, archivedLabel, deleteLabel],
+            actions: canEditCerts ? (
+                <>
+                    <RestoreForm
+                        action={restoreMedicalCertificate}
+                        name="certId"
+                        value={c.id}
+                        title="Restore certificate"
+                        message={`Restore ${c.file_name}?`}
+                    />
+                    <DeleteForm
+                        action={deleteMedicalCertificate}
+                        kind="certificate"
+                        name="certId"
+                        value={c.id}
+                        archivedAt={c.archived_at}
+                        title="Delete certificate"
+                        message={`Permanently delete ${c.file_name}? This cannot be undone.`}
+                    />
+                </>
+            ) : undefined,
+        };
+    });
+
     /* ---------------- Health forms (Student, Employee, Dental, Health Declaration) ---------------- */
     const [studentForms, employeeForms, dentalForms, declarationForms] = await Promise.all([
         prisma.$queryRaw<ArchivedHealthForm[]>`
@@ -1163,6 +1226,22 @@ export default async function ArchiveRecordsPage({ searchParams }: Props) {
                 { label: "Purpose", td: "text-gray-900" },
                 { label: "Visit Date", nowrap: true, td: "whitespace-nowrap text-gray-600" },
                 { label: "Time", nowrap: true, td: "whitespace-nowrap text-gray-600" },
+            ],
+        },
+        {
+            key: "certificates",
+            label: "Medical Certificates",
+            title: "Medical Certificate",
+            icon: FileText as IconType,
+            empty: "No archived medical certificates.",
+            showActions: canEditCerts,
+            items: certificateItems,
+            columns: [
+                { label: "Student Number", nowrap: true, td: "font-medium text-gray-900" },
+                { label: "Name", td: "font-semibold text-gray-900" },
+                { label: "File", td: "text-gray-900" },
+                { label: "Archived On", nowrap: true, td: "whitespace-nowrap text-gray-600" },
+                { label: "Delete After", nowrap: true, td: "whitespace-nowrap text-gray-600" },
             ],
         },
         {

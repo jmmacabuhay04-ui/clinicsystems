@@ -3,7 +3,13 @@ export const ROLE_LABELS: Record<string, string> = {
     doctor: "Doctor",
     dentist: "Dentist",
     nurse: "Nurse",
+    academic_head: "Academic Head",
 };
+
+/** Academic Head: read-only, student health records lang ng sariling category. */
+export function isAcademicHead(role: string) {
+    return norm(role) === "academic_head";
+}
 
 /** "Doctor " / "DOCTOR" -> "doctor", para hindi makalusot dahil sa laki ng letra o espasyo. */
 function norm(role: unknown) {

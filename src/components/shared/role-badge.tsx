@@ -36,6 +36,12 @@ export const ROLE_STYLES: Record<string, RoleStyle> = {
         dot: "bg-violet-300",
         dotLight: "bg-violet-500",
     },
+    academic_head: {
+        label: "Academic Head",
+        light: "bg-amber-50 text-amber-800 ring-amber-600/25",
+        dot: "bg-amber-300",
+        dotLight: "bg-amber-500",
+    },
 };
 
 const FALLBACK: RoleStyle = {

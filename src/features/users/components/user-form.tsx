@@ -5,6 +5,7 @@ import { UserPlus } from "lucide-react";
 import { createUser, type CreateUserState } from "@/features/users/actions";
 import PasswordInput from "@/components/shared/password-input";
 import FlashMessage from "@/components/shared/flash-message";
+import { ACADEMIC_CATEGORIES, ACADEMIC_CATEGORY_LABELS } from "@/lib/academic";
 
 const initialState: CreateUserState = {};
 
@@ -77,6 +78,18 @@ export default function UserForm({ allowAdmin = false }: { allowAdmin?: boolean 
                     <option value="dentist">Dentist</option>
                     <option value="nurse">Nurse</option>
                     <option value="ittech">IT Technician</option>
+                    <option value="academic_head">Academic Head</option>
+                </select>
+            </label>
+
+            {/* Category para sa Academic Head lang (ignored kapag ibang role) */}
+            <label htmlFor="academic-category" className="block space-y-1.5">
+                <span className="text-sm font-semibold text-gray-800">Academic Category (Academic Head only)</span>
+                <select id="academic-category" name="academicCategory" defaultValue="" suppressHydrationWarning className={fieldClass}>
+                    <option value="">Select category</option>
+                    {ACADEMIC_CATEGORIES.map((c) => (
+                        <option key={c} value={c}>{ACADEMIC_CATEGORY_LABELS[c]}</option>
+                    ))}
                 </select>
             </label>
 

@@ -18,11 +18,16 @@ export default function ReasonTabs({
     reasons,
     kinds,
     emptyText,
+    accent = "green",
 }: {
     reasons: ReasonData[];
     kinds: ("clinic" | "dental" | "reports")[];
     emptyText: string;
+    /** Dentist: yellow ang donut at total */
+    accent?: "green" | "yellow";
 }) {
+    const palette = accent === "yellow" ? ["#eab308", "#15664f", "#3b82f6", "#e11d48", "#9ca3af"] : COLORS;
+    const totalClass = accent === "yellow" ? "text-yellow-600" : "text-[#15664f]";
     const tabs: Kind[] = kinds.length > 1 ? ["all", ...kinds] : kinds;
     const [tab, setTab] = useState<Kind>(tabs[0] ?? "all");
 
@@ -41,8 +46,8 @@ export default function ReasonTabs({
     const top = list.slice(0, 4);
     const othersValue = list.slice(4).reduce((sum, r) => sum + r.value, 0);
     const segments = [
-        ...top.map((r, i) => ({ ...r, color: COLORS[i] })),
-        ...(othersValue > 0 ? [{ label: "Others", value: othersValue, color: COLORS[4] }] : []),
+        ...top.map((r, i) => ({ ...r, color: palette[i] })),
+        ...(othersValue > 0 ? [{ label: "Others", value: othersValue, color: palette[4] }] : []),
     ];
     const total = segments.reduce((sum, s) => sum + s.value, 0);
 
@@ -106,7 +111,7 @@ export default function ReasonTabs({
                         </svg>
                         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
                             <span className="text-sm text-gray-600">Total</span>
-                            <span className="text-2xl font-bold leading-tight text-[#15664f]">{total}</span>
+                            <span className={`text-2xl font-bold leading-tight ${totalClass}`}>{total}</span>
                         </div>
                     </div>
 

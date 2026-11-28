@@ -4,7 +4,8 @@ import { CalendarDays, ClipboardList, Plus, Search, X } from "lucide-react";
 import TabSelect, { ToothIcon } from "@/components/shared/tab-select";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
-import { canManageDental, canManageRecords, canViewDental, canViewHealthRecords } from "@/lib/permissions";
+import { canManageDental, canManageRecords, canViewDental, canViewHealthRecords, isAcademicHead } from "@/lib/permissions";
+import { academicGradeRegex } from "@/lib/academic-scope";
 import ConfirmLink from "@/components/shared/confirm-link";
 import RowActionMenu, { type RowAction } from "@/components/shared/row-action-menu";
 import AutoSubmitSelect from "@/components/shared/auto-submit-select";
@@ -170,8 +171,11 @@ function TypeBadge({ type }: { type: string }) {
 export default async function HealthCaseReportsPage({ searchParams }: Props) {
     const session = await getSession();
     if (!session) redirect("/login");
-    const showHealth = canViewHealthRecords(session.role); // Admin, Nurse, Doctor
-    const showDental = canViewDental(session.role); // Admin, Nurse, Dentist
+    // Academic Head: health report lang, read-only, student ng sariling category
+    const academic = isAcademicHead(session.role);
+    const gradeRe = await academicGradeRegex(session);
+    const showHealth = canViewHealthRecords(session.role) || academic; // Admin, Nurse, Doctor, Academic Head
+    const showDental = canViewDental(session.role) || academic; // Admin, Nurse, Dentist; Academic Head (read-only, sariling category)
     if (!showHealth && !showDental) redirect("/dashboard");
 
     const params = await searchParams;
@@ -182,7 +186,8 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
 
     // ?case=<id>: ipakita ang isang case report (kapareho ng Dental Visit Record)
     const viewCaseId = parseInt(params.case ?? "", 10);
-    if (viewCaseId > 0 && showHealth) {
+    // Academic Head: walang detail view (listahan lang)
+    if (viewCaseId > 0 && showHealth && !academic) {
         return (
             <CaseRecordDetail
                 caseId={viewCaseId}
@@ -194,7 +199,7 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
 
     // ?kind=dental&record=<id>: ipakita ang isang dental report (kapareho ng View Report sa Health)
     const viewRecordId = parseInt(params.record ?? "", 10);
-    if (viewRecordId > 0 && showDental) {
+    if (viewRecordId > 0 && showDental && !academic) {
         return (
             <DentalRecordDetail
                 dentalId={viewRecordId}
@@ -208,7 +213,8 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
     const rawStatus = (params.status ?? "").trim().toLowerCase();
     const status = statusList.includes(rawStatus) ? rawStatus : "";
     const rawType = (params.type ?? "").trim().toLowerCase();
-    const type = rawType in TYPES ? rawType : "";
+    // Academic Head: Student lang
+    const type = academic ? "student" : rawType in TYPES ? rawType : "";
     // Health Report lang: Visit (galing Clinic Visit) o Case (New Case Report)
     const rawSource = (params.source ?? "").trim().toLowerCase();
     const source = !isDental && rawSource in SOURCES ? rawSource : "";
@@ -268,6 +274,7 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
         AND (${diagnosis} = '' OR LOWER(TRIM(d.procedure_name)) = LOWER(${diagnosis}))
         AND (${from} = '' OR d.visit_date >= CAST(NULLIF(${from}, '') AS DATE))
         AND (${to} = '' OR d.visit_date <= CAST(NULLIF(${to}, '') AS DATE))
+        AND (${gradeRe}::text IS NULL OR s.grade_level ~* ${gradeRe})
         AND (${q} = ''
             OR COALESCE(s.last_name, e.last_name) ILIKE ${like}
             OR COALESCE(s.first_name, e.first_name) ILIKE ${like}
@@ -290,6 +297,7 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
         AND (${diagnosis} = '' OR LOWER(TRIM(d.procedure_name)) = LOWER(${diagnosis}))
         AND (${from} = '' OR d.visit_date >= CAST(NULLIF(${from}, '') AS DATE))
         AND (${to} = '' OR d.visit_date <= CAST(NULLIF(${to}, '') AS DATE))
+        AND (${gradeRe}::text IS NULL OR s.grade_level ~* ${gradeRe})
         AND (${q} = ''
             OR COALESCE(s.last_name, e.last_name) ILIKE ${like}
             OR COALESCE(s.first_name, e.first_name) ILIKE ${like}
@@ -320,6 +328,7 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
         LEFT JOIN students  s ON s.student_id  = c.student_id
         LEFT JOIN employees e ON e.employee_id = c.employee_id
         WHERE c.archived_at IS NULL
+        AND (${gradeRe}::text IS NULL OR s.grade_level ~* ${gradeRe})
         AND (${status} = '' OR c.status = ${status})
         AND (${type} = ''
             OR (${type} = 'employee' AND c.employee_id IS NOT NULL)
@@ -359,6 +368,7 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
         LEFT JOIN students  s ON s.student_id  = c.student_id
         LEFT JOIN employees e ON e.employee_id = c.employee_id
         WHERE c.archived_at IS NULL
+        AND (${gradeRe}::text IS NULL OR s.grade_level ~* ${gradeRe})
         AND (${status} = '' OR c.status = ${status})
         AND (${type} = ''
             OR (${type} = 'employee' AND c.employee_id IS NOT NULL)
@@ -425,8 +435,12 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
     const kindRows =
         showHealth && showDental
             ? await prisma.$queryRaw<{ health: number; dental: number }[]>`
-                SELECT (SELECT COUNT(*) FROM health_case_reports WHERE archived_at IS NULL)::int AS health,
-                       (SELECT COUNT(*) FROM dental_records WHERE archived_at IS NULL)::int AS dental
+                SELECT (SELECT COUNT(*) FROM health_case_reports c
+                        LEFT JOIN students s ON s.student_id = c.student_id
+                        WHERE c.archived_at IS NULL AND (${gradeRe}::text IS NULL OR s.grade_level ~* ${gradeRe}))::int AS health,
+                       (SELECT COUNT(*) FROM dental_records d
+                        LEFT JOIN students s ON s.student_id = d.student_id
+                        WHERE d.archived_at IS NULL AND (${gradeRe}::text IS NULL OR s.grade_level ~* ${gradeRe}))::int AS dental
               `
             : [];
     const kindCounts = { health: kindRows[0]?.health ?? 0, dental: kindRows[0]?.dental ?? 0 };
@@ -630,7 +644,7 @@ export default async function HealthCaseReportsPage({ searchParams }: Props) {
                         <AutoSubmitSelect
                             name="type"
                             defaultValue={TYPES[type] ?? ""}
-                            options={Object.values(TYPES)}
+                            options={academic ? [TYPES.student] : Object.values(TYPES)}
                             className={`${fieldClass} px-3`}
                         />
                     </label>

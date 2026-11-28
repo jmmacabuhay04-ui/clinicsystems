@@ -22,6 +22,7 @@ const ROLE_STYLES: Record<string, string> = {
     dentist: "bg-cyan-100 text-cyan-800",
     nurse: "bg-rose-100 text-rose-800",
     ittech: "bg-violet-100 text-violet-800",
+    academic_head: "bg-amber-50 text-amber-900 border border-amber-200",
 };
 
 const ACTION_STYLES: Record<string, string> = {

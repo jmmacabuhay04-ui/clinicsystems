@@ -7,13 +7,14 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { canCreateAccounts } from "@/lib/permissions";
 import { validatePasswordStrength } from "@/lib/auth/password-policy";
+import { isAcademicCategory } from "@/lib/academic";
 
 export type CreateUserState = {
     error?: string;
     success?: string;
 };
 
-const ROLES = ["admin", "nurse", "doctor", "dentist", "ittech"];
+const ROLES = ["admin", "nurse", "doctor", "dentist", "ittech", "academic_head"];
 
 /**
  * Checks the password against the system-wide policy, and against the
@@ -46,6 +47,11 @@ export async function createUser(
     if (!email || !password || !role) return { error: "All fields are required." };
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "Enter a valid email address." };
     if (!ROLES.includes(role)) return { error: "Invalid role." };
+    // Academic Head: kailangan ng category (Elementary, Junior High, Senior High, o College)
+    const academicCategory = String(formData.get("academicCategory") ?? "");
+    if (role === "academic_head" && !isAcademicCategory(academicCategory)) {
+        return { error: "Select a category for the Academic Head." };
+    }
     // Security: Administrator lang ang puwedeng gumawa ng Administrator account
     // (para hindi makagawa ang IT Tech ng account na may access sa lahat ng records)
     if (role === "admin" && session.role !== "admin") {
@@ -62,7 +68,12 @@ export async function createUser(
     const hashed = await bcrypt.hash(password, 12);
 
     await prisma.user.create({
-        data: { username: email, password: hashed, role },
+        data: {
+            username: email,
+            password: hashed,
+            role,
+            academic_category: role === "academic_head" ? academicCategory : null,
+        },
     });
 
     revalidatePath("/dashboard/users");
@@ -87,7 +98,12 @@ export async function updateUser(formData: FormData) {
     const username = String(formData.get("username") ?? "").trim().toLowerCase();
     const role = String(formData.get("role") ?? "");
 
+    const academicCategory = String(formData.get("academicCategory") ?? "");
+
     if (!userId || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(username) || !ROLES.includes(role)) {
+        redirect(`${BACK}?reset=invalid`);
+    }
+    if (role === "academic_head" && !isAcademicCategory(academicCategory)) {
         redirect(`${BACK}?reset=invalid`);
     }
 
@@ -114,10 +130,9 @@ export async function updateUser(formData: FormData) {
 
     await prisma.user.update({
         where: { user_id: userId },
-        data: { username, role },
+        data: { username, role, academic_category: role === "academic_head" ? academicCategory : null },
     });
 
     revalidatePath(BACK);
     redirect(`${BACK}?reset=updated`);
 }
-
