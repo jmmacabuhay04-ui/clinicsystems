@@ -220,6 +220,7 @@ export default async function EmployeeHealthRecordsPage({ searchParams }: Props)
                 backHref={historyOnly ? "/dashboard" : listHref(page)}
                 canEdit={canEditRecords}
                 canEditEmployee={canEditEmployees}
+                canArchiveRecords={!["doctor", "dentist"].includes(session.role)}
                 hidePersonal={session.role === "admin"}
                 dentalOnly={dentalOnly}
             />

@@ -301,6 +301,7 @@ export default async function StudentHealthRecordsPage({ searchParams }: Props) 
                     canEditStudent={canAddStudent}
                     hidePersonal={session.role === "admin"}
                     hideArchiveTab={academic}
+                    canArchiveRecords={!["doctor", "dentist"].includes(session.role)}
                     dentalOnly={dentalOnly}
                 />
             </>

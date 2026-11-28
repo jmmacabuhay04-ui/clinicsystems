@@ -134,6 +134,8 @@ type Props = {
     backHref: string;
     canEdit: boolean;
     canEditEmployee: boolean;
+    /** Archive ng visit at case report: hindi para sa Doctor at Dentist */
+    canArchiveRecords?: boolean;
     /** Admin: pangalan lang ang ipapakita (walang personal na detalye) */
     hidePersonal?: boolean;
     /** Dentist: Dental Records tab lang ang makikita (walang health history / case reports) */
@@ -173,7 +175,7 @@ function StatusBadge({ status }: { status: string | null }) {
     );
 }
 
-function VisitActions({ v, padded }: { v: VisitItem; padded?: boolean }) {
+function VisitActions({ v, padded, canArchive = true }: { v: VisitItem; padded?: boolean; canArchive?: boolean }) {
     const py = padded ? "py-1 " : "";
     if (v.kind === "visit") {
         return (
@@ -188,18 +190,20 @@ function VisitActions({ v, padded }: { v: VisitItem; padded?: boolean }) {
                     <Pencil className="h-3.5 w-3.5" />
                     Edit
                 </ConfirmLink>
-                <form action={archiveEmployeeRecord}>
-                    <input type="hidden" name="recordId" value={v.id} />
-                    <ConfirmButton
-                        title="Archive visit record"
-                        confirmLabel="Archive"
-                        message={`Archive this visit (${formatDate(v.date)} - ${v.complaint})? It will move to Archive Records. You can restore it later.`}
-                        className={`inline-flex items-center gap-1 ${py}font-medium text-amber-700 hover:underline`}
-                    >
-                        <Archive className="h-3.5 w-3.5" />
-                        Archive
-                    </ConfirmButton>
-                </form>
+                {canArchive && (
+                    <form action={archiveEmployeeRecord}>
+                        <input type="hidden" name="recordId" value={v.id} />
+                        <ConfirmButton
+                            title="Archive visit record"
+                            confirmLabel="Archive"
+                            message={`Archive this visit (${formatDate(v.date)} - ${v.complaint})? It will move to Archive Records. You can restore it later.`}
+                            className={`inline-flex items-center gap-1 ${py}font-medium text-amber-700 hover:underline`}
+                        >
+                            <Archive className="h-3.5 w-3.5" />
+                            Archive
+                        </ConfirmButton>
+                    </form>
+                )}
             </>
         );
     }
@@ -242,7 +246,7 @@ function Empty({ children }: { children: React.ReactNode }) {
 
 // ------------------------------------------------------------------ tables
 
-function VisitTable({ visits, canEdit }: { visits: VisitItem[]; canEdit: boolean }) {
+function VisitTable({ visits, canEdit, canArchive = true }: { visits: VisitItem[]; canEdit: boolean; canArchive?: boolean }) {
     if (visits.length === 0) return <Empty>No clinic visits recorded yet.</Empty>;
 
     return (
@@ -272,7 +276,7 @@ function VisitTable({ visits, canEdit }: { visits: VisitItem[]; canEdit: boolean
                         </dl>
                         {canEdit && (
                             <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-gray-100 pt-2 text-sm">
-                                <VisitActions v={v} padded />
+                                <VisitActions v={v} padded canArchive={canArchive} />
                             </div>
                         )}
                     </li>
@@ -309,7 +313,7 @@ function VisitTable({ visits, canEdit }: { visits: VisitItem[]; canEdit: boolean
                                 {canEdit && (
                                     <td className="whitespace-nowrap px-4 py-3">
                                         <div className="flex items-center gap-3">
-                                            <VisitActions v={v} />
+                                            <VisitActions v={v} canArchive={canArchive} />
                                         </div>
                                     </td>
                                 )}
@@ -322,7 +326,17 @@ function VisitTable({ visits, canEdit }: { visits: VisitItem[]; canEdit: boolean
     );
 }
 
-function CaseTable({ cases, canEdit, archiveReturnTo }: { cases: CaseRow[]; canEdit: boolean; archiveReturnTo: string }) {
+function CaseTable({
+    cases,
+    canEdit,
+    archiveReturnTo,
+    canArchive = true,
+}: {
+    cases: CaseRow[];
+    canEdit: boolean;
+    archiveReturnTo: string;
+    canArchive?: boolean;
+}) {
     if (cases.length === 0) return <Empty>No health case reports for this employee.</Empty>;
 
     // Edit + Archive (pagka-archive, diretso sa Archive Logs tab).
@@ -341,7 +355,7 @@ function CaseTable({ cases, canEdit, archiveReturnTo }: { cases: CaseRow[]; canE
                     Edit
                 </ConfirmLink>
             )}
-            {canEdit && (
+            {canEdit && canArchive && (
                 <form action={archiveCase}>
                     <input type="hidden" name="caseId" value={c.case_id} />
                     <input type="hidden" name="returnTo" value={archiveReturnTo} />
@@ -439,7 +453,17 @@ function toothText(value: string | null) {
     return value;
 }
 
-function DentalTable({ rows, patientParam, canEdit }: { rows: DentalRow[]; patientParam: string; canEdit: boolean }) {
+function DentalTable({
+    rows,
+    patientParam,
+    canEdit,
+    canArchive = true,
+}: {
+    rows: DentalRow[];
+    patientParam: string;
+    canEdit: boolean;
+    canArchive?: boolean;
+}) {
     if (rows.length === 0) return <Empty>No dental records for this employee.</Empty>;
 
     // Pagkatapos i-archive, babalik dito sa Dental Records tab
@@ -461,19 +485,21 @@ function DentalTable({ rows, patientParam, canEdit }: { rows: DentalRow[]; patie
                     <Pencil className="h-3.5 w-3.5" />
                     Edit
                 </ConfirmLink>
-                <form action={archiveDental}>
-                    <input type="hidden" name="dentalId" value={d.dental_id} />
-                    <input type="hidden" name="returnTo" value={archiveReturnTo} />
-                    <ConfirmButton
-                        title="Archive dental record"
-                        confirmLabel="Archive"
-                        message={`Archive this dental record (${formatDate(d.visit_date)} - ${d.procedure_name})? It will move to Archive Logs. You can restore it later in Archive Records.`}
-                        className="inline-flex items-center gap-1 font-medium text-amber-700 hover:underline"
-                    >
-                        <Archive className="h-3.5 w-3.5" />
-                        Archive
-                    </ConfirmButton>
-                </form>
+                {canArchive && (
+                    <form action={archiveDental}>
+                        <input type="hidden" name="dentalId" value={d.dental_id} />
+                        <input type="hidden" name="returnTo" value={archiveReturnTo} />
+                        <ConfirmButton
+                            title="Archive dental record"
+                            confirmLabel="Archive"
+                            message={`Archive this dental record (${formatDate(d.visit_date)} - ${d.procedure_name})? It will move to Archive Logs. You can restore it later in Archive Records.`}
+                            className="inline-flex items-center gap-1 font-medium text-amber-700 hover:underline"
+                        >
+                            <Archive className="h-3.5 w-3.5" />
+                            Archive
+                        </ConfirmButton>
+                    </form>
+                )}
             </>
         ) : (
             <span className="text-gray-600">—</span>
@@ -613,6 +639,7 @@ export default function EmployeeRecordView({
     backHref,
     canEdit,
     canEditEmployee,
+    canArchiveRecords = true,
     hidePersonal = false,
     dentalOnly = false,
 }: Props) {
@@ -1040,7 +1067,7 @@ export default function EmployeeRecordView({
                             <p className="text-sm text-gray-600">All clinic visits, newest first. Case reports are in the Case Reports tab.</p>
                         </div>
                         <div className="overflow-hidden rounded-xl border-2 border-[#cfe5d9] bg-white shadow-md shadow-[#15664f]/10">
-                            <VisitTable visits={clinicVisits} canEdit={canEdit} />
+                            <VisitTable visits={clinicVisits} canEdit={canEdit} canArchive={canArchiveRecords} />
                         </div>
                     </section>
                 </>
@@ -1086,6 +1113,7 @@ export default function EmployeeRecordView({
                             <CaseTable
                                 cases={cases}
                                 canEdit={canEdit}
+                                canArchive={canArchiveRecords}
                                 archiveReturnTo={`/dashboard/employee-health-records?employee=${encodeURIComponent(employee.employee_number)}&tab=archive`}
                             />
                         </div>
@@ -1129,7 +1157,7 @@ export default function EmployeeRecordView({
                             <p className="text-sm text-gray-600">All dental visits, newest first.</p>
                         </div>
                         <div className="overflow-hidden rounded-xl border-2 border-[#cfe5d9] bg-white shadow-md shadow-[#15664f]/10">
-                            <DentalTable canEdit={canEditDental} rows={dental} patientParam={`employee=${encodeURIComponent(employee.employee_number)}`} />
+                            <DentalTable canEdit={canEditDental} canArchive={canArchiveRecords} rows={dental} patientParam={`employee=${encodeURIComponent(employee.employee_number)}`} />
                         </div>
                     </section>
                 </>
